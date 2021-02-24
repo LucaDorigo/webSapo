@@ -1,6 +1,6 @@
 # webSapo
 GUI for SAPO as a web app.
-This in already online [here](http://encase.uniud.it:3001/#/).
+This is already online [here](http://encase.uniud.it:3001/#/).
 
 ## Installation
 
