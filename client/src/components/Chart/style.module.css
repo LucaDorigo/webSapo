@@ -1,0 +1,53 @@
+.left_chart {
+	display: inline-block;
+	width: 70%;
+	margin: 0;
+	padding: 0;
+}
+
+.right_controls {
+	display: flex;
+	flex-direction: column;
+	width: 30%;
+	margin: 0;
+	padding: 0;
+}
+
+.radio_group {
+	display: flex;
+	flex-direction: row;
+}
+
+.radio_element {
+	margin: 10%;
+}
+
+.radio_input {
+} 
+
+.selects {
+	display: flex;
+	flex-direction: column;
+}
+
+.selectRow {
+	display: block;
+	width: 100%;
+	margin: 1em 0;
+}
+
+.selectLabel {
+	display: inline-block;
+	width: 20%;
+	margin: 0;
+}
+
+.select {
+	margin: 0 10%;
+	width: 60%;
+	height: 2.5em;
+	background-color: white;
+	border: 1px solid #ff8f00;
+	border-radius: 10px;
+	text-align: center;
+}

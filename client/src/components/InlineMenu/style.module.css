@@ -1,0 +1,39 @@
+.headerParameters {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.headerParameters > button {
+  color: #ff8f00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-color: #ff8f00;
+  outline: none;
+  min-width: 50%;
+}
+
+.leftButton {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.rightButton {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.leftButton.active {
+  color: white;
+  background-color: #ff8f00;
+}
+
+.rightButton.active {
+  color: white;
+  background-color: #ff8f00;
+}

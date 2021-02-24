@@ -1,0 +1,19 @@
+.button {
+  color: white;
+  background-color: #ff8f00;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  margin-right: 5px;
+  padding: 5px;
+  border-color: rgb(255, 143, 0);
+  outline: none;
+  min-width: 200px;
+}
+
+.button:disabled {
+  background: linear-gradient(rgba(255, 143, 0, 0.5), rgba(255, 143, 0, 0.5));
+  border-color: white;
+}

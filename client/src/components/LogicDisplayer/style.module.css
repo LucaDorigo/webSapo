@@ -1,0 +1,98 @@
+.grid_container {
+  display: grid;
+  grid-template-columns: auto auto;
+  height: 100%;
+  width: 100%;
+}
+
+.grid_item {
+  margin: 10px;
+  background-color: white;
+  border: 1px solid #ff8f00;
+  border-radius: 10px;
+  padding: 20px;
+  font-size: 30px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 40%;
+}
+
+.grid_container2 {
+  display: grid;
+  grid-template-columns: 80% 20%;
+  height: 100%;
+  width: 100%;
+}
+
+.grid_item2 {
+  margin: 10px;
+  background-color: white;
+  padding: 20px 0px 20px 0px;
+  font-size: 30px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.textInput {
+  border: 1px solid #ff8f00;
+  border-radius: 10px;
+  height: 20px;
+  outline: none;
+  padding: 5px;
+}
+
+.buttonBox {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-self: flex-end;
+}
+
+.button {
+  color: white;
+  background-color: #ff8f00;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  margin-right: 5px;
+  padding-bottom: 5px;
+  border-color: rgb(255, 143, 0);
+  outline: none;
+  min-width: 200px;
+}
+
+.listBox {
+  margin-bottom: 5px;
+  flex-grow: 1;
+  overflow-y: auto;
+  height: 0px;
+}
+
+.titleBox {
+  color: black;
+  font-size: 20px;
+  width: 100%;
+}
+
+.text {
+  text-align: center;
+  line-height: 0.8;
+  font-size: medium;
+}
+
+.textNote {
+  text-align: center;
+  line-height: 0.8;
+  font-size: small;
+}
+
+.buttonsList {
+  text-align: center;
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+}
