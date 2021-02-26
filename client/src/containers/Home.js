@@ -877,7 +877,7 @@ export default class HomeContainer extends Component {
 				});
 
 				res.on('end', () => {
-					downloadFile(str, "model.txt", "text/plain");
+					downloadFile(str, "model.sil", "text/plain");
 				});
 			}).on('error', (error) => {
 				console.error(error)

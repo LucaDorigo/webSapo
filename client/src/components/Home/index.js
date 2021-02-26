@@ -97,25 +97,6 @@ export default class BoxesPage extends Component<Props> {
 										>
 											Export model file
 										</p>
-										<p
-											className={styles.menuElement}
-											onClick={() => {
-													this.props.chooseMethod();
-													this.setState({ isPopoverOpen: false})}
-												}
-										>
-											Choose method
-										</p>
-										<p
-											className={styles.menuElement}
-											onClick={() => {
-												document.getElementById(
-													"printSettingsModal"
-												).style.display = "block";
-											}}
-										>
-											Print settings
-										</p>
 									</div>
 								)}
 							>
