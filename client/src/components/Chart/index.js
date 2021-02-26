@@ -301,7 +301,7 @@ export default class Chart extends Component<Props> {
 				hasNext = findNext(A);
 			}
 			
-			removeWrongVertices(vertices, directions, LB, UB);
+			removeWrongVertices(vertices, directions, LB, UB, 0.001);
 			
 			// vertices projected in the subspace
 			var proj = vertices.map(e => subspace.map(i => {
@@ -465,7 +465,7 @@ export default class Chart extends Component<Props> {
 			// remove vertices that violate some constraint
 			var LB = [];
 			poly.directions.forEach(d => LB.push(-Infinity));
-			removeWrongVertices(vertices, poly.directions, LB, poly.offsets);
+			removeWrongVertices(vertices, poly.directions, LB, poly.offsets, 0);
 			
 			// vertices projected in the subspace
 			var proj = vertices.map(e => subspace.map(i => {
@@ -649,13 +649,13 @@ function compare(p1, p2, c)
 }
 
 // removes vertices violating a constraint
-function removeWrongVertices(vertices, directions, LB, UB)
+function removeWrongVertices(vertices, directions, LB, UB, tol)
 {
 	var toRemove = [];
 	vertices.forEach(v => {
 		for (var i = 0; i < directions.length; i++)
 		{
-			if (math.dot(directions[i], v) < LB[i] || math.dot(directions[i], v) > UB[i])
+			if (math.dot(directions[i], v) < LB[i] - tol || math.dot(directions[i], v) > UB[i] + tol)
 			{
 				toRemove.push(v);
 				break;
