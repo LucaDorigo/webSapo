@@ -98,8 +98,8 @@ exports.generateModelFile = (
 	allFormulas = allFormulas.replace(/G_/g, "G");
 	allFormulas = allFormulas.replace(/_U_/g, "U");
 	
-	console.log("PRINT ALL FORMULAS");
-	console.log(allFormulas);
+//	console.log("PRINT ALL FORMULAS");
+//	console.log(allFormulas);
 	
 	if (allFormulas != "")
 		model += "spec: " + allFormulas + ";";
