@@ -26,6 +26,9 @@ ostream& operator<<(ostream& os, Expr& e)
 		case Expr::exprType::MUL:
 			return os << *(e.left) << " * " << *(e.right);
 			break;
+		case Expr::exprType::DIV:
+			return os << *(e.left) << " / " << *(e.right);
+			break;
 		case Expr::exprType::NEG:
 			return os << "-(" << *(e.left) << ")";
 			break;
@@ -39,6 +42,15 @@ Expr *Expr::mul(Expr *e)
 	res->left = this;
 	res->right = e;
 	res->type = exprType::MUL;
+	return res;
+}
+
+Expr *Expr::div(Expr *e)
+{
+	Expr *res = new Expr();
+	res->left = this;
+	res->right = e;
+	res->type = exprType::DIV;
 	return res;
 }
 
@@ -86,6 +98,9 @@ Expr *Expr::copy()
 		case Expr::MUL:
 			res = left->copy()->mul(right->copy());
 			break;
+		case Expr::DIV:
+			res = left->copy()->div(right->copy());
+			break;
 		case Expr::SUM:
 			res = left->copy()->sum(right->copy());
 			break;
@@ -97,39 +112,51 @@ Expr *Expr::copy()
 	return res;
 }
 
-bool Expr::isNumeric()
+bool Expr::isNumeric(InputData *im)
 {
-	if (type == exprType::ID_ATOM) return false;
+	if (type == exprType::ID_ATOM)
+	{
+		if (im->isDefDefined(name) && im->getDef(name)->getValue()->isNumeric(im))
+			return true;
+		else
+			return false;
+	}
 	if (type == exprType::NUM_ATOM) return true;
 	
-	return left->isNumeric() && (right != NULL ? right->isNumeric() : true);
+	return left->isNumeric(im) && (right != NULL ? right->isNumeric(im) : true);
 }
 
-double Expr::evaluate()
+double Expr::evaluate(InputData *im)
 {
 	if (type == exprType::NUM_ATOM) return val;
-	if (type == exprType::NEG) return -left->evaluate();
-	if (type == exprType::MUL) return left->evaluate() * right->evaluate();
-	if (type == exprType::SUM) return left->evaluate() + right->evaluate();
-	if (type == exprType::SUB) return left->evaluate() - right->evaluate();
+	if (type == exprType::ID_ATOM) return im->getDef(name)->getValue()->evaluate(im);
+	if (type == exprType::NEG) return -left->evaluate(im);
+	if (type == exprType::MUL) return left->evaluate(im) * right->evaluate(im);
+	if (type == exprType::DIV) return left->evaluate(im) / right->evaluate(im);
+	if (type == exprType::SUM) return left->evaluate(im) + right->evaluate(im);
+	if (type == exprType::SUB) return left->evaluate(im) - right->evaluate(im);
 	return -1;
 }
 
-ex Expr::toEx(InputModel& m, const lst& vars, const lst& params)
+ex Expr::toEx(InputData& m, const lst& vars, const lst& params)
 {
 	switch (type)
 	{
 		case exprType::NUM_ATOM:
-			return val;
+			return numeric(std::to_string(val).c_str());
 		case exprType::ID_ATOM:
 			if (m.isVarDefined(name))
 				return vars[m.getVarPos(name)];
-			else
+			else if (m.isParamDefined(name))
 				return params[m.getParamPos(name)];
+			else if (m.isDefDefined(name))
+				return m.getDef(name)->getValue()->toEx(m, vars, params);
 		case exprType::SUM:
 			return left->toEx(m, vars, params) + right->toEx(m, vars, params);
 		case exprType::MUL:
 			return left->toEx(m, vars, params) * right->toEx(m, vars, params);
+		case exprType::DIV:
+			return left->toEx(m, vars, params) / right->toEx(m, vars, params);
 		case exprType::SUB:
 			return left->toEx(m, vars, params) - right->toEx(m, vars, params);
 		case exprType::NEG:
@@ -302,24 +329,25 @@ int Formula::simplifyRec()
 }
 
 // no negations, were eliminated in simplify
-STL *Formula::toSTL(InputModel& m, const lst& vars, const lst& params)
+std::shared_ptr<STL> Formula::toSTL(InputData& m, const lst& vars, const lst& params)
 {
 	switch(type)
 	{
 		case formulaType::ATOM:
-			return new Atom(ex->toEx(m, vars, params));
+			return std::make_shared<Atom>(ex->toEx(m, vars, params));
 		case formulaType::CONJ:
-			return new Conjunction(f1->toSTL(m, vars, params), f2->toSTL(m, vars, params));
+			return std::make_shared<Conjunction>(f1->toSTL(m, vars, params), f2->toSTL(m, vars, params));
 		case formulaType::DISJ:
-			return new Disjunction(f1->toSTL(m, vars, params), f2->toSTL(m, vars, params));
+			return std::make_shared<Disjunction>(f1->toSTL(m, vars, params), f2->toSTL(m, vars, params));
 		case formulaType::ALW:
-			return new Always(i.first, i.second, f1->toSTL(m, vars, params));
+			return std::make_shared<Always>(i.first, i.second, f1->toSTL(m, vars, params));
 		case formulaType::EVENT:
-			return new Eventually(i.first, i.second, f1->toSTL(m, vars, params));
+			return std::make_shared<Eventually>(i.first, i.second, f1->toSTL(m, vars, params));
 		case formulaType::UNTIL:
-			return new Until(f1->toSTL(m, vars, params), i.first, i.second, f2->toSTL(m, vars, params));
+			return std::make_shared<Until>(f1->toSTL(m, vars, params), i.first, i.second, f2->toSTL(m, vars, params));
+		default:
+			throw std::logic_error("Unsupported formula type");
 	}
-	return NULL;
 }
 
 
@@ -329,7 +357,7 @@ STL *Formula::toSTL(InputModel& m, const lst& vars, const lst& params)
  ***********************
  */
 
-InputModel::InputModel()
+InputData::InputData()
 {
 	problem = problemType::P_UNDEF;
 	varMode = modeType::M_UNDEF;
@@ -342,6 +370,7 @@ InputModel::InputModel()
 	vars.resize(0);
 	params.resize(0);
 	consts.resize(0);
+	defs.resize(0);
 	
 	directions.resize(0);
 	LBoffsets.resize(0);
@@ -359,7 +388,7 @@ InputModel::InputModel()
 	alpha = -1;
 }
 
-ostream& operator<<(ostream& os, InputModel& m)
+ostream& operator<<(ostream& os, InputData& m)
 {
 	//TODO: implement
 	os << "Problem: " << m.problem << endl;
@@ -411,7 +440,7 @@ ostream& operator<<(ostream& os, InputModel& m)
 	return os;
 }
 
-bool InputModel::isVarDefined(string name)
+bool InputData::isVarDefined(string name)
 {
 	for (unsigned i = 0; i < vars.size(); i++)
 		if (vars[i]->getName() == name)
@@ -420,7 +449,7 @@ bool InputModel::isVarDefined(string name)
 	return false;
 }
 
-bool InputModel::isParamDefined(string name)
+bool InputData::isParamDefined(string name)
 {
 	for (unsigned i = 0; i < params.size(); i++)
 		if (params[i]->getName() == name)
@@ -429,7 +458,7 @@ bool InputModel::isParamDefined(string name)
 	return false;
 }
 
-bool InputModel::isConstDefined(string name)
+bool InputData::isConstDefined(string name)
 {
 	for (unsigned i = 0; i < consts.size(); i++)
 		if (consts[i]->getName() == name)
@@ -438,12 +467,21 @@ bool InputModel::isConstDefined(string name)
 	return false;
 }
 
-bool InputModel::isSymbolDefined(string name)
+bool InputData::isDefDefined(string name)
 {
-	return isVarDefined(name) || isParamDefined(name) || isConstDefined(name);
+	for (unsigned i = 0; i < defs.size(); i++)
+		if (defs[i]->getName() == name)
+			return true;
+	
+	return false;
 }
 
-Variable *InputModel::getVar(string name)
+bool InputData::isSymbolDefined(string name)
+{
+	return isVarDefined(name) || isParamDefined(name) || isConstDefined(name) || isDefDefined(name);
+}
+
+Variable *InputData::getVar(string name)
 {
 	for (unsigned i = 0; i < vars.size(); i++)
 		if (vars[i]->getName() == name)
@@ -452,7 +490,7 @@ Variable *InputModel::getVar(string name)
 	return NULL;
 }
 
-int InputModel::getVarPos(string name)
+int InputData::getVarPos(string name)
 {
 	for (unsigned i = 0; i < vars.size(); i++)
 		if (vars[i]->getName() == name)
@@ -461,7 +499,7 @@ int InputModel::getVarPos(string name)
 	return -1;
 }
 
-Parameter *InputModel::getParam(string name)
+Parameter *InputData::getParam(string name)
 {
 	for (unsigned i = 0; i < params.size(); i++)
 		if (params[i]->getName() == name)
@@ -470,7 +508,7 @@ Parameter *InputModel::getParam(string name)
 	return NULL;
 }
 
-int InputModel::getParamPos(string name)
+int InputData::getParamPos(string name)
 {
 	for (unsigned i = 0; i < params.size(); i++)
 		if (params[i]->getName() == name)
@@ -479,7 +517,7 @@ int InputModel::getParamPos(string name)
 	return -1;
 }
 
-Constant *InputModel::getConst(string name)
+Constant *InputData::getConst(string name)
 {
 	for (unsigned i = 0; i < consts.size(); i++)
 		if (consts[i]->getName() == name)
@@ -488,42 +526,60 @@ Constant *InputModel::getConst(string name)
 	return NULL;
 }
 
-void InputModel::addDirection(vector<double> d, double LB, double UB)
+Definition *InputData::getDef(string name)
+{
+	for (unsigned i = 0; i < defs.size(); i++)
+		if (defs[i]->getName() == name)
+			return defs[i];
+	
+	return NULL;
+}
+
+int InputData::getDefPos(string name)
+{
+	for (unsigned i = 0; i < defs.size(); i++)
+		if (defs[i]->getName() == name)
+			return i;
+	
+	return -1;
+}
+
+void InputData::addDirection(vector<double> d, double LB, double UB)
 {
 	directions.push_back(d);
 	LBoffsets.push_back(LB);
 	UBoffsets.push_back(UB);
 }
 
-void InputModel::defaultDirections()
+void InputData::defaultDirections()
 {
 	directions.resize(vars.size(), vector<double>(vars.size(), 0));
 	for (unsigned i = 0; i < vars.size(); i++)
 		directions[i][i] = 1;
 }
 
-void InputModel::defaultTemplate()
+void InputData::defaultTemplate()
 {
 	templateMatrix.resize(1, vector<int>(vars.size()));
 	iota(templateMatrix[0].begin(), templateMatrix[0].end(), 0);
 //	templateMatrix.resize(1, vector<int>(vars.size(), 1));
 }
 
-void InputModel::addParamDirection(vector<double> d, double LB, double UB)
+void InputData::addParamDirection(vector<double> d, double LB, double UB)
 {
 	paramDirections.push_back(d);
 	paramLBoffsets.push_back(LB);
 	paramUBoffsets.push_back(UB);
 }
 
-void InputModel::defaultParamDirections()
+void InputData::defaultParamDirections()
 {
 	paramDirections.resize(params.size(), vector<double>(params.size(), 0));
 	for (unsigned i = 0; i < params.size(); i++)
 		paramDirections[i][i] = 1;
 }
 
-int InputModel::getTransValue()
+int InputData::getTransValue()
 {
 	if (trans == transType::AFO)
 		return 1;
@@ -532,7 +588,7 @@ int InputModel::getTransValue()
 }
 
 
-bool InputModel::check()
+bool InputData::check()
 {
 	bool res = true;
 	

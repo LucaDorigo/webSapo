@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 project (sapo CXX)
 
 #For shared libraries:
-set ( PROJECT_LINK_LIBS ginac glpk)
+set ( PROJECT_LINK_LIBS ginac glpk cln)
 link_directories( /usr/local/lib )
 
 find_package(FLEX)
