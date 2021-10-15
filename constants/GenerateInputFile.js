@@ -29,7 +29,7 @@ exports.generateModelFile = (
 	else if (parallelotopesMethod)
 		model += "variable_mode: parallelotopes;\n";
 	else
-		model += "variable_mode: polytope;\n";
+		model += "variable_mode: polytopes;\n";
 	
 	// param mode
 	if (leftButtonActive)
