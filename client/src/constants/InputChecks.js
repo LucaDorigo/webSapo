@@ -93,16 +93,11 @@ const checkEquationsCorrectness = (equations, result) => {
  */
 const checkVarAndParamsNames = (elementList, result) => {
   elementList.forEach(element => {
-    if (
-      (!strOnlyLetters(element.name) && !element.lMatrixExtra) ||
-      element.name == ""
-    ) {
-      result.error = true;
-      result.errorMessagge =
-        "Illegal name for variable/parameter " +
-        element.name +
-        " (name can't be empty, can't contain a number and can't contain non alphanumerical simbols)";
-    }
+		if (element.name == "" || !element.name.match(/[A-Za-z][A-Za-z0-9_]*/g))
+		{
+			result.error = true;
+			result.errorMessage = "Illegal name for symbol: name mut begin with letter and contain only letters, numbers and '_'";
+		}
   });
 };
 
@@ -214,8 +209,14 @@ const cheksEquationsVarAndParams = (
       result.errorMessagge =
         "Equation for variable " + element.variableName + " is empty";
     } else {
-      let cleanedEquation = equation.replace(/[^A-Z]+/gi, " ");
+//      let cleanedEquation = equation.replace(/[^A-Z]+/gi, " ");
+      let cleanedEquation = equation.replace(/[^A-Za-z0-9_]+/gi, " ");
       let equationArray = cleanedEquation.split(" ");
+			
+			equationArray.forEach((e, i) => {
+				if (!e.match(/[A-Za-z][A-Za-z0-9_]*/g))
+					equationArray.splice(i, 1);
+			});
 
       for (let index = 0; index < equationArray.length; index++) {
         const subEquation = equationArray[index];
