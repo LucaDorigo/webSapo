@@ -578,6 +578,8 @@ export default class BoxesPage extends Component<Props> {
 									sapoParams={this.props.sapoParams}
 									variables={this.props.variables}
 									parameters={this.props.parameters}
+									updateChart={this.props.updateChart}
+									setUpdated={this.props.setUpdated}
 								/>
 						</div>
 					</div>

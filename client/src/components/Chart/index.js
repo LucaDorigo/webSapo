@@ -172,7 +172,13 @@ export default class Chart extends Component<Props> {
 	}
 	
 	calcData()
-	{		
+	{
+		if (this.props.updateChart)
+		{
+			this.setState({changed: true})
+			this.props.setUpdated()
+		}
+		
 		if (!this.state.changed)
 			if (this.state.dataType == "vars")
 				return this.state.varData;
@@ -328,6 +334,7 @@ export default class Chart extends Component<Props> {
 				}
 			}
 			
+			
 			if (this.state.chartType == "2D" && time)
 			{
 				var max = proj[0][1], min = proj[0][1];
@@ -349,17 +356,33 @@ export default class Chart extends Component<Props> {
 				// some vertices could be projected inside resulting polygon, remove them
 				proj = removeInnerVertices(proj);
 				
-				data.push({
-						x: proj.map(e => e[0]).concat([proj[0][0]]),
-						y: proj.map(e => e[1]).concat([proj[0][1]]),
-						mode: 'lines',
+				if (proj.length == 1)
+				{
+					data.push({
+						x: [proj[0][0]],
+						y: [proj[0][1]],
+						mode: 'markers',
 						type: 'scatter',
-						fill: 'toself',
-						line: {
+						marker: {
 							color: '#ff8f00',
-							width: 2
+							size: 7
 						}
 					});
+				}
+				else
+				{
+					data.push({
+							x: proj.map(e => e[0]).concat([proj[0][0]]),
+							y: proj.map(e => e[1]).concat([proj[0][1]]),
+							mode: 'lines',
+							type: 'scatter',
+							fill: 'toself',
+							line: {
+								color: '#ff8f00',
+								width: 2
+							}
+						});
+				}
 			}
 			else if (time)
 			{
@@ -517,17 +540,33 @@ export default class Chart extends Component<Props> {
 				// some vertices could be projected inside resulting polygon, remove them
 				proj = removeInnerVertices(proj);
 				
-				data.push({
-						x: proj.map(e => e[0]).concat([proj[0][0]]),
-						y: proj.map(e => e[1]).concat([proj[0][1]]),
-						mode: 'lines',
+				if (proj.length == 1)
+				{
+					data.push({
+						x: [proj[0][0]],
+						y: [proj[0][1]],
+						mode: 'markers',
 						type: 'scatter',
-						fill: 'toself',
-						line: {
+						marker: {
 							color: '#ff8f00',
-							width: 2
+							size: 7
 						}
 					});
+				}
+				else
+				{
+					data.push({
+							x: proj.map(e => e[0]).concat([proj[0][0]]),
+							y: proj.map(e => e[1]).concat([proj[0][1]]),
+							mode: 'lines',
+							type: 'scatter',
+							fill: 'toself',
+							line: {
+								color: '#ff8f00',
+								width: 2
+							}
+						});
+				}
 			}
 			else
 			{

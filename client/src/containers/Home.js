@@ -70,7 +70,8 @@ export default class HomeContainer extends Component {
 			// will display a combination of 'reachability/synthesis and methods'
 			nameSelectedMenu: "Method of analysis",
 			sapoResults: undefined,
-			sapoParams: undefined
+			sapoParams: undefined,
+			updateChart: true
 		};
 	}
 
@@ -785,7 +786,8 @@ export default class HomeContainer extends Component {
 											sapoResults: parseResults(parts.vars),
 											sapoParams: undefined,
 											hasResults: true,
-											executing: false
+											executing: false,
+											updateChart:true
 										});
 									}
 									else
@@ -795,7 +797,8 @@ export default class HomeContainer extends Component {
 											sapoResults: parseResults(parts.vars),
 											sapoParams: parseParams(parts.params),
 											hasResults: true,
-											executing: false
+											executing: false,
+											updateChart: true
 										});
 									}
 								}
@@ -962,6 +965,8 @@ export default class HomeContainer extends Component {
 				//
 				sapoResults={this.state.sapoResults}
 				sapoParams={this.state.sapoParams}
+				updateChart={this.state.updateChart}
+				setUpdated={() => this.setState({updateChart: false})}
 			/>
 		);
 	}
