@@ -1,0 +1,3 @@
+[submodule "sapoCore"]
+	path = sapoCore
+	url = https://github.com/albertocasagrande/sapo
