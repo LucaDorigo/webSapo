@@ -10,8 +10,8 @@ import InlineMenu from "../InlineMenu/index";
 import MatrixDisplayer from "../MatrixDisplayer/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
-import Popover, { ArrowContainer } from "react-tiny-popover";
-import { black } from "ansi-colors";
+import Popover from "react-tiny-popover";
+//import { black } from "ansi-colors";
 import { MdMenu } from "react-icons/md";
 import PulseLoader from "react-spinners/PulseLoader";
 
@@ -359,7 +359,7 @@ export default class BoxesPage extends Component<Props> {
 								list={this.props.parameters}
 								parametersModal={true}
 							/>
-							{this.props.parameters.length != 0 && (
+							{this.props.parameters.length !== 0 && (
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton
@@ -400,7 +400,7 @@ export default class BoxesPage extends Component<Props> {
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
-							{this.props.variables.length == 0 && <p>No variables inserted</p>}
+							{this.props.variables.length === 0 && <p>No variables inserted</p>}
 							{this.props.variables.length > 0 && (
 								<div className={styles.flexRow}>
 									<MatrixDisplayer
@@ -447,7 +447,7 @@ export default class BoxesPage extends Component<Props> {
 								</div>
 							)}
 
-							{this.props.variables.length != 0 && this.props.polytopesMethod && (
+							{this.props.variables.length !== 0 && this.props.polytopesMethod && (
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton
@@ -494,7 +494,7 @@ export default class BoxesPage extends Component<Props> {
 								list={this.props.variables}
 								parametersModal={false}
 							/>
-							{this.props.variables.length != 0 && (
+							{this.props.variables.length !== 0 && (
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton

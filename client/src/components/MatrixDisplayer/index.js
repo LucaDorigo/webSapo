@@ -26,17 +26,17 @@ export default class MatrixDisplayer extends Component<Props> {
                   {itemRow.map((itemColumn, indexColumn) => {
                     return (
                       <div key={indexColumn}>
-                        {indexRow == 0 && this.props.parametersModal && (
+                        {indexRow === 0 && this.props.parametersModal && (
                           <div>
                             {this.props.list[indexColumn] !== undefined && (
                               <p>{this.props.list[indexColumn].name}</p>
                             )}
-                            {this.props.list[indexColumn] == undefined && (
+                            {this.props.list[indexColumn] === undefined && (
                               <p>Boundaries</p>
                             )}
                           </div>
                         )}
-                        {indexRow == 0 && !this.props.parametersModal && (
+                        {indexRow === 0 && !this.props.parametersModal && (
                           <p>{this.props.list[indexColumn].name}</p>
                         )}
                         <input
@@ -46,23 +46,23 @@ export default class MatrixDisplayer extends Component<Props> {
                               e,
                               indexRow,
                               indexColumn,
-                              indexColumn == itemRow.length - 1,
+                              indexColumn === itemRow.length - 1,
                               this.props.parametersModal
                             )
                           }
                           value={
-                            indexColumn != itemRow.length - 1 ||
+                            indexColumn !== itemRow.length - 1 ||
                             indexRow >= this.props.list.length * 2 ||
                             !this.props.parametersModal
                               ? itemColumn
-                              : indexRow % 2 == 0
+                              : indexRow % 2 === 0
                               ? this.props.list[math.floor(indexRow / 2)]
                                   .lowerBound
                               : this.props.list[math.floor(indexRow / 2)]
                                   .upperBound
                           }
                           disabled={
-                            indexColumn != itemRow.length - 1 &&
+                            indexColumn !== itemRow.length - 1 &&
                             indexRow < this.props.list.length * 2 &&
                             this.props.parametersModal
                               ? true

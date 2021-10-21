@@ -1,9 +1,9 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { deepCopy, capitalizeFirstLetter, downloadFile, parseResults, parseParams } from "../constants/global";
+import { deepCopy, downloadFile, parseResults, parseParams } from "../constants/global";
 import * as math from "mathjs";
-import { range } from "rxjs";
+//import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
 
 var http = require("http");
@@ -136,7 +136,7 @@ export default class HomeContainer extends Component {
 
 		if (key.includes("boxes")) {
 			let numVar = this.state.variables.length;
-			numVar = numVar == 0 ? 1 : numVar;
+			numVar = numVar === 0 ? 1 : numVar;
 			console.log("numVar " + numVar);
 
 			this.setState({
@@ -174,7 +174,7 @@ export default class HomeContainer extends Component {
 		for (let i = 0; i < copiedArray.length; i++) {
 			let element = copiedArray[i];
 
-			if (element.name == "") {
+			if (element.name === "") {
 				allDefined = false;
 				break;
 			}
@@ -203,7 +203,7 @@ export default class HomeContainer extends Component {
 		let obj = copiedArray[e.target.id];
 		obj.name = e.target.value;
 
-		if (e.target.value == "") {
+		if (e.target.value === "") {
 			if (parameter) {
 				this.setState({
 					disabledAddParameter: true
@@ -217,7 +217,7 @@ export default class HomeContainer extends Component {
 			this.checkAllDefined(copiedArray, parameter);
 		}
 
-		if (e.target.value != "" && !parameter) {
+		if (e.target.value !== "" && !parameter) {
 			this.addEquation(e.target.id, e.target.value);
 		}
 
@@ -324,7 +324,7 @@ export default class HomeContainer extends Component {
 			let newLMatrix;
 			let newTMatrix;
 
-			if (numberOfVar != 0) {
+			if (numberOfVar !== 0) {
 				newLMatrix = this.state.lMatrix.resize([
 					copiedArray.length,
 					numberOfVar
@@ -340,12 +340,12 @@ export default class HomeContainer extends Component {
 				tMatrix: newTMatrix
 			});
 
-			if (name != "") {
+			if (name !== "") {
 				this.deleteEquation(e.target.id);
 			}
 		} else {
 			let newMatrix =
-				copiedArray.length != 0
+				copiedArray.length !== 0
 					? this.state.parametersMatrix.resize([
 							copiedArray.length * 2,
 							copiedArray.length + 1
@@ -416,7 +416,7 @@ export default class HomeContainer extends Component {
 			let parameters = this.state.parameters;
 
 			if (updateParams && indexRow < this.state.parameters.length * 2) {
-				if (indexRow % 2 == 0) {
+				if (indexRow % 2 === 0) {
 					parameters[math.floor(indexRow / 2)].lowerBound = e.target.value;
 				} else {
 					parameters[math.floor(indexRow / 2)].upperBound = e.target.value;
@@ -553,7 +553,7 @@ export default class HomeContainer extends Component {
 		let matrixDimensions = newMatrix.size();
 		let numberOfRows = matrixDimensions[0];
 
-		if (numberOfRows != 1) {
+		if (numberOfRows !== 1) {
 			matrixDimensions[0] = numberOfRows - 1;
 			newMatrix.resize(matrixDimensions);
 

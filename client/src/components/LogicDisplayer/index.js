@@ -78,6 +78,7 @@ export default class LogicDisplayer extends Component<Props> {
                 </p>
               );
             }
+            return "";
           })}
         </div>
         {/*end grid item for variables */}

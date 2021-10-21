@@ -75,15 +75,16 @@ export const checkInput = (variables, parameters, equations) => {
  * @param result: JSON object containing the info to return in case of error to the main file
  */
 const checkEquationsCorrectness = (equations, result) => {
-  let parsedEquation;
   equations.map((item, index) => {
     try {
-      parsedEquation = math.parse(item.equation);
+      math.parse(item.equation);
+      result.error = false;
     } catch (math) {
       result.errorMessagge =
         math.toString() + " in equation for variable " + item.variableName;
       result.error = true;
     }
+    return result;
   });
 };
 
@@ -93,7 +94,7 @@ const checkEquationsCorrectness = (equations, result) => {
  */
 const checkVarAndParamsNames = (elementList, result) => {
   elementList.forEach(element => {
-		if (element.name == "" || !element.name.match(/[A-Za-z][A-Za-z0-9_]*/g))
+		if (element.name === "" || !element.name.match(/[A-Za-z][A-Za-z0-9_]*/g))
 		{
 			result.error = true;
 			result.errorMessage = "Illegal name for symbol: name mut begin with letter and contain only letters, numbers and '_'";
@@ -104,7 +105,7 @@ const checkVarAndParamsNames = (elementList, result) => {
 /**
  * @param str: string that needs to be checked to contain only letters from the ranges [a-z] or [A-z]
  */
-const strOnlyLetters = str => {
+const strOnlyLetters = (str) => {
   var code, i, len;
 
   for (i = 0, len = str.length; i < len; i++) {
@@ -164,7 +165,7 @@ const checkEqualNamesVarAndParameters = (variables, parameters, result) => {
     } else {
       for (let index = 0; index < variablesName.length; index++) {
         const element = variablesName[index];
-        if (parametersName.indexOf(element) != -1) {
+        if (parametersName.indexOf(element) !== -1) {
           result.error = true;
           result.errorMessagge =
             "Name " +
@@ -204,7 +205,7 @@ const cheksEquationsVarAndParams = (
   equations.forEach(element => {
     let equation = element.equation;
 
-    if (equation == "") {
+    if (equation === "") {
       result.error = true;
       result.errorMessagge =
         "Equation for variable " + element.variableName + " is empty";
@@ -220,20 +221,20 @@ const cheksEquationsVarAndParams = (
 
       for (let index = 0; index < equationArray.length; index++) {
         const subEquation = equationArray[index];
-        if (subEquation != "") {
+        if (subEquation !== "") {
           if (
-            variablesName.indexOf(subEquation) == -1 &&
-            parametersName.indexOf(subEquation) == -1
+            variablesName.indexOf(subEquation) === -1 &&
+            parametersName.indexOf(subEquation) === -1
           ) {
             result.error = true;
-            if (mathFunctions.indexOf(subEquation) == -1) {
+            if (mathFunctions.indexOf(subEquation) === -1) {
               result.errorMessagge =
                 subEquation +
                 " in equation for variable/parameter " +
                 element.variableName +
                 " is undefined and can't be used";
             } else {
-              if (subEquation == "sqrt") {
+              if (subEquation === "sqrt") {
                 //future checks on sqrt still to be implemented
                 parsedEquation = math.parse(equation);
               } else {

@@ -88,35 +88,35 @@ export default class Chart extends Component<Props> {
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
 								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
 									return (
 										<>
 											<option key={"xoption" + item} value={item.name}>{item.name}</option>
 										</>
 									);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
 									return (
 										<>
 											<option key={"xoption" + item} value={item.name}>{item.name}</option>
 										</>
 									);
 								})}
-								{this.state.dataType == "vars" && <option value="Time">Time</option> }
+								{this.state.dataType === "vars" && <option value="Time">Time</option> }
 							</select>
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
 								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
 									return (
 										<>
 											<option key={"yoption" + item} value={item.name}>{item.name}</option>
 										</>
 									);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
 									return (
 										<>
 											<option key={"yoption" + item} value={item.name}>{item.name}</option>
@@ -125,19 +125,19 @@ export default class Chart extends Component<Props> {
 								})}
 							</select>
 						</div>
-						{this.state.chartType == "3D" && 
+						{this.state.chartType === "3D" && 
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
 								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
 									return (
 										<>
 											<option key={"yoption" + item} value={item.name}>{item.name}</option>
 										</>
 									);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
 									return (
 										<>
 											<option key={"yoption" + item} value={item.name}>{item.name}</option>
@@ -154,7 +154,7 @@ export default class Chart extends Component<Props> {
 	
 	changeChartType(e, obj)
 	{
-		if (e.target.value == "2D")
+		if (e.target.value === "2D")
 			obj.setState({ chartType: e.target.value, changed: true, zAxis: "undefined" });
 		else
 			obj.setState({ chartType: e.target.value, changed: true });
@@ -180,18 +180,18 @@ export default class Chart extends Component<Props> {
 		}
 		
 		if (!this.state.changed)
-			if (this.state.dataType == "vars")
+			if (this.state.dataType === "vars")
 				return this.state.varData;
 			else
 				return this.state.paramData;
 				
-		if ((this.state.dataType == "vars" && this.props.sapoResults === undefined) ||
-				(this.state.dataType == "params" && this.props.sapoParams === undefined) ||
-				this.state.xAxis == "undefined" ||
-				this.state.yAxis == "undefined" ||
-				(this.state.chartType == "3D" && this.state.zAxis == "undefined"))
+		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
+				(this.state.dataType === "params" && this.props.sapoParams === undefined) ||
+				this.state.xAxis === "undefined" ||
+				this.state.yAxis === "undefined" ||
+				(this.state.chartType === "3D" && this.state.zAxis === "undefined"))
 		{
-			if (this.state.dataType == "vars")
+			if (this.state.dataType === "vars")
 				this.setState({ varData: [], changed: false });
 			else
 				this.setState({ paramData: [], changed: false });
@@ -200,7 +200,7 @@ export default class Chart extends Component<Props> {
 		}
 		
 		var data;
-		if (this.state.dataType == "vars")
+		if (this.state.dataType === "vars")
 			data = this.calcVarData()
 		else
 			data = this.calcParamData()
@@ -210,14 +210,14 @@ export default class Chart extends Component<Props> {
 	
 	calcVarData()
 	{
-		var time = this.state.xAxis == "Time";
+		var time = this.state.xAxis === "Time";
 		
 		var input = this.props.sapoResults;
-		var varNum = this.props.variables.filter(v => v.lMatrixExtra != true).length
+		var varNum = this.props.variables.filter(v => v.lMatrixExtra !== true).length
 		
 		// initialize data var, which holds the results
 		var data;
-		if (this.state.chartType == "2D" && time)
+		if (this.state.chartType === "2D" && time)
 		{
 			data = [{
 				x: [],
@@ -251,7 +251,7 @@ export default class Chart extends Component<Props> {
 		else
 			data = [];
 		
-		if (input.regions.length == 0)
+		if (input.regions.length === 0)
 		{
 			alert("There is no data to display");
 			this.setState({ varData: [], changed: false });
@@ -262,17 +262,17 @@ export default class Chart extends Component<Props> {
 		
 		// subspace definition, array of positions of corresponding variable
 		var subspace;
-		if (this.state.chartType == "2D")
+		if (this.state.chartType === "2D")
 			subspace = [-1,-1];
 		else
 			subspace = [-1,-1,-1];
 		
 		this.props.variables.forEach((v, i) => {
-			if (v.name == this.state.xAxis)
+			if (v.name === this.state.xAxis)
 				subspace[0] = i;
-			if (v.name == this.state.yAxis)
+			if (v.name === this.state.yAxis)
 				subspace[1] = i;
-			if (v.name == this.state.zAxis)
+			if (v.name === this.state.zAxis)
 				subspace[2] = i;
 		});
 		
@@ -296,10 +296,10 @@ export default class Chart extends Component<Props> {
 			/* find possible vertices */
 			while (hasNext)
 			{
-				var mat = directions.filter((item, pos) => A[pos] == 1);
+				var mat = directions.filter((item, pos) => A[pos] === 1);
 				bs.forEach(b => {
-					var v = b.filter((item, pos) => A[pos] == 1);
-					if (math.det(mat) != 0)
+					var v = b.filter((item, pos) => A[pos] === 1);
+					if (math.det(mat) !== 0)
 						vertices.push(math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), []));
 				});
 				
@@ -311,31 +311,31 @@ export default class Chart extends Component<Props> {
 			
 			// vertices projected in the subspace
 			var proj = vertices.map(e => subspace.map(i => {
-				if (i != -1) return e[i]; else return -1;
+				if (i !== -1) return e[i]; else return -1;
 			}));
 			
-			if (proj.length == 0)
+			if (proj.length === 0)
 			{
 				this.setState({ varData: [], paramData: [] });
 				return;
 			}
 			
 			// if 2D, delete duplicates vertices
-			if (this.state.chartType == "2D")
+			if (this.state.chartType === "2D")
 			{
 				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
+				var j = 0;
+				while (j+1 < proj.length)
 				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
+					if (compareArray(proj[j], proj[j+1]) === 0)
+						proj.splice(j+1, 1);
 					else
-						i++;
+						j++;
 				}
 			}
 			
 			
-			if (this.state.chartType == "2D" && time)
+			if (this.state.chartType === "2D" && time)
 			{
 				var max = proj[0][1], min = proj[0][1];
 				proj.forEach(v => {
@@ -345,7 +345,7 @@ export default class Chart extends Component<Props> {
 				data[0].y.push(max)
 				data[1].y.push(min)
 			}
-			else if (this.state.chartType == "2D")
+			else if (this.state.chartType === "2D")
 			{
 				var center = [0.0, 0.0];
 				proj.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
@@ -356,7 +356,7 @@ export default class Chart extends Component<Props> {
 				// some vertices could be projected inside resulting polygon, remove them
 				proj = removeInnerVertices(proj);
 				
-				if (proj.length == 1)
+				if (proj.length === 1)
 				{
 					data.push({
 						x: [proj[0][0]],
@@ -395,16 +395,16 @@ export default class Chart extends Component<Props> {
 					color: '#ff8f00',
 					hoverinfo: 'none'
 				});
-				for (var i = 0; i < data[data.length - 1].y.length; i++)
+				for (j = 0; j < data[data.length - 1].y.length; j++)
 					data[data.length - 1].x.push(k);
-				for (var i = 0; i < data[data.length - 1].y.length; i++)
+				for (j = 0; j < data[data.length - 1].y.length; j++)
 					data[data.length - 1].x.push(k+0.1);
 				var l = data[data.length - 1].x.length;
 				data[data.length - 1].y.forEach((e, i) => data[data.length - 1].x.push(data[data.length - 1].x[i]+0.2))
-				for (var i = 0; i < l; i++)
+				for (j = 0; j < l; j++)
 				{
-					data[data.length - 1].y.push(data[data.length - 1].y[i]);
-					data[data.length - 1].z.push(data[data.length - 1].z[i]);
+					data[data.length - 1].y.push(data[data.length - 1].y[j]);
+					data[data.length - 1].z.push(data[data.length - 1].z[j]);
 				}
 			}
 			else
@@ -430,28 +430,28 @@ export default class Chart extends Component<Props> {
 	calcParamData()
 	{
 		var input = this.props.sapoParams;
-		var paramNum = this.props.parameters.filter(v => v.lMatrixExtra != true).length
+		var paramNum = this.props.parameters.filter(v => v.lMatrixExtra !== true).length
 		
 		// initialize data var, which holds the results
 		var data = [];
 		
 		// subspace definition, array of positions of corresponding variable
 		var subspace;
-		if (this.state.chartType == "2D")
+		if (this.state.chartType === "2D")
 			subspace = [-1,-1];
 		else
 			subspace = [-1,-1,-1];
 		
 		this.props.parameters.forEach((v, i) => {
-			if (v.name == this.state.xAxis)
+			if (v.name === this.state.xAxis)
 				subspace[0] = i;
-			if (v.name == this.state.yAxis)
+			if (v.name === this.state.yAxis)
 				subspace[1] = i;
-			if (v.name == this.state.zAxis)
+			if (v.name === this.state.zAxis)
 				subspace[2] = i;
 		});
 		
-		if (input.length == 0)
+		if (input.length === 0)
 		{
 			alert("The set of parameters is empty!");
 			this.setState({ paramData: [], changed: false });
@@ -476,9 +476,9 @@ export default class Chart extends Component<Props> {
 			var hasNext = true;
 			while (hasNext)
 			{
-				var A = poly.directions.filter((item, pos) => linearSystem[pos] == 1);
-				var b = poly.offsets.filter((item, pos) => linearSystem[pos] == 1);
-				if (math.det(A) != 0)
+				var A = poly.directions.filter((item, pos) => linearSystem[pos] === 1);
+				var b = poly.offsets.filter((item, pos) => linearSystem[pos] === 1);
+				if (math.det(A) !== 0)
 					vertices.push(math.lusolve(A, b).reduce((acc, el) => acc.concat(el), []));
 
 				// find next linearSystem
@@ -492,40 +492,26 @@ export default class Chart extends Component<Props> {
 			
 			// vertices projected in the subspace
 			var proj = vertices.map(e => subspace.map(i => {
-				if (i != -1) return e[i]; else return -1;
+				if (i !== -1) return e[i]; else return -1;
 			}));
 			
-			if (proj.length == 0)
+			if (proj.length === 0)
 			{
 				this.setState({ paramData: [] });
 				return;
 			}
 			
-			// if 2D, delete duplicates vertices
-			if (this.state.chartType == "2D")
-			{
-				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
-				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
-					else
-						i++;
-				}
-			}
-			
-			if (this.state.chartType == "2D")
+			if (this.state.chartType === "2D")
 			{
 				// remove duplicate vertices, which are problematic for removeInnerVertices
 				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
+				var j = 0;
+				while (j+1 < proj.length)
 				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
+					if (compareArray(proj[j], proj[j+1]) === 0)
+						proj.splice(j+1, 1);
 					else
-						i++;
+						j++;
 				}
 				
 				// find center of polygon
@@ -540,7 +526,7 @@ export default class Chart extends Component<Props> {
 				// some vertices could be projected inside resulting polygon, remove them
 				proj = removeInnerVertices(proj);
 				
-				if (proj.length == 1)
+				if (proj.length === 1)
 				{
 					data.push({
 						x: [proj[0][0]],
@@ -589,7 +575,7 @@ export default class Chart extends Component<Props> {
 }	// end Chart
 
 
-// return the collection of all vectors v s.t. v[i] == a[i] || v[i] == b[i]
+// return the collection of all vectors v s.t. v[i] === a[i] || v[i] === b[i]
 function getCouples(a, b)
 {
 	var res = [[a[0]], [b[0]]];
@@ -610,6 +596,7 @@ function getCouples(a, b)
 	return res;
 }
 
+/*
 function getCombinations(m, n)
 {
 	var zeroes = [], ones = [];
@@ -622,11 +609,12 @@ function getCombinations(m, n)
 	
 	var res = [];
 	As.forEach(v => {
-		if (v.reduce((acc, val) => acc + val) == n)
+		if (v.reduce((acc, val) => acc + val) === n)
 			res.push(v);
 	});
 	return res;
 }
+*/
 
 function compareArray(v1, v2)
 {
@@ -655,7 +643,7 @@ function findQuadrant(p, c)
 // compares two 2D points according to their angle with respect to the origin c
 function compare(p1, p2, c)
 {
-	if (p1[0] == p2[0] && p1[1] == p2[1]) return 0;
+	if (p1[0] === p2[0] && p1[1] === p2[1]) return 0;
 	
 	var q1 = findQuadrant(p1, c), q2 = findQuadrant(p2, c);
 	
@@ -668,17 +656,17 @@ function compare(p1, p2, c)
 		var deltaX1 = 1.0 * p1[0] - c[0], deltaX2 = 1.0 * p2[0] - c[0];
 		var deltaY1 = 1.0 * p1[1] - c[1], deltaY2 = 1.0 * p2[1] - c[1];
 		
-		// p1.x == c.x -> q1 == 2 || q1 == 3
-		if (deltaX1 == 0)
+		// p1.x === c.x -> q1 === 2 || q1 === 3
+		if (deltaX1 === 0)
 		{
-			if (q1 == 2) return -1;
+			if (q1 === 2) return -1;
 			else return 1;
 		}
 		
-		// p2.x == c.x -> q2 == 2 || q2 == 3
-		if (deltaX2 == 0)
+		// p2.x === c.x -> q2 === 2 || q2 === 3
+		if (deltaX2 === 0)
 		{
-			if (q2 == 2) return 1;
+			if (q2 === 2) return 1;
 			else return -1;
 		}
 		
@@ -756,11 +744,11 @@ function findNext(linearSystem)
 //	alert("current linearSystem: " + linearSystem);
 	var l = linearSystem.length - 1;
 	
-	if (linearSystem[l] == 0)
+	if (linearSystem[l] === 0)
 	{
 //		alert("caso faacile");
 		var i = 1;
-		while (linearSystem[l-i] == 0)
+		while (linearSystem[l-i] === 0)
 			i++;
 		
 //		alert("trovato un 1 in posizione " + i);
@@ -771,13 +759,13 @@ function findNext(linearSystem)
 	else
 	{
 //		alert("caso difficile");
-		var i = 1;
-		while (i <= l && linearSystem[l-i] == 1)
-			i++;
+		var j = 1;
+		while (j <= l && linearSystem[l-j] === 1)
+			j++;
 		
-		var j = i;
-		while (i <= l && linearSystem[l-i] == 0)
-			i++;
+		j = i;
+		while (j <= l && linearSystem[l-j] === 0)
+			j++;
 		
 		if (i > l)
 			return false;

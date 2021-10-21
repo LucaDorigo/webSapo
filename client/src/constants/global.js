@@ -28,7 +28,7 @@ export const parseResults = (input) =>
 	
 	var prev_i = 0;
 	lines.forEach((line, i) => {
-		if (line == "")
+		if (line === "")
 		{
 			blocks.push(lines.slice(prev_i, i));
 			if (varNum === undefined) varNum = (i - prev_i) / 2;
@@ -41,7 +41,7 @@ export const parseResults = (input) =>
 		regions: []
 	};
 	
-	if (blocks.length == 0)
+	if (blocks.length === 0)
 		return result;
 	
 	blocks[0].forEach(line => {
@@ -70,15 +70,15 @@ export const parseResults = (input) =>
 
 export const parseParams = (input) =>
 {
-	if (input == "") return undefined;
+	if (input === "") return undefined;
 	
-	if (input.slice(0, 18) == "--- empty set ----")
+	if (input.slice(0, 18) === "--- empty set ----")
 		return [];
 	
 	var linearSets = input.split("--------------");
 	var sets = [];
 	linearSets.forEach(set => {
-		if (set != "")
+		if (set !== "")
 		{
 			var lines = set.split("\n");
 			//alert("line number: " + lines.length)
@@ -87,7 +87,7 @@ export const parseParams = (input) =>
 				offsets: []
 			};
 			lines.forEach(line => {
-				if (line != "")
+				if (line !== "")
 				{
 					var dir = line.split(" <= ")[0].split(" ");
 					var off = line.split(" <= ")[1];
@@ -97,7 +97,7 @@ export const parseParams = (input) =>
 					
 					if (!allZeroes(dir))
 					{
-						if (resSet.directions.length == 0 || vi == -1)
+						if (resSet.directions.length === 0 || vi === -1)
 						{
 							//alert("add direction " + dir.toString());
 							resSet.directions.push(dir);
@@ -134,7 +134,7 @@ function check(v, vs)
 function checkVector(v,w)
 {
 	for (var i = 0; i < v.length; i++)
-		if (v[i] != w[i])
+		if (v[i] !== w[i])
 			return false;
 	
 	return true;
@@ -143,7 +143,7 @@ function checkVector(v,w)
 function allZeroes(v)
 {
 	for (var i = 0; i < v.length; i++)
-		if (v[i] != 0) return false;
+		if (v[i] !== 0) return false;
 	
 	return true;
 }
