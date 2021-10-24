@@ -25,8 +25,8 @@
     "react-tiny-popover": "^3.4.5",
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
-    "react-plotly": "^1.0.0",
-    "plotly": "^1.0.6"
+    "react-plotly.js": "^2.5.1",
+    "plotly.js": "^2.5.1"
   },
   "scripts": {
     "start": "react-scripts start",
