@@ -68,76 +68,79 @@ export const parseResults = (input) =>
 	return result;
 };
 
-export const parseParams = (input) =>
-{
-	if (input === "") return undefined;
-	
-	if (input.slice(0, 18) === "--- empty set ----")
-		return [];
-	
-	var linearSets = input.split("--------------");
-	var sets = [];
-	linearSets.forEach(set => {
-		if (set !== "")
+export const parseLinearSystemSet = (input) =>
+{	
+	var ls_txts = input.split("\n\n");
+
+	var result = {
+		linear_systems: []
+	};
+
+	ls_txts.forEach(ls_txt => {
+		if (ls_txt !== "")
 		{
-			var lines = set.split("\n");
-			//alert("line number: " + lines.length)
-			var resSet = {
+			var lines = ls_txt.split("\n");
+			var ls = {
 				directions: [],
 				offsets: []
 			};
 			lines.forEach(line => {
 				if (line !== "")
 				{
-					var dir = line.split(" <= ")[0].split(" ");
-					var off = line.split(" <= ")[1];
-					var vi = check(dir, resSet.directions);
+					var line_parts = line.split(" <= ");
+					var dir = line_parts[0].split(" ");
+					var off = line_parts[1];
 
-					//alert("direction = " + dir.toString() + "; offset = " + off)
-					
 					if (!allZeroes(dir))
 					{
-						if (resSet.directions.length === 0 || vi === -1)
-						{
-							//alert("add direction " + dir.toString());
-							resSet.directions.push(dir);
-							resSet.offsets.push(off);
-						}
-						else
-						{
-							//alert("direction already present in position " + vi.pos)
-							if (resSet.offsets[vi] > off)
-								resSet.offsets[vi] = off;
-						}
+						ls.directions.push(dir);
+						ls.offsets.push(off);
 					}
 				}
 			});
-			sets.push(resSet);
+			result.linear_systems.push(ls);
 		}
 	});
-	
-	console.log("printing sets");
-	console.log(sets);
-	
-	return sets;
+	return result;
 };
 
-function check(v, vs)
+export const parseFlowpipe = (input) =>
 {
-	for (var i = 0; i < vs.length; i++)
-		if (checkVector(v, vs[i]))
-			return i;
+	if (input === "") return undefined;
 	
-	return -1;
+	var result = {
+		step_sets: []
+	};
+
+	if (input.slice(0, 19) === "---- empty set ----")
+		return result;
+
+	var step_txts = input.split("--------------\n");
+	step_txts.shift(); // the first element in the list is empty
+
+	step_txts.forEach(step_txt => {
+		var step_set = parseLinearSystemSet(step_txt);
+		
+		if (step_set.length !== 0)
+		{
+			result.step_sets.push(step_set);
+		}
+	});
+
+	return result;
 };
 
-function checkVector(v,w)
+export const parseParams = (input) =>
 {
-	for (var i = 0; i < v.length; i++)
-		if (v[i] !== w[i])
-			return false;
+	if (input === "") return undefined;
 	
-	return true;
+	if (input.slice(0, 19) === "---- empty set ----")
+		return [];
+
+	// remove LinearSystemSet header, i.e., "--------------\n"
+	input = input.substring(input.indexOf("\n") + 1);
+
+	return parseLinearSystemSet(input);
 };
 
 function allZeroes(v)

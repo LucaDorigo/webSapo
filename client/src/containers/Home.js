@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { deepCopy, downloadFile, parseResults, parseParams } from "../constants/global";
+import { deepCopy, downloadFile, parseFlowpipe, parseParams } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
@@ -783,7 +783,7 @@ export default class HomeContainer extends Component {
 									{
 										downloadFile(parts.vars, "result.txt", "text/plain");
 										this.setState({
-											sapoResults: parseResults(parts.vars),
+											sapoResults: parseFlowpipe(parts.vars),
 											sapoParams: undefined,
 											hasResults: true,
 											executing: false,
@@ -794,7 +794,7 @@ export default class HomeContainer extends Component {
 									{
 										downloadFile(parts.params, "result.txt", "text/plain");
 										this.setState({
-											sapoResults: parseResults(parts.vars),
+											sapoResults: parseFlowpipe(parts.vars),
 											sapoParams: parseParams(parts.params),
 											hasResults: true,
 											executing: false,

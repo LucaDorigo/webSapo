@@ -207,67 +207,16 @@ export default class Chart extends Component<Props> {
 		
 		return data;
 	}	// end calcData
-	
-	calcVarData()
+
+	getProjSubspace(variables)
 	{
-		var time = this.state.xAxis === "Time";
-		
-		var input = this.props.sapoResults;
-		var varNum = this.props.variables.filter(v => v.lMatrixExtra !== true).length
-		
-		// initialize data var, which holds the results
-		var data;
-		if (this.state.chartType === "2D" && time)
-		{
-			data = [{
-				x: [],
-				y: [],
-				mode: 'lines+markers',
-				type: 'scatter',
-				name: 'max',
-				line: {
-					color: '#ff8f00',
-					width: 2,
-					shape: 'spline'
-				}
-			}, {
-				x: [],
-				y: [],
-				mode: 'lines+markers',
-				type: 'scatter',
-				name: 'min',
-				fill: 'tonexty',
-				line: {
-					color: '#ff8f00',
-					width: 2,
-					shape: 'spline'
-				}
-			}];
-			input.regions.forEach((r, i) => {
-				data[0].x.push(i);
-				data[1].x.push(i);
-			});
-		}
-		else
-			data = [];
-		
-		if (input.regions.length === 0)
-		{
-			alert("There is no data to display");
-			this.setState({ varData: [], changed: false });
-			return [];
-		}
-		
-		var directions = input.directions;
-		
-		// subspace definition, array of positions of corresponding variable
 		var subspace;
 		if (this.state.chartType === "2D")
 			subspace = [-1,-1];
 		else
 			subspace = [-1,-1,-1];
 		
-		this.props.variables.forEach((v, i) => {
+		variables.forEach((v, i) => {
 			if (v.name === this.state.xAxis)
 				subspace[0] = i;
 			if (v.name === this.state.yAxis)
@@ -275,346 +224,86 @@ export default class Chart extends Component<Props> {
 			if (v.name === this.state.zAxis)
 				subspace[2] = i;
 		});
-		
-		
-		//var As = getCombinations(directions.length, varNum);
-		
-		input.regions.forEach((r, k) => {
-			var LB = r.lb, UB = r.ub;
-			var bs = getCouples(LB, UB);
-			var vertices = [];
-			
-			// initial linear system
-			var A = [];
-			for (var i = 0; i < directions.length; i++)
-			{
-				if (i < varNum) A.push(1);
-				else A.push(0);
-			}
-			var hasNext = true;
-			
-			/* find possible vertices */
-			while (hasNext)
-			{
-				var mat = directions.filter((item, pos) => A[pos] === 1);
-				bs.forEach(b => {
-					var v = b.filter((item, pos) => A[pos] === 1);
-					if (math.det(mat) !== 0)
-						vertices.push(math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), []));
-				});
-				
-				// find next linear set
-				hasNext = findNext(A);
-			}
-			
-			removeWrongVertices(vertices, directions, LB, UB, 0.001);
-			
-			// vertices projected in the subspace
-			var proj = vertices.map(e => subspace.map(i => {
-				if (i !== -1) return e[i]; else return -1;
-			}));
-			
-			if (proj.length === 0)
-			{
-				this.setState({ varData: [], paramData: [] });
-				return;
-			}
-			
-			// if 2D, delete duplicates vertices
-			if (this.state.chartType === "2D")
-			{
-				proj.sort();
-				var j = 0;
-				while (j+1 < proj.length)
-				{
-					if (compareArray(proj[j], proj[j+1]) === 0)
-						proj.splice(j+1, 1);
-					else
-						j++;
+
+		return subspace;
+	}
+
+	getPolytopes(linear_system_sets, variables)
+	{
+		const polytope_gen = function (vertices, state, time) {
+			if (state.xAxis !== "Time") {
+				if (state.chartType === "2D") {
+					return get2DPolygon(vertices);
+				} else {
+					return get3DPolylitope(vertices);
+				}
+			} else {
+				if (state.chartType === "2D") {
+					return get2DTimePolygon(vertices, time);
+				} else {
+					return get3DTimePolylitope(vertices, time);
 				}
 			}
-			
-			
-			if (this.state.chartType === "2D" && time)
-			{
-				var max = proj[0][1], min = proj[0][1];
-				proj.forEach(v => {
-					if (v[1] > max) max = v[1];
-					else if (v[1] < min) min = v[1];
-				});
-				data[0].y.push(max)
-				data[1].y.push(min)
-			}
-			else if (this.state.chartType === "2D")
-			{
-				var center = [0.0, 0.0];
-				proj.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
-				center[0] /= proj.length;
-				center[1] /= proj.length;
-				
-				proj.sort((p1, p2) => compare(p1, p2, center));
-				// some vertices could be projected inside resulting polygon, remove them
-				proj = removeInnerVertices(proj);
-				
-				if (proj.length === 1)
-				{
-					data.push({
-						x: [proj[0][0]],
-						y: [proj[0][1]],
-						mode: 'markers',
-						type: 'scatter',
-						marker: {
-							color: '#ff8f00',
-							size: 7
-						}
-					});
-				}
-				else
-				{
-					data.push({
-							x: proj.map(e => e[0]).concat([proj[0][0]]),
-							y: proj.map(e => e[1]).concat([proj[0][1]]),
-							mode: 'lines',
-							type: 'scatter',
-							fill: 'toself',
-							line: {
-								color: '#ff8f00',
-								width: 2
-							}
-						});
-				}
-			}
-			else if (time)
-			{
-				data.push({
-					x: [],
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					alphahull: 0,
-					type: 'mesh3d',
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-				for (j = 0; j < data[data.length - 1].y.length; j++)
-					data[data.length - 1].x.push(k);
-				for (j = 0; j < data[data.length - 1].y.length; j++)
-					data[data.length - 1].x.push(k+0.1);
-				var l = data[data.length - 1].x.length;
-				data[data.length - 1].y.forEach((e, i) => data[data.length - 1].x.push(data[data.length - 1].x[i]+0.2))
-				for (j = 0; j < l; j++)
-				{
-					data[data.length - 1].y.push(data[data.length - 1].y[j]);
-					data[data.length - 1].z.push(data[data.length - 1].z[j]);
-				}
-			}
-			else
-			{
-				data.push({
-					x: proj.map(e => e[0]),
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					type: 'mesh3d',
-					alphahull: 0,
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-			}
-		});
-		
-		this.setState({ varData: data, changed: false });
-		return data;
-	} // end calcVarData
+		};
 	
+		var polytopes = [];
+		var subspace = this.getProjSubspace(variables);
+
+		var time = 0;
+		linear_system_sets.forEach((linear_system_set) => {
+			linear_system_set.linear_systems.forEach((linear_system) => {
+				var vertices = computeLinearSystemVertices(linear_system);
+				if (vertices.length !== 0)  // some valid vertices found in 
+				{ 
+					// vertices projected in the subspace
+					var proj = getVerticesProjection(vertices, subspace);
+
+					// add the polytope to the dataset
+					polytopes.push(polytope_gen(proj, this.state, time));
+				}
+			});
+
+			time = time + 1;
+		});
+
+		return polytopes;
+	}
+
+	calcVarData()
+	{
+		var input = this.props.sapoResults;
+
+		var polytopes = this.getPolytopes(input.step_sets, this.props.variables);
+
+		if (polytopes.length > 0) {
+			this.setState({ varData: polytopes, changed: false });
+			return polytopes;
+		} else {
+			alert("There is no data to display");
+			this.setState({ varData: polytopes, changed: false });
+			return polytopes;
+		}
+			
+	} // end calcVarData
 	
 	
 	calcParamData()
 	{
 		var input = this.props.sapoParams;
-		var paramNum = this.props.parameters.filter(v => v.lMatrixExtra !== true).length
-		
-		// initialize data var, which holds the results
-		var data = [];
-		
-		// subspace definition, array of positions of corresponding variable
-		var subspace;
-		if (this.state.chartType === "2D")
-			subspace = [-1,-1];
-		else
-			subspace = [-1,-1,-1];
-		
-		this.props.parameters.forEach((v, i) => {
-			if (v.name === this.state.xAxis)
-				subspace[0] = i;
-			if (v.name === this.state.yAxis)
-				subspace[1] = i;
-			if (v.name === this.state.zAxis)
-				subspace[2] = i;
-		});
-		
-		if (input.length === 0)
-		{
-			alert("The set of parameters is empty!");
-			this.setState({ paramData: [], changed: false });
-			return [];
-		}
-		
-		input.forEach(poly => {
-			// find vertices
-			var vertices = [];
-			
-			/* possible linear systems
-			 * if linearSystem[i] == 1, the i-th direction is used
-			 * as an equation in the linear system to find possible vertices
-			 */
-			var linearSystem = [];
-			for (var i = 0; i < poly.directions.length; i++)
-				if (i < paramNum)
-					linearSystem.push(1);
-				else
-					linearSystem.push(0);
-			
-			var hasNext = true;
-			while (hasNext)
-			{
-				var A = poly.directions.filter((item, pos) => linearSystem[pos] === 1);
-				var b = poly.offsets.filter((item, pos) => linearSystem[pos] === 1);
-				if (math.det(A) !== 0)
-					vertices.push(math.lusolve(A, b).reduce((acc, el) => acc.concat(el), []));
 
-				// find next linearSystem
-				hasNext = findNext(linearSystem);
-			}
-			
-			// remove vertices that violate some constraint
-			var LB = [];
-			poly.directions.forEach(d => LB.push(-Infinity));
-			removeWrongVertices(vertices, poly.directions, LB, poly.offsets, 0);
-			
-			// vertices projected in the subspace
-			var proj = vertices.map(e => subspace.map(i => {
-				if (i !== -1) return e[i]; else return -1;
-			}));
-			
-			if (proj.length === 0)
-			{
-				this.setState({ paramData: [] });
-				return;
-			}
-			
-			if (this.state.chartType === "2D")
-			{
-				// remove duplicate vertices, which are problematic for removeInnerVertices
-				proj.sort();
-				var j = 0;
-				while (j+1 < proj.length)
-				{
-					if (compareArray(proj[j], proj[j+1]) === 0)
-						proj.splice(j+1, 1);
-					else
-						j++;
-				}
-				
-				// find center of polygon
-				var center = [0.0, 0.0];
-				proj.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
-				center[0] /= proj.length;
-				center[1] /= proj.length;
-				
-				// sort counterclockwise, starting from angle 0 (direction (1,0))
-				proj.sort((p1, p2) => compare(p1, p2, center));
-				
-				// some vertices could be projected inside resulting polygon, remove them
-				proj = removeInnerVertices(proj);
-				
-				if (proj.length === 1)
-				{
-					data.push({
-						x: [proj[0][0]],
-						y: [proj[0][1]],
-						mode: 'markers',
-						type: 'scatter',
-						marker: {
-							color: '#ff8f00',
-							size: 7
-						}
-					});
-				}
-				else
-				{
-					data.push({
-							x: proj.map(e => e[0]).concat([proj[0][0]]),
-							y: proj.map(e => e[1]).concat([proj[0][1]]),
-							mode: 'lines',
-							type: 'scatter',
-							fill: 'toself',
-							line: {
-								color: '#ff8f00',
-								width: 2
-							}
-						});
-				}
-			}
-			else
-			{
-				data.push({
-					x: proj.map(e => e[0]),
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					type: 'mesh3d',
-					alphahull: 0,
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-			}
-		});
+		var polytopes = this.getPolytopes([input], this.props.parameters);
 		
-		this.setState({ paramData: data, changed: false });
-		return data;
+		if (polytopes.length > 0) {
+			this.setState({ paramData: polytopes, changed: false });
+			return polytopes;
+		} else {
+			alert("The set of parameters is empty!");
+			this.setState({ paramData: polytopes, changed: false });
+			return polytopes;
+		}
 	}
-	
 }	// end Chart
 
-
-// return the collection of all vectors v s.t. v[i] === a[i] || v[i] === b[i]
-function getCouples(a, b)
-{
-	var res = [[a[0]], [b[0]]];
-	
-	for (var i = 1; i < a.length; i++)
-	{
-		var acc = [];
-		for (var j = 0; j < res.length; j++)
-		{
-			var copy = [...res[j]];
-			copy.push(a[i]);
-			acc.push(copy);
-			res[j].push(b[i]);
-		}
-		res = res.concat(acc);
-	}
-	
-	return res;
-}
-
-/*
-function getCombinations(m, n)
-{
-	var zeroes = [], ones = [];
-	for (var i = 0; i < m; i++)
-	{
-		zeroes.push(0);
-		ones.push(1);
-	}
-	var As = getCouples(zeroes, ones);
-	
-	var res = [];
-	As.forEach(v => {
-		if (v.reduce((acc, val) => acc + val) === n)
-			res.push(v);
-	});
-	return res;
-}
-*/
 
 function compareArray(v1, v2)
 {
@@ -675,40 +364,86 @@ function compare(p1, p2, c)
 	}
 }
 
-// removes vertices violating a constraint
-function removeWrongVertices(vertices, directions, LB, UB, tol)
+function isValidVertex(vertex, linear_system, tol)
 {
-	var toRemove = [];
-	vertices.forEach(v => {
-		for (var i = 0; i < directions.length; i++)
-		{
-			if (math.dot(directions[i], v) < LB[i] - tol || math.dot(directions[i], v) > UB[i] + tol)
-			{
-				toRemove.push(v);
-				break;
-			}
+	for (var i = 0; i < linear_system.directions.length; i++)
+	{
+		var dir = math.dot(linear_system.directions[i], vertex);
+		if (dir > linear_system.offsets[i] + tol) {
+			return false;
 		}
-	});
-	
-	/* remove wrong vertices */
-	toRemove.forEach(v => {
-		var index = vertices.indexOf(v);
-		vertices.splice(index, 1);
-	});
+	}
+
+	return true;
 }
 
-// v is sorted counterclockwise
-function removeInnerVertices(v)
+function computeLinearSystemVertices(linear_system, tol = 0.01)
+{
+	var vertices = [];
+				
+	var directions = linear_system.directions;
+	var offsets = linear_system.offsets;
+
+	if (directions.length === 0) {
+		return vertices;
+	}
+
+	var A_comb = getFirstCombination(directions[0].length, directions.length);
+	var hasNext = true;
+
+	/* find possible vertices */
+	while (hasNext)
+	{
+		var mat = directions.filter((item, pos) => A_comb[pos] === 1);
+		if (math.det(mat) !== 0) {
+			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
+			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
+
+			if (isValidVertex(vertex, linear_system, tol)) {
+				vertices.push(vertex);
+			}
+		}
+		
+		// find next combination
+		hasNext = findNextCombination(A_comb);
+	}
+
+	return vertices
+}
+
+function getVerticesProjection(vertices, subspace)
+{
+	// vertices projected in the subspace
+	var proj = vertices.map(e => subspace.map(i => {
+		if (i !== -1) return e[i]; else return -1;
+	}));
+
+	// Delete duplicates vertices
+	proj.sort();
+	var j = 0;
+	while (j+1 < proj.length)
+	{
+		if (compareArray(proj[j], proj[j+1]) === 0)
+			proj.splice(j+1, 1);
+		else
+			j++;
+	}
+
+	return proj
+}
+
+// vertices are sorted counterclockwise
+function removeInnerVertices(vertices)
 {
 	var i = 0;
-	var a = v[v.length - 1];
-	var b = v[0];
-	var c = v[1];
+	var a = vertices[vertices.length - 1];
+	var b = vertices[0];
+	var c = vertices[1];
 	
-	while (i < v.length)
+	while (i < vertices.length)
 	{
-		if (v.length <= 3)
-			return v;
+		if (vertices.length <= 3)
+			return vertices;
 		// vector ab
 		var deltaX = b[0] - a[0], deltaY = b[1] - a[1];
 		
@@ -723,66 +458,204 @@ function removeInnerVertices(v)
 		 */
 		if (y*deltaX - x*deltaY <= 0)
 		{
-			v.splice(i,1);
+			vertices.splice(i,1);
 			b = c;
-			c = v[(i+1) % v.length];
+			c = vertices[(i+1) % vertices.length];
 		}
 		else
 		{
 			i++;
 			a = b;
 			b = c;
-			c = v[(i+1) % v.length];
+			c = vertices[(i+1) % vertices.length];
 		}
 	}
 	
-	return v;
+	return vertices;
 }
 
-function findNext(linearSystem)
+function getFirstCombination(k, n)
 {
-//	alert("current linearSystem: " + linearSystem);
-	var l = linearSystem.length - 1;
+	// initial combination
+	return Array.from({length: n}, 
+						(_, i) => {
+							if (i<k) {
+								return 1;
+							} else {
+								return 0;
+							}
+						});
+}
+
+function findNextCombination(combination)
+{
+	var l = combination.length - 1;
 	
-	if (linearSystem[l] === 0)
+	if (combination[l] === 0)
 	{
-//		alert("caso faacile");
 		var i = 1;
-		while (linearSystem[l-i] === 0)
+		while (combination[l-i] === 0)
 			i++;
 		
-//		alert("trovato un 1 in posizione " + i);
-		
-		linearSystem[l-i] = 0;
-		linearSystem[l-i+1] = 1;
+		// combination[l-i]===1 and 
+		// combination[l-i+1]===0
+		combination[l-i] = 0;
+		combination[l-i+1] = 1;
 	}
 	else
 	{
-//		alert("caso difficile");
+		// search for the last 0 in the combination
 		var j = 1;
-		while (j <= l && linearSystem[l-j] === 1)
+		while (j <= l && combination[l-j] === 1)
+			j++;
+
+		var k = j;
+
+		// search for the successive last 1
+		while (j <= l && combination[l-j] === 0)
 			j++;
 		
-		j = i;
-		while (j <= l && linearSystem[l-j] === 0)
-			j++;
-		
-		if (i > l)
+		// if there is no successive 1
+		if (j > l) {
+			// all the 1s are at the end of the 
+			// array and there is no successive 
+			// combination
 			return false;
+		}
 		
-		linearSystem[l-i] = 0;
-		var pos = l-i+1;
-		while (pos <= l-i+1+j)
+		// otherwise, combination[l-j]===1 and
+		// combination[l-j+1]===0
+		combination[l-j] = 0;
+		var pos = l-j+1;
+		while (pos <= l-j+1+k)
 		{
-			linearSystem[pos] = 1;
+			combination[pos] = 1;
 			pos++;
 		}
 		while (pos <= l)
 		{
-			linearSystem[pos] = 0;
+			combination[pos] = 0;
 			pos++;
 		}
 	}
-//	alert("fine");
 	return true;
+}
+
+function get2DSinglePoint(vertices)
+{
+	return {
+		x: [vertices[0][0]],
+		y: [vertices[0][1]],
+		mode: 'markers',
+		type: 'scatter',
+		marker: {
+			color: '#ff8f00',
+			size: 7
+		}
+	};	
+}
+
+function get2DConvexHullVertices(vertices)
+{  // TODO: implement a real 2D convex hull
+	// compute the centroid of the set 
+	// (is the average the centroid even if 
+	// the set is not a bundle?)
+	var center = [0.0, 0.0];
+	vertices.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
+	center[0] /= vertices.length;
+	center[1] /= vertices.length;
+	
+	vertices.sort((p1, p2) => compare(p1, p2, center));
+	// some vertices could be projected inside resulting polygon, remove them
+	return removeInnerVertices(vertices);
+}
+
+function get2DPolygon(vertices)
+{
+	if (vertices.length === 1) {
+		return get2DSinglePoint(vertices);
+	}
+
+	var chull = get2DConvexHullVertices(vertices)
+
+	return {
+		x: chull.map(e => e[0]).concat([chull[0][0]]),
+		y: chull.map(e => e[1]).concat([chull[0][1]]),
+		mode: 'lines',
+		type: 'scatter',
+		fill: 'toself',
+		line: {
+			color: '#ff8f00',
+			width: 2
+		}
+	};
+}
+
+function get2DTimePolygon(vertices, time, thickness = 0.4)
+{
+	var chull = get2DConvexHullVertices(vertices);
+
+	var times = []
+	var y = chull.map(e => e[1]);
+
+	for (var j = 0; j < y.length; j++)
+		times.push(time-thickness);
+	for (j = 0; j < y.length; j++)
+		times.push(time+thickness);
+	var l = y.length;
+	for (j = 0; j < l; j++) {
+		y.push(y[l-j-1]);
+	}
+
+	return {
+		x: times,
+		y: y,
+		mode: 'lines',
+		type: 'scatter',
+		fill: 'toself',
+		line: {
+			color: '#ff8f00',
+			width: 2
+		}
+	};
+}
+
+function get3DTimePolylitope(vertices, time, thickness = 0.4)
+{
+	var times = []
+	var y = vertices.map(e => e[1]);
+	var z = vertices.map(e => e[2]);
+
+	for (var j = 0; j < y.length; j++)
+		times.push(time);
+	for (j = 0; j < y.length; j++)
+		times.push(time+thickness);
+	var l = y.length;
+	for (j = 0; j < l; j++) {
+		y.push(y[l-j-1]);
+		z.push(z[l-j-1]);
+	}
+
+	return {
+		x: times,
+		y: y,
+		z: z,
+		alphahull: 0,
+		type: 'mesh3d',
+		color: '#ff8f00',
+		hoverinfo: 'none'
+	};
+}
+
+function get3DPolylitope(vertices)
+{
+	return {
+		x: vertices.map(e => e[0]),
+		y: vertices.map(e => e[1]),
+		z: vertices.map(e => e[2]),
+		type: 'mesh3d',
+		alphahull: 0,
+		color: '#ff8f00',
+		hoverinfo: 'none'
+	};
 }
