@@ -599,9 +599,9 @@ function get2DTimePolygon(vertices, time, thickness = 0.4)
 	var y = chull.map(e => e[1]);
 
 	for (var j = 0; j < y.length; j++)
-		times.push(time-thickness);
+		times.push(time-thickness/2);
 	for (j = 0; j < y.length; j++)
-		times.push(time+thickness);
+		times.push(time+thickness/2);
 	var l = y.length;
 	for (j = 0; j < l; j++) {
 		y.push(y[l-j-1]);
@@ -627,9 +627,9 @@ function get3DTimePolylitope(vertices, time, thickness = 0.4)
 	var z = vertices.map(e => e[2]);
 
 	for (var j = 0; j < y.length; j++)
-		times.push(time);
+		times.push(time-thickness/2);
 	for (j = 0; j < y.length; j++)
-		times.push(time+thickness);
+		times.push(time+thickness/2);
 	var l = y.length;
 	for (j = 0; j < l; j++) {
 		y.push(y[l-j-1]);
