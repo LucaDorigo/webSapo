@@ -52,6 +52,20 @@ export default class BoxesPage extends Component<Props> {
 									step="1"
 								/>
 							</div>
+
+							{/*selector for maximum number of parameter splits*/}
+							<div className={styles.simplePaddingLeft}>
+								Max parameter splits:{" "}
+								<input
+									onChange={this.props.changeMaxParamSplits}
+									value={this.props.maxParamSplits}
+									className={styles.textInput}
+									type="number"
+									name="numberIterations"
+									min="0"
+									step="1"
+								/>
+							</div>
 						</div>
 
 						<div className={styles.flexEnd}>

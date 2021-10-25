@@ -46,6 +46,7 @@ export default class HomeContainer extends Component {
 		this.state = {
 			executing: false,
 			numberOfIterations: 1,
+			maxParamSplits: 0,
 			variables: [], // array of object
 			parameters: [],
 			equations: [],
@@ -111,6 +112,17 @@ export default class HomeContainer extends Component {
 			this.setState({ numberOfIterations: value });
 		} else {
 			this.setState({ numberOfIterations: 1 });
+		}
+	};
+
+	changeMaxParamSplits = e => {
+		const value = e.target.value;
+
+		if (value >= 0 && Number.isInteger(parseFloat(value, 10)) === true) {
+			// parseInt is not used because does an automatic truncate and returns always an int
+			this.setState({ maxParamSplits: value });
+		} else {
+			this.setState({ maxParamSplits: 0 });
 		}
 	};
 
@@ -901,6 +913,8 @@ export default class HomeContainer extends Component {
 			<Home
 				changeNumberOfIterations={this.changeNumberOfIterations}
 				numberOfIterations={this.state.numberOfIterations}
+				changeMaxParamSplits={this.changeMaxParamSplits}
+				maxParamSplits={this.state.maxParamSplits}
 				handleMethodSelection={this.handleMethodSelection}
 				nameSelectedMenu={this.state.nameSelectedMenu}
 				//
