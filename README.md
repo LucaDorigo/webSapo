@@ -45,3 +45,30 @@ npm run client
 ```
 
 Once both servers are up, the tool will be available on `localhost:3000`.
+
+## Docker
+WebSapo can be executed in a docker container. In order to build the docker image, complete the following steps:
+1. Build the client using the command:
+```
+(cd client && npm install && npm run build)
+```
+2. Build the docker image by executing:
+```
+docker build -t <NAME OF THE IMAGE> .
+```
+<br/>
+
+Once the image has been built, the docker container can be instanciated and run by using the command:
+```
+docker run -p 3001:3001 --name <NAME OF THE CONTAINER> <NAME OF THE IMAGE>
+```
+
+WebSapo will be available from any web browser at [http://localhost:3001](http://localhost:3001).
+
+In order to restart it, use [Docker Desktop](https://www.docker.com/products/docker-desktop) or simply run:
+```
+docker restart <NAME OF THE CONTAINER>
+```
+<br/>
+
+For more details about docker, see [this page](https://docs.docker.com).
