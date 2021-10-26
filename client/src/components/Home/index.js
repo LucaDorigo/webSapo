@@ -339,7 +339,7 @@ export default class BoxesPage extends Component<Props> {
 										window.dispatchEvent(new Event('resize'));
 									}}
 								>
-									<p>CHART</p>
+									<p>PLOTS</p>
 								</button>}
 								
 							</div>
@@ -582,7 +582,6 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>CHART</h2>
 							</div>
 						</div>
 
