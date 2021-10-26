@@ -27,7 +27,7 @@ else
   });
 }
 
-app.post("/prova", (req, res, next) => {
+app.post("/websapo", (req, res, next) => {
 	let data = '';
   req.on('data', chunk => {
     data += chunk.toString();

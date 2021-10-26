@@ -772,7 +772,7 @@ export default class HomeContainer extends Component {
 						const options = {
 							hostname: window.location.hostname,
 							port: process.env.REACT_APP_SERVER_PORT,
-							path: '/prova',
+							path: '/websapo',
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json',
