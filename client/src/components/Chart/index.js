@@ -228,6 +228,36 @@ export default class Chart extends Component<Props> {
 		return subspace;
 	}
 
+	get2DTimePolygons(linear_system_sets, variables)
+	{
+		var polygons = [];
+		var subspace = this.getProjSubspace(variables);
+
+		var time = 0;
+		linear_system_sets.forEach((linear_system_set) => {
+			var intervals = [];
+			linear_system_set.linear_systems.forEach((linear_system) => {
+				var vertices = computeLinearSystemVertices(linear_system);
+				if (vertices.length !== 0)  // some valid vertices found in
+				{
+					intervals.push(findMinMaxItvl(vertices, subspace[1]));
+				}
+			});
+
+			// join overlapping intervals
+			joinOverlappingItvls(intervals).forEach((itvl) => {
+				// create the two vertices
+				var vertices = [[time, itvl.min], [time, itvl.max]];
+
+				// add the polytope to the dataset
+				polygons.push(get2DTimePolygon(vertices, time));
+			});
+			time = time + 1;
+		});
+
+		return polygons;
+	}
+
 	getPolytopes(linear_system_sets, variables)
 	{
 		const polytope_gen = function (vertices, state, time) {
@@ -253,8 +283,8 @@ export default class Chart extends Component<Props> {
 		linear_system_sets.forEach((linear_system_set) => {
 			linear_system_set.linear_systems.forEach((linear_system) => {
 				var vertices = computeLinearSystemVertices(linear_system);
-				if (vertices.length !== 0)  // some valid vertices found in 
-				{ 
+				if (vertices.length !== 0)  // some valid vertices found in
+				{
 					// vertices projected in the subspace
 					var proj = getVerticesProjection(vertices, subspace);
 
@@ -273,8 +303,15 @@ export default class Chart extends Component<Props> {
 	{
 		var input = this.props.sapoResults;
 
-		var polytopes = this.getPolytopes(input.step_sets, this.props.variables);
+		var polytopes = [];
 
+		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
+			// this is just to exploit 2D time series properties and speed-up 
+			// their plotting with respect to getPolytopes-based plotting 
+			polytopes = this.get2DTimePolygons(input.step_sets, this.props.variables);
+		} else {
+			polytopes = this.getPolytopes(input.step_sets, this.props.variables);
+		}
 		if (polytopes.length > 0) {
 			this.setState({ varData: polytopes, changed: false });
 			return polytopes;
@@ -304,6 +341,68 @@ export default class Chart extends Component<Props> {
 	}
 }	// end Chart
 
+function findMinMaxItvl(vertices, dim=0)
+{
+	if (vertices.length === 0) {
+		return { min: undefined, max: undefined };
+	}
+
+	var itvl = { min: vertices[0][dim], max: vertices[0][dim] };
+	vertices.forEach((vertex) => {
+		if (vertex[dim]>itvl.max) {
+			itvl.max = vertex[dim];
+		} else {
+			if (vertex[dim]<itvl.min) {
+				itvl.min = vertex[dim];
+			}
+		}
+	});
+
+	return itvl;
+}
+
+function joinOverlappingItvls(itvls)
+{
+	var joint = [];
+	if (itvls.length === 0) {
+		return joint;
+	}
+
+	itvls.sort(compareItvls);
+	var newItvl = Object.assign({}, itvls[0]);
+	itvls.forEach((itvl) => {
+		if (newItvl.max < itvl.min) {
+			joint.push(newItvl);
+			newItvl = Object.assign({}, itvl);
+		} else {
+			newItvl.max = itvl.max;
+		}
+	});
+
+	joint.push(newItvl);
+
+	return joint;
+}
+
+function compareItvls(a, b)
+{
+	if (a.min<b.min) {
+		return -1
+	}
+
+	if (a.min>b.min) {
+		return 1;
+	}
+
+	if (a.max<b.max) {
+		return -1
+	}
+
+	if (a.max>b.max) {
+		return 1;
+	}
+	return 0;
+}
 
 function compareArray(v1, v2)
 {
