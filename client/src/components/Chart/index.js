@@ -5,6 +5,23 @@ import styles from "./style.module.css";
 
 type Props = {};
 
+function getOption(item, selected_cond)
+{
+	if (selected_cond) {
+		return (
+			<>
+				<option key={"yoption" + item} value={item.name}  selected="selected">{item.name}</option>
+			</>
+		);
+	}
+
+	return (
+		<>
+			<option key={"yoption" + item} value={item.name}>{item.name}</option>
+		</>
+	);
+}
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
@@ -75,7 +92,7 @@ export default class Chart extends Component<Props> {
 							<input className={styles.radio_input} type="radio" value="params" label="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
-					<div className={styles.radio_group} onChange={e => this.changeChartType(e, this)}>
+					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
 						<div className={styles.radio_element}>
 							<input className={styles.radio_input} type="radio" defaultChecked value="2D" label="2D" name="dimensions"/> 2D
 						</div>
@@ -87,41 +104,23 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
+								{this.state.dataType === "vars" && <option value="Time" selected="selected">Time</option> }
 								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"xoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, false);
 								})}
 								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"xoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, index===0);
 								})}
-								{this.state.dataType === "vars" && <option value="Time">Time</option> }
 							</select>
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
 								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, index===0);
 								})}
 								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, index===1);
 								})}
 							</select>
 						</div>
@@ -129,20 +128,11 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
 								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, index===1);
 								})}
 								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+									return getOption(item, index===2);
 								})}
 							</select>
 						</div>}
@@ -152,25 +142,42 @@ export default class Chart extends Component<Props> {
 		);
 	}
 	
-	changeChartType(e, obj)
-	{
-		if (e.target.value === "2D")
-			obj.setState({ chartType: e.target.value, changed: true, zAxis: "undefined" });
-		else
-			obj.setState({ chartType: e.target.value, changed: true });
-	}
-	
 	changeDataType(e, obj)
 	{
-		obj.setState({
-			dataType: e.target.value,
-			changed: true,
-			xAxis: "undefined",
-			yAxis: "undefined",
-			zAxis: "undefined"
-		});
+		var newProps = { dataType: e.target.value,
+						 changed: true };
+
+		if (this.state.xAxis === "undefined" || this.state.yAxis === "undefined" || this.state.zAxis === "undefined") {
+			if (e.target.value === "vars") {
+				newProps = Object.assign(newProps, { xAxis: "Time",
+								     yAxis: this.props.variables[0].name,
+								     zAxis: this.props.variables[1].name, changed: true});
+			} else {
+				newProps = Object.assign(newProps, { xAxis: this.props.variables[0].name,
+								     yAxis: this.props.variables[1].name,
+								     zAxis: this.props.variables[2].name, changed: true});
+			}
+		}
+
+		obj.setState(newProps);
 	}
-	
+
+	componentDidUpdate(prevProps) {
+		if (prevProps.sapoResults != this.props.sapoResults && 
+		    (this.state.xAxis === "undefined" || this.state.yAxis === "undefined" || this.state.zAxis === "undefined")) {
+				
+			if (this.state.dataType === "vars") {
+				this.setState({ xAxis: "Time", 
+				                yAxis: this.props.variables[0].name,
+						zAxis: this.props.variables[1].name, changed: true});
+			} else {
+				this.setState({ xAxis: this.props.variables[0].name,
+						yAxis: this.props.variables[1].name,
+						zAxis: this.props.variables[2].name, changed: true});
+			}
+		}
+	}
+
 	calcData()
 	{
 		if (this.props.updateChart)
@@ -186,26 +193,25 @@ export default class Chart extends Component<Props> {
 				return this.state.paramData;
 				
 		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
-				(this.state.dataType === "params" && this.props.sapoParams === undefined) ||
-				this.state.xAxis === "undefined" ||
-				this.state.yAxis === "undefined" ||
-				(this.state.chartType === "3D" && this.state.zAxis === "undefined"))
+				(this.state.dataType === "params" && this.props.sapoParams === undefined))
 		{
+			var newProps = {xAxis: "undefined",
+					yAxis: "undefined",
+					zAxis: "undefined"};
 			if (this.state.dataType === "vars")
-				this.setState({ varData: [], changed: false });
+				newProps=Object.assign(newProps, { varData: [], changed: false });
 			else
-				this.setState({ paramData: [], changed: false });
+				newProps=Object.assign(newProps, { paramData: [], changed: false });
+			
+			this.setState(newProps);
 			
 			return [];
 		}
-		
-		var data;
+
 		if (this.state.dataType === "vars")
-			data = this.calcVarData()
-		else
-			data = this.calcParamData()
+			return this.calcVarData();
 		
-		return data;
+		return this.calcParamData();
 	}	// end calcData
 
 	getProjSubspace(variables)
@@ -301,10 +307,12 @@ export default class Chart extends Component<Props> {
 
 	calcVarData()
 	{
+		// console.log("Computing polytope vertices")
+		// var begin_time = new Date();
+
 		var input = this.props.sapoResults;
 
 		var polytopes = [];
-
 		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
 			// this is just to exploit 2D time series properties and speed-up 
 			// their plotting with respect to getPolytopes-based plotting 
@@ -312,15 +320,16 @@ export default class Chart extends Component<Props> {
 		} else {
 			polytopes = this.getPolytopes(input.step_sets, this.props.variables);
 		}
-		if (polytopes.length > 0) {
-			this.setState({ varData: polytopes, changed: false });
-			return polytopes;
-		} else {
+
+		if (polytopes.length === 0) {
 			alert("There is no data to display");
-			this.setState({ varData: polytopes, changed: false });
-			return polytopes;
 		}
-			
+		this.setState({ varData: polytopes, changed: false });
+
+		// var end_time = new Date();
+		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
+
+		return polytopes;
 	} // end calcVarData
 	
 	
