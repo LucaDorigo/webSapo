@@ -32,9 +32,9 @@ export default class Chart extends Component<Props> {
 			changed: false,
 			chartType: "2D",
 			dataType: "vars",
-			xAxis: "undefined",
-			yAxis: "undefined",
-			zAxis: "undefined"
+			xAxis: undefined,
+			yAxis: undefined,
+			zAxis: undefined
 		};
 	}
 	
@@ -147,16 +147,14 @@ export default class Chart extends Component<Props> {
 		var newProps = { dataType: e.target.value,
 						 changed: true };
 
-		if (this.state.xAxis === "undefined" || this.state.yAxis === "undefined" || this.state.zAxis === "undefined") {
-			if (e.target.value === "vars") {
-				newProps = Object.assign(newProps, { xAxis: "Time",
-								     yAxis: this.props.variables[0].name,
-								     zAxis: this.props.variables[1].name, changed: true});
-			} else {
-				newProps = Object.assign(newProps, { xAxis: this.props.variables[0].name,
-								     yAxis: this.props.variables[1].name,
-								     zAxis: this.props.variables[2].name, changed: true});
-			}
+		if (e.target.value === "vars") {
+			newProps = Object.assign(newProps, { xAxis: "Time",
+									yAxis: this.props.variables[0].name,
+									zAxis: this.props.variables[1].name, changed: true});
+		} else {
+			newProps = Object.assign(newProps, { xAxis: this.props.parameters[0].name,
+									yAxis: this.props.parameters[1].name,
+									zAxis: this.props.parameters[2].name, changed: true});
 		}
 
 		obj.setState(newProps);
@@ -164,16 +162,16 @@ export default class Chart extends Component<Props> {
 
 	componentDidUpdate(prevProps) {
 		if (prevProps.sapoResults != this.props.sapoResults && 
-		    (this.state.xAxis === "undefined" || this.state.yAxis === "undefined" || this.state.zAxis === "undefined")) {
+		    (this.state.xAxis === undefined || this.state.yAxis === undefined || this.state.zAxis === undefined)) {
 				
 			if (this.state.dataType === "vars") {
 				this.setState({ xAxis: "Time", 
 				                yAxis: this.props.variables[0].name,
 						zAxis: this.props.variables[1].name, changed: true});
 			} else {
-				this.setState({ xAxis: this.props.variables[0].name,
-						yAxis: this.props.variables[1].name,
-						zAxis: this.props.variables[2].name, changed: true});
+				this.setState({ xAxis: this.props.parameters[0].name,
+						yAxis: this.props.parameters[1].name,
+						zAxis: this.props.parameters[2].name, changed: true});
 			}
 		}
 	}
@@ -195,9 +193,9 @@ export default class Chart extends Component<Props> {
 		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
 				(this.state.dataType === "params" && this.props.sapoParams === undefined))
 		{
-			var newProps = {xAxis: "undefined",
-					yAxis: "undefined",
-					zAxis: "undefined"};
+			var newProps = {xAxis: undefined,
+					yAxis: undefined,
+					zAxis: undefined};
 			if (this.state.dataType === "vars")
 				newProps=Object.assign(newProps, { varData: [], changed: false });
 			else
@@ -694,7 +692,7 @@ function get2DPolygon(vertices)
 		fill: 'toself',
 		line: {
 			color: '#ff8f00',
-			width: 2
+			width: 0
 		}
 	};
 }
@@ -714,6 +712,8 @@ function get2DTimePolygon(vertices, time, thickness = 0.4)
 	for (j = 0; j < l; j++) {
 		y.push(y[l-j-1]);
 	}
+	times.push(time-thickness/2);
+	y.push(y[0]);
 
 	return {
 		x: times,

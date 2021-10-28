@@ -96,6 +96,7 @@ app.post("/saveModel", (req, res, next) => {
 			vars.leftButtonActive,
 			vars.rightButtonActive,
 			vars.numberOfIterations,
+			vars.maxParamSplits,
 			vars.parametersMatrix,
 			vars.lMatrix,
 			vars.tMatrix,
