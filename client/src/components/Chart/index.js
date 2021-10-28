@@ -1,7 +1,10 @@
 import React, { Component } from "react";
-import Plot from "react-plotly.js";
 import * as math from "mathjs";
 import styles from "./style.module.css";
+
+import Plotly from 'plotly.js-gl3d-dist-min'
+import createPlotlyComponent from 'react-plotly.js/factory';
+const Plot = createPlotlyComponent(Plotly);
 
 type Props = {};
 

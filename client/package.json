@@ -12,11 +12,13 @@
   "dependencies": {
     "history": "^4.10.1",
     "mathjs": "^5.10.3",
+    "plotly.js-gl3d-dist-min": "^2.5.1",
     "rc-menu": "^7.5.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-hot-loader": "^4.3.12",
     "react-icons": "^3.7.0",
+    "react-plotly.js": "^2.5.1",
     "react-redux": ">=5.1.1",
     "react-router": "^4.3.1",
     "react-router-dom": "^4.3.1",
@@ -24,9 +26,7 @@
     "react-spinners": "^0.6.1",
     "react-tiny-popover": "^3.4.5",
     "redux": "^4.0.5",
-    "redux-thunk": "^2.3.0",
-    "react-plotly.js": "^2.5.1",
-    "plotly.js": "^2.5.1"
+    "redux-thunk": "^2.3.0"
   },
   "scripts": {
     "start": "react-scripts start",
