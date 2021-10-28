@@ -21,7 +21,7 @@ All dependencies will be automatically installed in the following.
 ### Downloading and installing
 If thes dependencies are met, we can download and install the tool
 ```
-git clone https://github.com/LucaDorigo/webSapo
+git clone --recurse-submodules https://github.com/LucaDorigo/webSapo
 cd webSapo
 #install dependencies for server
 npm install
