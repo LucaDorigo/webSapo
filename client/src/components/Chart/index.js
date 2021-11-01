@@ -164,17 +164,33 @@ export default class Chart extends Component<Props> {
 	}
 
 	componentDidUpdate(prevProps) {
-		if (prevProps.sapoResults != this.props.sapoResults && 
-		    (this.state.xAxis === undefined || this.state.yAxis === undefined || this.state.zAxis === undefined)) {
+		var name_if_valid = (property, pos) => (property.length>pos)
+		                                        ? property[pos].name 
+												: undefined;
+		var domain_size;
+
+		if (prevProps.sapoResults !== this.props.sapoResults) {
 				
 			if (this.state.dataType === "vars") {
-				this.setState({ xAxis: "Time", 
-				                yAxis: this.props.variables[0].name,
-						zAxis: this.props.variables[1].name, changed: true});
+				domain_size = this.props.variables.length;
+				if (this.state.xAxis === undefined ||
+						(this.state.yAxis === undefined && domain_size > 0) ||
+						(this.state.zAxis === undefined && domain_size > 1)) {
+					this.setState({ xAxis: "Time",
+							yAxis: name_if_valid(this.props.variables, 0),
+							zAxis: name_if_valid(this.props.variables, 1),
+							changed: true});
+				}
 			} else {
-				this.setState({ xAxis: this.props.parameters[0].name,
-						yAxis: this.props.parameters[1].name,
-						zAxis: this.props.parameters[2].name, changed: true});
+				domain_size = this.props.parameters.length;
+				if ((this.state.xAxis === undefined && domain_size > 0) ||
+						(this.state.yAxis === undefined && domain_size > 1) || 
+						(this.state.zAxis === undefined && domain_size > 2)) {
+					this.setState({ xAxis: name_if_valid(this.props.parameters, 0),
+							yAxis: name_if_valid(this.props.parameters, 1),
+							zAxis: name_if_valid(this.props.parameters, 2),
+							changed: true});
+				}
 			}
 		}
 	}
