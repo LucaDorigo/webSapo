@@ -88,8 +88,12 @@ export const parseLinearSystemSet = (input) =>
 				if (line !== "")
 				{
 					var line_parts = line.split(" <= ");
-					var dir = line_parts[0].split(" ");
-					var off = line_parts[1];
+					var dir = []
+					
+					line_parts[0].split(" ").forEach((value) => {
+						dir.push(parseFloat(value));
+					});
+					var off = parseFloat(line_parts[1]);
 
 					if (!allZeroes(dir))
 					{

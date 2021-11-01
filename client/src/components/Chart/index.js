@@ -25,6 +25,10 @@ function getOption(item, selected_cond)
 	);
 }
 
+const name_if_valid = (property, pos) => (property.length>pos)
+										? property[pos].name 
+										: undefined;
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
@@ -152,21 +156,20 @@ export default class Chart extends Component<Props> {
 
 		if (e.target.value === "vars") {
 			newProps = Object.assign(newProps, { xAxis: "Time",
-									yAxis: this.props.variables[0].name,
-									zAxis: this.props.variables[1].name, changed: true});
+									yAxis: name_if_valid(this.props.variables, 0),
+									zAxis: name_if_valid(this.props.variables, 1),
+									changed: true});
 		} else {
-			newProps = Object.assign(newProps, { xAxis: this.props.parameters[0].name,
-									yAxis: this.props.parameters[1].name,
-									zAxis: this.props.parameters[2].name, changed: true});
+			newProps = Object.assign(newProps, { xAxis: name_if_valid(this.props.parameters, 0),
+									yAxis: name_if_valid(this.props.parameters, 1),
+									zAxis: name_if_valid(this.props.parameters, 2),
+									changed: true});
 		}
 
 		obj.setState(newProps);
 	}
 
 	componentDidUpdate(prevProps) {
-		var name_if_valid = (property, pos) => (property.length>pos)
-		                                        ? property[pos].name 
-												: undefined;
 		var domain_size;
 
 		if (prevProps.sapoResults !== this.props.sapoResults) {
@@ -259,7 +262,7 @@ export default class Chart extends Component<Props> {
 		var time = 0;
 		linear_system_sets.forEach((linear_system_set) => {
 			var intervals = [];
-			linear_system_set.linear_systems.forEach((linear_system) => {
+			linear_system_set.linear_systems.forEach((linear_system) => {		
 				var vertices = computeLinearSystemVertices(linear_system);
 				if (vertices.length !== 0)  // some valid vertices found in
 				{
