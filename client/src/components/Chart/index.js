@@ -531,6 +531,21 @@ function computeLinearSystemVertices(linear_system, tol = 0.01)
 	return vertices
 }
 
+function filterDuplicateVertices(vertices)
+{
+	vertices.sort();
+	var j = 0;
+	while (j+1 < vertices.length)
+	{
+		if (compareArray(vertices[j], vertices[j+1]) === 0)
+			vertices.splice(j+1, 1);
+		else
+			j++;
+	}
+
+	return vertices;
+}
+
 function getVerticesProjection(vertices, subspace)
 {
 	// vertices projected in the subspace
@@ -538,18 +553,7 @@ function getVerticesProjection(vertices, subspace)
 		if (i !== -1) return e[i]; else return -1;
 	}));
 
-	// Delete duplicates vertices
-	proj.sort();
-	var j = 0;
-	while (j+1 < proj.length)
-	{
-		if (compareArray(proj[j], proj[j+1]) === 0)
-			proj.splice(j+1, 1);
-		else
-			j++;
-	}
-
-	return proj
+	return filterDuplicateVertices(proj);
 }
 
 // vertices are sorted counterclockwise
@@ -769,8 +773,134 @@ function get3DTimePolylitope(vertices, time, thickness = 0.4)
 	};
 }
 
+function getPlanePassingThrough(vertex_a, vertex_b, vertex_c)
+{
+	var delta1 = math.subtract(vertex_b, vertex_a);
+	var delta2 = math.subtract(vertex_c, vertex_a);
+
+	var normal_vect = math.cross(delta1, delta2);
+
+	// normalize normal vector
+	var base_idx = 0;
+	while (base_idx < normal_vect.length && 
+			normal_vect[base_idx] === 0) {
+		base_idx++;
+	}
+
+	if (normal_vect[base_idx] !== 0) {
+		var base = normal_vect[base_idx];
+		normal_vect.forEach((value, idx) => {
+			normal_vect[idx] = value/base;
+		});
+	}
+
+	var offset =  math.dot(normal_vect, vertex_a);
+
+	return { normal_vect: normal_vect, offset: offset };
+}
+
+function areAllLayingOn(vertices, plane)
+{
+	for (let vertex of vertices) {
+		if (math.dot(plane.normal_vect, vertex) !== plane.offset) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function getBoundingBox(vertices)
+{
+	var max_values = vertices.map(v => {return 0}),
+		min_values = vertices.map(v => {return 0});
+
+	vertices.forEach((v) => {
+		v.forEach((value, index) => {
+			if (value > max_values[index]) {
+				max_values[index] = value;
+			} else {
+				if (value < min_values[index]) {
+					min_values[index] = value;
+				}
+			}
+		});
+	});
+
+	return min_values.map((value, index) => [value, max_values[index]]);
+}
+
+function onTheSameLine(vertex_a, vertex_b, vertex_c)
+{
+	var delta1 = math.subtract(vertex_b, vertex_a);
+	if (math.norm(delta1, Infinity) === 0) {
+		return true;
+	}
+
+	var delta2 = math.subtract(vertex_c, vertex_a);
+	if (math.norm(delta2, Infinity) === 0) {
+		return true;
+	}
+
+	var idx = 0;
+	while (idx<delta1.length && delta1[idx] === 0) {
+		idx++;
+	}
+
+	var base1 = delta1[idx], base2 = delta2;
+	for (idx=0; idx<delta1.length; idx++) {
+		if (delta1[idx]*base2 !== delta2[idx]*base1) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function doubleVerticesIfCoplanar(vertices)
+{
+	// Get 3 vertices that do not belong to the same line (we are assuming no repetitions)
+	var idx=2;
+	while (idx < vertices.length && onTheSameLine(vertices[0], vertices[1], vertices[idx])) {
+		idx++;
+	}
+
+	// If they exists
+	if (idx < vertices.length) {
+		// Compute the plane that contains them
+		var plane = getPlanePassingThrough(vertices[0], vertices[1], vertices[idx]);
+
+		// If all the vertices belong to the same plane
+		if (areAllLayingOn(vertices, plane)) {
+
+			// Compute what is meant to be a small number w.r.t. the plot values
+			var bbox = getBoundingBox(vertices);
+
+			var delta_bbox = bbox.map(value => {
+				return value[1]-value[0];
+			});
+			var delta = Math.max(...delta_bbox)/1000;
+
+			// double the vertices using the plane normal vector
+			var new_vertices = vertices.map((v) => {
+				return v.map((value, index) => {
+					return value + delta*plane.normal_vect[index];
+				});
+			});
+
+			new_vertices.push(...vertices);
+
+			return new_vertices;
+		}
+	}
+
+	return vertices;
+}
+
 function get3DPolylitope(vertices)
 {
+	vertices = doubleVerticesIfCoplanar(vertices);
+
 	return {
 		x: vertices.map(e => e[0]),
 		y: vertices.map(e => e[1]),
