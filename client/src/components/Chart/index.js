@@ -25,9 +25,14 @@ function getOption(item, selected_cond)
 	);
 }
 
-const name_if_valid = (property, pos) => (property.length>pos)
-										? property[pos].name 
-										: undefined;
+function name_if_valid(property, pos, alternative=undefined)
+{
+	if (property.length>pos) {
+		return property[pos].name;
+	}
+
+	return alternative;
+}
 
 export default class Chart extends Component<Props> {
 
@@ -149,52 +154,39 @@ export default class Chart extends Component<Props> {
 		);
 	}
 	
-	changeDataType(e, obj)
+	getAxisNames(dataType)
 	{
-		var newProps = { dataType: e.target.value,
-						 changed: true };
-
-		if (e.target.value === "vars") {
-			newProps = Object.assign(newProps, { xAxis: "Time",
-									yAxis: name_if_valid(this.props.variables, 0),
-									zAxis: name_if_valid(this.props.variables, 1),
-									changed: true});
+		var axis_names = {};
+		if (dataType === "vars") {
+			axis_names.xAxis = "Time";
+			axis_names.yAxis = name_if_valid(this.props.variables, 0, axis_names.xAxis);
+			axis_names.zAxis = name_if_valid(this.props.variables, 1, axis_names.xAxis);
 		} else {
-			newProps = Object.assign(newProps, { xAxis: name_if_valid(this.props.parameters, 0),
-									yAxis: name_if_valid(this.props.parameters, 1),
-									zAxis: name_if_valid(this.props.parameters, 2),
-									changed: true});
+			axis_names.xAxis = name_if_valid(this.props.parameters, 0);
+			axis_names.yAxis = name_if_valid(this.props.parameters, 1, axis_names.xAxis);
+			axis_names.zAxis = name_if_valid(this.props.parameters, 2, axis_names.xAxis);
 		}
 
-		obj.setState(newProps);
+		return axis_names;
+	}
+
+	changeDataType(e, obj)
+	{
+		obj.setState(Object.assign(this.getAxisNames(e.target.value),
+								   { dataType: e.target.value, changed: true }));
 	}
 
 	componentDidUpdate(prevProps) {
-		var domain_size;
+		var newProps;
 
-		if (prevProps.sapoResults !== this.props.sapoResults) {
-				
-			if (this.state.dataType === "vars") {
-				domain_size = this.props.variables.length;
-				if (this.state.xAxis === undefined ||
-						(this.state.yAxis === undefined && domain_size > 0) ||
-						(this.state.zAxis === undefined && domain_size > 1)) {
-					this.setState({ xAxis: "Time",
-							yAxis: name_if_valid(this.props.variables, 0),
-							zAxis: name_if_valid(this.props.variables, 1),
-							changed: true});
-				}
-			} else {
-				domain_size = this.props.parameters.length;
-				if ((this.state.xAxis === undefined && domain_size > 0) ||
-						(this.state.yAxis === undefined && domain_size > 1) || 
-						(this.state.zAxis === undefined && domain_size > 2)) {
-					this.setState({ xAxis: name_if_valid(this.props.parameters, 0),
-							yAxis: name_if_valid(this.props.parameters, 1),
-							zAxis: name_if_valid(this.props.parameters, 2),
-							changed: true});
-				}
-			}
+		if (prevProps.sapoResults !== this.props.sapoResults &&
+				(this.state.xAxis === undefined || this.state.yAxis === undefined ||
+				 this.state.zAxis === undefined)) {
+
+			newProps = this.getAxisNames(this.state.dataType);
+			newProps.changed = true;
+
+			this.setState(newProps);
 		}
 	}
 
