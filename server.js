@@ -27,7 +27,7 @@ else
   });
 }
 
-app.post("/prova", (req, res, next) => {
+app.post("/websapo", (req, res, next) => {
 	let data = '';
   req.on('data', chunk => {
     data += chunk.toString();
@@ -50,6 +50,7 @@ app.post("/prova", (req, res, next) => {
 				vars.leftButtonActive,
 				vars.rightButtonActive,
 				vars.numberOfIterations,
+				vars.maxParamSplits,
 				vars.parametersMatrix,
 				vars.lMatrix,
 				vars.tMatrix,
@@ -95,6 +96,7 @@ app.post("/saveModel", (req, res, next) => {
 			vars.leftButtonActive,
 			vars.rightButtonActive,
 			vars.numberOfIterations,
+			vars.maxParamSplits,
 			vars.parametersMatrix,
 			vars.lMatrix,
 			vars.tMatrix,

@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import styles from "./style.module.css";
-import { Link } from "react-router-dom";
+//import { Link } from "react-router-dom";
 import { MdClose } from "react-icons/md";
 
 type Props = {};

@@ -1,9 +1,38 @@
 import React, { Component } from "react";
-import Plot from "react-plotly.js";
 import * as math from "mathjs";
 import styles from "./style.module.css";
 
+import Plotly from 'plotly.js-gl3d-dist-min'
+import createPlotlyComponent from 'react-plotly.js/factory';
+const Plot = createPlotlyComponent(Plotly);
+
 type Props = {};
+
+function getOption(item, selected_cond)
+{
+	if (selected_cond) {
+		return (
+			<>
+				<option key={"yoption" + item} value={item.name}  selected="selected">{item.name}</option>
+			</>
+		);
+	}
+
+	return (
+		<>
+			<option key={"yoption" + item} value={item.name}>{item.name}</option>
+		</>
+	);
+}
+
+function name_if_valid(property, pos, alternative=undefined)
+{
+	if (property.length>pos) {
+		return property[pos].name;
+	}
+
+	return alternative;
+}
 
 export default class Chart extends Component<Props> {
 
@@ -15,9 +44,9 @@ export default class Chart extends Component<Props> {
 			changed: false,
 			chartType: "2D",
 			dataType: "vars",
-			xAxis: "undefined",
-			yAxis: "undefined",
-			zAxis: "undefined"
+			xAxis: undefined,
+			yAxis: undefined,
+			zAxis: undefined
 		};
 	}
 	
@@ -69,13 +98,13 @@ export default class Chart extends Component<Props> {
 				<div className={styles.right_controls}>
 					{this.props.sapoParams !== undefined && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked value="vars" label="variables" name="dataType"/> Variables
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType === "vars"} value="vars" label="variables" name="dataType"/> Variables
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" value="params" label="parameters" name="dataType"/> Parameters
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType !== "vars"} value="params" label="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
-					<div className={styles.radio_group} onChange={e => this.changeChartType(e, this)}>
+					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
 						<div className={styles.radio_element}>
 							<input className={styles.radio_input} type="radio" defaultChecked value="2D" label="2D" name="dimensions"/> 2D
 						</div>
@@ -87,62 +116,35 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"xoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "vars" && <option value="Time" selected="selected">Time</option> }
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+									return getOption(item, false);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"xoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+									return getOption(item, index===0);
 								})}
-								{this.state.dataType == "vars" && <option value="Time">Time</option> }
 							</select>
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+									return getOption(item, index===0);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+									return getOption(item, index===1);
 								})}
 							</select>
 						</div>
-						{this.state.chartType == "3D" && 
+						{this.state.chartType === "3D" && 
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
-								<option value="undefined">undefined</option>
-								{this.state.dataType == "vars" && this.props.variables.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+									return getOption(item, index===1);
 								})}
-								{this.state.dataType == "params" && this.props.parameters.map((item, index) => {
-									return (
-										<>
-											<option key={"yoption" + item} value={item.name}>{item.name}</option>
-										</>
-									);
+								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+									return getOption(item, index===2);
 								})}
 							</select>
 						</div>}
@@ -152,25 +154,41 @@ export default class Chart extends Component<Props> {
 		);
 	}
 	
-	changeChartType(e, obj)
+	getAxisNames(dataType)
 	{
-		if (e.target.value == "2D")
-			obj.setState({ chartType: e.target.value, changed: true, zAxis: "undefined" });
-		else
-			obj.setState({ chartType: e.target.value, changed: true });
+		var axis_names = {};
+		if (dataType === "vars") {
+			axis_names.xAxis = "Time";
+			axis_names.yAxis = name_if_valid(this.props.variables, 0, axis_names.xAxis);
+			axis_names.zAxis = name_if_valid(this.props.variables, 1, axis_names.xAxis);
+		} else {
+			axis_names.xAxis = name_if_valid(this.props.parameters, 0);
+			axis_names.yAxis = name_if_valid(this.props.parameters, 1, axis_names.xAxis);
+			axis_names.zAxis = name_if_valid(this.props.parameters, 2, axis_names.xAxis);
+		}
+
+		return axis_names;
 	}
-	
+
 	changeDataType(e, obj)
 	{
-		obj.setState({
-			dataType: e.target.value,
-			changed: true,
-			xAxis: "undefined",
-			yAxis: "undefined",
-			zAxis: "undefined"
-		});
+		obj.setState(Object.assign(this.getAxisNames(e.target.value),
+								   { dataType: e.target.value, changed: true }));
 	}
-	
+
+	componentDidUpdate(prevProps) 
+	{
+		if (prevProps.sapoResults !== this.props.sapoResults &&
+				(this.state.xAxis === undefined || this.state.yAxis === undefined ||
+				 this.state.zAxis === undefined)) {
+
+			var newProps = this.getAxisNames(this.state.dataType);
+			newProps.changed = true;
+
+			this.setState(newProps);
+		}
+	}
+
 	calcData()
 	{
 		if (this.props.updateChart)
@@ -180,452 +198,230 @@ export default class Chart extends Component<Props> {
 		}
 		
 		if (!this.state.changed)
-			if (this.state.dataType == "vars")
+			if (this.state.dataType === "vars")
 				return this.state.varData;
 			else
 				return this.state.paramData;
-				
-		if ((this.state.dataType == "vars" && this.props.sapoResults === undefined) ||
-				(this.state.dataType == "params" && this.props.sapoParams === undefined) ||
-				this.state.xAxis == "undefined" ||
-				this.state.yAxis == "undefined" ||
-				(this.state.chartType == "3D" && this.state.zAxis == "undefined"))
+
+		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
+				(this.state.dataType === "params" && this.props.sapoParams === undefined))
 		{
-			if (this.state.dataType == "vars")
-				this.setState({ varData: [], changed: false });
+			var newProps = {xAxis: undefined,
+					yAxis: undefined,
+					zAxis: undefined};
+			if (this.state.dataType === "vars")
+				newProps=Object.assign(newProps, { varData: [], changed: false });
 			else
-				this.setState({ paramData: [], changed: false });
-			
+				newProps=Object.assign(newProps, { paramData: [], changed: false });
+
+			this.setState(newProps);
+
 			return [];
 		}
+
+		if (this.state.dataType === "vars")
+			return this.calcVarData();
 		
-		var data;
-		if (this.state.dataType == "vars")
-			data = this.calcVarData()
-		else
-			data = this.calcParamData()
-		
-		return data;
+		return this.calcParamData();
 	}	// end calcData
-	
-	calcVarData()
+
+	getProjSubspace(variables)
 	{
-		var time = this.state.xAxis == "Time";
-		
-		var input = this.props.sapoResults;
-		var varNum = this.props.variables.filter(v => v.lMatrixExtra != true).length
-		
-		// initialize data var, which holds the results
-		var data;
-		if (this.state.chartType == "2D" && time)
-		{
-			data = [{
-				x: [],
-				y: [],
-				mode: 'lines+markers',
-				type: 'scatter',
-				name: 'max',
-				line: {
-					color: '#ff8f00',
-					width: 2,
-					shape: 'spline'
-				}
-			}, {
-				x: [],
-				y: [],
-				mode: 'lines+markers',
-				type: 'scatter',
-				name: 'min',
-				fill: 'tonexty',
-				line: {
-					color: '#ff8f00',
-					width: 2,
-					shape: 'spline'
-				}
-			}];
-			input.regions.forEach((r, i) => {
-				data[0].x.push(i);
-				data[1].x.push(i);
-			});
-		}
-		else
-			data = [];
-		
-		if (input.regions.length == 0)
-		{
-			alert("There is no data to display");
-			this.setState({ varData: [], changed: false });
-			return [];
-		}
-		
-		var directions = input.directions;
-		
-		// subspace definition, array of positions of corresponding variable
 		var subspace;
-		if (this.state.chartType == "2D")
+		if (this.state.chartType === "2D")
 			subspace = [-1,-1];
 		else
 			subspace = [-1,-1,-1];
 		
-		this.props.variables.forEach((v, i) => {
-			if (v.name == this.state.xAxis)
+		variables.forEach((v, i) => {
+			if (v.name === this.state.xAxis)
 				subspace[0] = i;
-			if (v.name == this.state.yAxis)
+			if (v.name === this.state.yAxis)
 				subspace[1] = i;
-			if (v.name == this.state.zAxis)
+			if (v.name === this.state.zAxis)
 				subspace[2] = i;
 		});
-		
-		
-		//var As = getCombinations(directions.length, varNum);
-		
-		input.regions.forEach((r, k) => {
-			var LB = r.lb, UB = r.ub;
-			var bs = getCouples(LB, UB);
-			var vertices = [];
-			
-			// initial linear system
-			var A = [];
-			for (var i = 0; i < directions.length; i++)
-			{
-				if (i < varNum) A.push(1);
-				else A.push(0);
-			}
-			var hasNext = true;
-			
-			/* find possible vertices */
-			while (hasNext)
-			{
-				var mat = directions.filter((item, pos) => A[pos] == 1);
-				bs.forEach(b => {
-					var v = b.filter((item, pos) => A[pos] == 1);
-					if (math.det(mat) != 0)
-						vertices.push(math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), []));
-				});
-				
-				// find next linear set
-				hasNext = findNext(A);
-			}
-			
-			removeWrongVertices(vertices, directions, LB, UB, 0.001);
-			
-			// vertices projected in the subspace
-			var proj = vertices.map(e => subspace.map(i => {
-				if (i != -1) return e[i]; else return -1;
-			}));
-			
-			if (proj.length == 0)
-			{
-				this.setState({ varData: [], paramData: [] });
-				return;
-			}
-			
-			// if 2D, delete duplicates vertices
-			if (this.state.chartType == "2D")
-			{
-				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
+
+		return subspace;
+	}
+
+	get2DTimePolygons(linear_system_sets, variables)
+	{
+		var polygons = [];
+		var subspace = this.getProjSubspace(variables);
+
+		var time = 0;
+		linear_system_sets.forEach((linear_system_set) => {
+			var intervals = [];
+			linear_system_set.linear_systems.forEach((linear_system) => {		
+				var vertices = computeLinearSystemVertices(linear_system);
+				if (vertices.length !== 0)  // some valid vertices found in
 				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
-					else
-						i++;
+					intervals.push(findMinMaxItvl(vertices, subspace[1]));
 				}
-			}
-			
-			
-			if (this.state.chartType == "2D" && time)
-			{
-				var max = proj[0][1], min = proj[0][1];
-				proj.forEach(v => {
-					if (v[1] > max) max = v[1];
-					else if (v[1] < min) min = v[1];
-				});
-				data[0].y.push(max)
-				data[1].y.push(min)
-			}
-			else if (this.state.chartType == "2D")
-			{
-				var center = [0.0, 0.0];
-				proj.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
-				center[0] /= proj.length;
-				center[1] /= proj.length;
-				
-				proj.sort((p1, p2) => compare(p1, p2, center));
-				// some vertices could be projected inside resulting polygon, remove them
-				proj = removeInnerVertices(proj);
-				
-				if (proj.length == 1)
-				{
-					data.push({
-						x: [proj[0][0]],
-						y: [proj[0][1]],
-						mode: 'markers',
-						type: 'scatter',
-						marker: {
-							color: '#ff8f00',
-							size: 7
-						}
-					});
-				}
-				else
-				{
-					data.push({
-							x: proj.map(e => e[0]).concat([proj[0][0]]),
-							y: proj.map(e => e[1]).concat([proj[0][1]]),
-							mode: 'lines',
-							type: 'scatter',
-							fill: 'toself',
-							line: {
-								color: '#ff8f00',
-								width: 2
-							}
-						});
-				}
-			}
-			else if (time)
-			{
-				data.push({
-					x: [],
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					alphahull: 0,
-					type: 'mesh3d',
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-				for (var i = 0; i < data[data.length - 1].y.length; i++)
-					data[data.length - 1].x.push(k);
-				for (var i = 0; i < data[data.length - 1].y.length; i++)
-					data[data.length - 1].x.push(k+0.1);
-				var l = data[data.length - 1].x.length;
-				data[data.length - 1].y.forEach((e, i) => data[data.length - 1].x.push(data[data.length - 1].x[i]+0.2))
-				for (var i = 0; i < l; i++)
-				{
-					data[data.length - 1].y.push(data[data.length - 1].y[i]);
-					data[data.length - 1].z.push(data[data.length - 1].z[i]);
-				}
-			}
-			else
-			{
-				data.push({
-					x: proj.map(e => e[0]),
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					type: 'mesh3d',
-					alphahull: 0,
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-			}
+			});
+
+			// join overlapping intervals
+			joinOverlappingItvls(intervals).forEach((itvl) => {
+				// create the two vertices
+				var vertices = [[time, itvl.min], [time, itvl.max]];
+
+				// add the polytope to the dataset
+				polygons.push(get2DTimePolygon(vertices, time));
+			});
+			time = time + 1;
 		});
-		
-		this.setState({ varData: data, changed: false });
-		return data;
-	} // end calcVarData
+
+		return polygons;
+	}
+
+	getPolytopes(linear_system_sets, variables)
+	{
+		const polytope_gen = function (vertices, state, time) {
+			if (state.xAxis !== "Time") {
+				if (state.chartType === "2D") {
+					return get2DPolygon(vertices);
+				} else {
+					return get3DPolylitope(vertices);
+				}
+			} else {
+				if (state.chartType === "2D") {
+					return get2DTimePolygon(vertices, time);
+				} else {
+					return get3DTimePolylitope(vertices, time);
+				}
+			}
+		};
 	
+		var polytopes = [];
+		var subspace = this.getProjSubspace(variables);
+
+		var time = 0;
+		linear_system_sets.forEach((linear_system_set) => {
+			linear_system_set.linear_systems.forEach((linear_system) => {
+				var vertices = computeLinearSystemVertices(linear_system);
+				if (vertices.length !== 0)  // some valid vertices found in
+				{
+					// vertices projected in the subspace
+					var proj = getVerticesProjection(vertices, subspace);
+
+					// add the polytope to the dataset
+					polytopes.push(polytope_gen(proj, this.state, time));
+				}
+			});
+
+			time = time + 1;
+		});
+
+		return polytopes;
+	}
+
+	calcVarData()
+	{
+		// console.log("Computing polytope vertices")
+		// var begin_time = new Date();
+
+		var input = this.props.sapoResults;
+
+		var polytopes = [];
+		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
+			// this is just to exploit 2D time series properties and speed-up 
+			// their plotting with respect to getPolytopes-based plotting 
+			polytopes = this.get2DTimePolygons(input.step_sets, this.props.variables);
+		} else {
+			polytopes = this.getPolytopes(input.step_sets, this.props.variables);
+		}
+
+		if (polytopes.length === 0) {
+			alert("There is no data to display");
+		}
+		this.setState({ varData: polytopes, changed: false });
+
+		// var end_time = new Date();
+		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
+
+		return polytopes;
+	} // end calcVarData
 	
 	
 	calcParamData()
 	{
 		var input = this.props.sapoParams;
-		var paramNum = this.props.parameters.filter(v => v.lMatrixExtra != true).length
-		
-		// initialize data var, which holds the results
-		var data = [];
-		
-		// subspace definition, array of positions of corresponding variable
-		var subspace;
-		if (this.state.chartType == "2D")
-			subspace = [-1,-1];
-		else
-			subspace = [-1,-1,-1];
-		
-		this.props.parameters.forEach((v, i) => {
-			if (v.name == this.state.xAxis)
-				subspace[0] = i;
-			if (v.name == this.state.yAxis)
-				subspace[1] = i;
-			if (v.name == this.state.zAxis)
-				subspace[2] = i;
-		});
-		
-		if (input.length == 0)
-		{
-			alert("The set of parameters is empty!");
-			this.setState({ paramData: [], changed: false });
-			return [];
-		}
-		
-		input.forEach(poly => {
-			// find vertices
-			var vertices = [];
-			
-			/* possible linear systems
-			 * if linearSystem[i] == 1, the i-th direction is used
-			 * as an equation in the linear system to find possible vertices
-			 */
-			var linearSystem = [];
-			for (var i = 0; i < poly.directions.length; i++)
-				if (i < paramNum)
-					linearSystem.push(1);
-				else
-					linearSystem.push(0);
-			
-			var hasNext = true;
-			while (hasNext)
-			{
-				var A = poly.directions.filter((item, pos) => linearSystem[pos] == 1);
-				var b = poly.offsets.filter((item, pos) => linearSystem[pos] == 1);
-				if (math.det(A) != 0)
-					vertices.push(math.lusolve(A, b).reduce((acc, el) => acc.concat(el), []));
 
-				// find next linearSystem
-				hasNext = findNext(linearSystem);
-			}
-			
-			// remove vertices that violate some constraint
-			var LB = [];
-			poly.directions.forEach(d => LB.push(-Infinity));
-			removeWrongVertices(vertices, poly.directions, LB, poly.offsets, 0);
-			
-			// vertices projected in the subspace
-			var proj = vertices.map(e => subspace.map(i => {
-				if (i != -1) return e[i]; else return -1;
-			}));
-			
-			if (proj.length == 0)
-			{
-				this.setState({ paramData: [] });
-				return;
-			}
-			
-			// if 2D, delete duplicates vertices
-			if (this.state.chartType == "2D")
-			{
-				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
-				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
-					else
-						i++;
-				}
-			}
-			
-			if (this.state.chartType == "2D")
-			{
-				// remove duplicate vertices, which are problematic for removeInnerVertices
-				proj.sort();
-				var i = 0;
-				while (i+1 < proj.length)
-				{
-					if (compareArray(proj[i], proj[i+1]) == 0)
-						proj.splice(i+1, 1);
-					else
-						i++;
-				}
-				
-				// find center of polygon
-				var center = [0.0, 0.0];
-				proj.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
-				center[0] /= proj.length;
-				center[1] /= proj.length;
-				
-				// sort counterclockwise, starting from angle 0 (direction (1,0))
-				proj.sort((p1, p2) => compare(p1, p2, center));
-				
-				// some vertices could be projected inside resulting polygon, remove them
-				proj = removeInnerVertices(proj);
-				
-				if (proj.length == 1)
-				{
-					data.push({
-						x: [proj[0][0]],
-						y: [proj[0][1]],
-						mode: 'markers',
-						type: 'scatter',
-						marker: {
-							color: '#ff8f00',
-							size: 7
-						}
-					});
-				}
-				else
-				{
-					data.push({
-							x: proj.map(e => e[0]).concat([proj[0][0]]),
-							y: proj.map(e => e[1]).concat([proj[0][1]]),
-							mode: 'lines',
-							type: 'scatter',
-							fill: 'toself',
-							line: {
-								color: '#ff8f00',
-								width: 2
-							}
-						});
-				}
-			}
-			else
-			{
-				data.push({
-					x: proj.map(e => e[0]),
-					y: proj.map(e => e[1]),
-					z: proj.map(e => e[2]),
-					type: 'mesh3d',
-					alphahull: 0,
-					color: '#ff8f00',
-					hoverinfo: 'none'
-				});
-			}
-		});
+		var polytopes = this.getPolytopes([input], this.props.parameters);
 		
-		this.setState({ paramData: data, changed: false });
-		return data;
+		if (polytopes.length > 0) {
+			this.setState({ paramData: polytopes, changed: false });
+			return polytopes;
+		} else {
+			alert("The set of parameters is empty!");
+			this.setState({ paramData: polytopes, changed: false });
+			return polytopes;
+		}
 	}
-	
 }	// end Chart
 
-
-// return the collection of all vectors v s.t. v[i] == a[i] || v[i] == b[i]
-function getCouples(a, b)
+function findMinMaxItvl(vertices, dim=0)
 {
-	var res = [[a[0]], [b[0]]];
-	
-	for (var i = 1; i < a.length; i++)
-	{
-		var acc = [];
-		for (var j = 0; j < res.length; j++)
-		{
-			var copy = [...res[j]];
-			copy.push(a[i]);
-			acc.push(copy);
-			res[j].push(b[i]);
-		}
-		res = res.concat(acc);
+	if (vertices.length === 0) {
+		return { min: undefined, max: undefined };
 	}
-	
-	return res;
+
+	var itvl = { min: vertices[0][dim], max: vertices[0][dim] };
+	vertices.forEach((vertex) => {
+		if (vertex[dim]>itvl.max) {
+			itvl.max = vertex[dim];
+		} else {
+			if (vertex[dim]<itvl.min) {
+				itvl.min = vertex[dim];
+			}
+		}
+	});
+
+	return itvl;
 }
 
-function getCombinations(m, n)
+function joinOverlappingItvls(itvls)
 {
-	var zeroes = [], ones = [];
-	for (var i = 0; i < m; i++)
-	{
-		zeroes.push(0);
-		ones.push(1);
+	var joint = [];
+	if (itvls.length === 0) {
+		return joint;
 	}
-	var As = getCouples(zeroes, ones);
-	
-	var res = [];
-	As.forEach(v => {
-		if (v.reduce((acc, val) => acc + val) == n)
-			res.push(v);
+
+	itvls.sort(compareItvls);
+	var newItvl = Object.assign({}, itvls[0]);
+	itvls.forEach((itvl) => {
+		if (newItvl.max < itvl.min) {
+			joint.push(newItvl);
+			newItvl = Object.assign({}, itvl);
+		} else {
+			newItvl.max = itvl.max;
+		}
 	});
-	return res;
+
+	joint.push(newItvl);
+
+	return joint;
+}
+
+function compareItvls(a, b)
+{
+	if (a.min<b.min) {
+		return -1
+	}
+
+	if (a.min>b.min) {
+		return 1;
+	}
+
+	if (a.max<b.max) {
+		return -1
+	}
+
+	if (a.max>b.max) {
+		return 1;
+	}
+	return 0;
 }
 
 function compareArray(v1, v2)
@@ -655,7 +451,7 @@ function findQuadrant(p, c)
 // compares two 2D points according to their angle with respect to the origin c
 function compare(p1, p2, c)
 {
-	if (p1[0] == p2[0] && p1[1] == p2[1]) return 0;
+	if (p1[0] === p2[0] && p1[1] === p2[1]) return 0;
 	
 	var q1 = findQuadrant(p1, c), q2 = findQuadrant(p2, c);
 	
@@ -668,17 +464,17 @@ function compare(p1, p2, c)
 		var deltaX1 = 1.0 * p1[0] - c[0], deltaX2 = 1.0 * p2[0] - c[0];
 		var deltaY1 = 1.0 * p1[1] - c[1], deltaY2 = 1.0 * p2[1] - c[1];
 		
-		// p1.x == c.x -> q1 == 2 || q1 == 3
-		if (deltaX1 == 0)
+		// p1.x === c.x -> q1 === 2 || q1 === 3
+		if (deltaX1 === 0)
 		{
-			if (q1 == 2) return -1;
+			if (q1 === 2) return -1;
 			else return 1;
 		}
 		
-		// p2.x == c.x -> q2 == 2 || q2 == 3
-		if (deltaX2 == 0)
+		// p2.x === c.x -> q2 === 2 || q2 === 3
+		if (deltaX2 === 0)
 		{
-			if (q2 == 2) return 1;
+			if (q2 === 2) return 1;
 			else return -1;
 		}
 		
@@ -687,40 +483,90 @@ function compare(p1, p2, c)
 	}
 }
 
-// removes vertices violating a constraint
-function removeWrongVertices(vertices, directions, LB, UB, tol)
+function isValidVertex(vertex, linear_system, tol)
 {
-	var toRemove = [];
-	vertices.forEach(v => {
-		for (var i = 0; i < directions.length; i++)
-		{
-			if (math.dot(directions[i], v) < LB[i] - tol || math.dot(directions[i], v) > UB[i] + tol)
-			{
-				toRemove.push(v);
-				break;
-			}
+	for (var i = 0; i < linear_system.directions.length; i++)
+	{
+		var dir = math.dot(linear_system.directions[i], vertex);
+		if (dir > linear_system.offsets[i] + tol) {
+			return false;
 		}
-	});
-	
-	/* remove wrong vertices */
-	toRemove.forEach(v => {
-		var index = vertices.indexOf(v);
-		vertices.splice(index, 1);
-	});
+	}
+
+	return true;
 }
 
-// v is sorted counterclockwise
-function removeInnerVertices(v)
+function computeLinearSystemVertices(linear_system, tol = 0.01)
+{
+	var vertices = [];
+				
+	var directions = linear_system.directions;
+	var offsets = linear_system.offsets;
+
+	if (directions.length === 0) {
+		return vertices;
+	}
+
+	var A_comb = getFirstCombination(directions[0].length, directions.length);
+	var hasNext = true;
+
+	/* find possible vertices */
+	while (hasNext)
+	{
+		var mat = directions.filter((item, pos) => A_comb[pos] === 1);
+		if (math.det(mat) !== 0) {
+			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
+			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
+
+			if (isValidVertex(vertex, linear_system, tol)) {
+				vertices.push(vertex);
+			}
+		}
+		
+		// find next combination
+		hasNext = findNextCombination(A_comb);
+	}
+
+	return vertices
+}
+
+function filterDuplicateVertices(vertices)
+{
+	vertices.sort();
+	var j = 0;
+	while (j+1 < vertices.length)
+	{
+		if (compareArray(vertices[j], vertices[j+1]) === 0)
+			vertices.splice(j+1, 1);
+		else
+			j++;
+	}
+
+	return vertices;
+}
+
+function getVerticesProjection(vertices, subspace)
+{
+	// vertices projected in the subspace
+	var proj = vertices.map(e => subspace.map(i => {
+		if (i !== -1) return e[i]; else return -1;
+	}));
+
+	return filterDuplicateVertices(proj);
+}
+
+// vertices are sorted counterclockwise
+function removeInnerVertices(vertices)
 {
 	var i = 0;
-	var a = v[v.length - 1];
-	var b = v[0];
-	var c = v[1];
+	var a = vertices[vertices.length - 1];
+	var b = vertices[0];
+	var c = vertices[1];
 	
-	while (i < v.length)
+	while (i < vertices.length)
 	{
-		if (v.length <= 3)
-			return v;
+		if (vertices.length <= 3)
+			return vertices;
 		// vector ab
 		var deltaX = b[0] - a[0], deltaY = b[1] - a[1];
 		
@@ -735,66 +581,377 @@ function removeInnerVertices(v)
 		 */
 		if (y*deltaX - x*deltaY <= 0)
 		{
-			v.splice(i,1);
+			vertices.splice(i,1);
 			b = c;
-			c = v[(i+1) % v.length];
+			c = vertices[(i+1) % vertices.length];
 		}
 		else
 		{
 			i++;
 			a = b;
 			b = c;
-			c = v[(i+1) % v.length];
+			c = vertices[(i+1) % vertices.length];
 		}
 	}
 	
-	return v;
+	return vertices;
 }
 
-function findNext(linearSystem)
+function getFirstCombination(k, n)
 {
-//	alert("current linearSystem: " + linearSystem);
-	var l = linearSystem.length - 1;
+	// initial combination
+	return Array.from({length: n}, 
+						(_, i) => {
+							if (i<k) {
+								return 1;
+							} else {
+								return 0;
+							}
+						});
+}
+
+function findNextCombination(combination)
+{
+	var l = combination.length - 1;
 	
-	if (linearSystem[l] == 0)
+	if (combination[l] === 0)
 	{
-//		alert("caso faacile");
 		var i = 1;
-		while (linearSystem[l-i] == 0)
+		while (combination[l-i] === 0)
 			i++;
 		
-//		alert("trovato un 1 in posizione " + i);
-		
-		linearSystem[l-i] = 0;
-		linearSystem[l-i+1] = 1;
+		// combination[l-i]===1 and 
+		// combination[l-i+1]===0
+		combination[l-i] = 0;
+		combination[l-i+1] = 1;
 	}
 	else
 	{
-//		alert("caso difficile");
-		var i = 1;
-		while (i <= l && linearSystem[l-i] == 1)
-			i++;
+		// search for the last 0 in the combination
+		var j = 1;
+		while (j <= l && combination[l-j] === 1)
+			j++;
+
+		var k = j;
+
+		// search for the successive last 1
+		while (j <= l && combination[l-j] === 0)
+			j++;
 		
-		var j = i;
-		while (i <= l && linearSystem[l-i] == 0)
-			i++;
-		
-		if (i > l)
+		// if there is no successive 1
+		if (j > l) {
+			// all the 1s are at the end of the 
+			// array and there is no successive 
+			// combination
 			return false;
+		}
 		
-		linearSystem[l-i] = 0;
-		var pos = l-i+1;
-		while (pos <= l-i+1+j)
+		// otherwise, combination[l-j]===1 and
+		// combination[l-j+1]===0
+		combination[l-j] = 0;
+		var pos = l-j+1;
+		while (pos <= l-j+1+k)
 		{
-			linearSystem[pos] = 1;
+			combination[pos] = 1;
 			pos++;
 		}
 		while (pos <= l)
 		{
-			linearSystem[pos] = 0;
+			combination[pos] = 0;
 			pos++;
 		}
 	}
-//	alert("fine");
 	return true;
+}
+
+function getSinglePoint(vertices)
+{
+	var plot_param =  {
+			x: [vertices[0][0]],
+			y: [vertices[0][1]],
+			mode: 'markers',
+			type: 'scatter',
+			marker: {
+				color: '#ff8f00',
+				size: 7
+			}
+		};
+	
+	if (vertices[0].length > 2) {
+		plot_param.y = [vertices[0][2]];
+	}
+
+	return plot_param;
+}
+
+function get2DConvexHullVertices(vertices)
+{  // TODO: implement a real 2D convex hull
+	// compute the centroid of the set 
+	// (is the average the centroid even if 
+	// the set is not a bundle?)
+	var center = [0.0, 0.0];
+	vertices.forEach(v => {center[0]+= v[0]; center[1] += v[1]; });
+	center[0] /= vertices.length;
+	center[1] /= vertices.length;
+	
+	vertices.sort((p1, p2) => compare(p1, p2, center));
+	// some vertices could be projected inside resulting polygon, remove them
+	return removeInnerVertices(vertices);
+}
+
+function get2DPolygon(vertices)
+{
+	if (vertices.length === 1) {
+		return getSinglePoint(vertices);
+	}
+
+	var chull = get2DConvexHullVertices(vertices)
+
+	return {
+		x: chull.map(e => e[0]).concat([chull[0][0]]),
+		y: chull.map(e => e[1]).concat([chull[0][1]]),
+		mode: 'lines',
+		type: 'scatter',
+		fill: 'toself',
+		line: {
+			color: '#ff8f00',
+			width: 1
+		}
+	};
+}
+
+function get2DTimePolygon(vertices, time, thickness = 0.4)
+{
+	var chull = get2DConvexHullVertices(vertices);
+
+	var times = []
+	var y = chull.map(e => e[1]);
+
+	for (var j = 0; j < y.length; j++)
+		times.push(time-thickness/2);
+	for (j = 0; j < y.length; j++)
+		times.push(time+thickness/2);
+	var l = y.length;
+	for (j = 0; j < l; j++) {
+		y.push(y[l-j-1]);
+	}
+	times.push(time-thickness/2);
+	y.push(y[0]);
+
+	return {
+		x: times,
+		y: y,
+		mode: 'lines',
+		type: 'scatter',
+		fill: 'toself',
+		line: {
+			color: '#ff8f00',
+			width: 2
+		}
+	};
+}
+
+function get3DTimePolylitope(vertices, time, thickness = 0.4)
+{
+	var times = []
+	var y = vertices.map(e => e[1]);
+	var z = vertices.map(e => e[2]);
+
+	for (var j = 0; j < y.length; j++)
+		times.push(time-thickness/2);
+	for (j = 0; j < y.length; j++)
+		times.push(time+thickness/2);
+	var l = y.length;
+	for (j = 0; j < l; j++) {
+		y.push(y[l-j-1]);
+		z.push(z[l-j-1]);
+	}
+
+	return {
+		x: times,
+		y: y,
+		z: z,
+		alphahull: 0,
+		type: 'mesh3d',
+		color: '#ff8f00',
+		hoverinfo: 'none'
+	};
+}
+
+function getPlanePassingThrough(vertex_a, vertex_b, vertex_c)
+{
+	var delta1 = math.subtract(vertex_b, vertex_a);
+	var delta2 = math.subtract(vertex_c, vertex_a);
+
+	var normal_vect = math.cross(delta1, delta2);
+
+	// normalize normal vector
+	var base_idx = 0;
+	while (base_idx < normal_vect.length && 
+			normal_vect[base_idx] === 0) {
+		base_idx++;
+	}
+
+	if (normal_vect[base_idx] !== 0) {
+		var base = normal_vect[base_idx];
+		normal_vect.forEach((value, idx) => {
+			normal_vect[idx] = value/base;
+		});
+	}
+
+	var offset =  math.dot(normal_vect, vertex_a);
+
+	return { normal_vect: normal_vect, offset: offset };
+}
+
+function areAllLayingOn(vertices, plane)
+{
+	for (let vertex of vertices) {
+		if (math.dot(plane.normal_vect, vertex) !== plane.offset) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function getBoundingBox(vertices)
+{
+	var max_values = vertices[0].map(v => 0),
+		min_values = vertices[0].map(v => 0);
+
+	vertices.forEach((v) => {
+		v.forEach((value, index) => {
+			if (value > max_values[index]) {
+				max_values[index] = value;
+			} else {
+				if (value < min_values[index]) {
+					min_values[index] = value;
+				}
+			}
+		});
+	});
+
+	return min_values.map((value, index) => [value, max_values[index]]);
+}
+
+function areColinear(vertex_a, vertex_b, vertex_c)
+{
+	var delta1 = math.subtract(vertex_b, vertex_a);
+	if (math.norm(delta1, Infinity) === 0) {
+		return true;
+	}
+
+	var delta2 = math.subtract(vertex_c, vertex_a);
+	if (math.norm(delta2, Infinity) === 0) {
+		return true;
+	}
+
+	var idx = 0;
+	while (idx<delta1.length && delta1[idx] === 0) {
+		idx++;
+	}
+
+	var base1 = delta1[idx], base2 = delta2;
+	for (idx=0; idx<delta1.length; idx++) {
+		if (delta1[idx]*base2 !== delta2[idx]*base1) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function doubleOnDirection(vertices, direction)
+{
+	// Compute what is meant to be a small number w.r.t. the plot values
+	var bbox = getBoundingBox(vertices);
+
+	var delta_bbox = bbox.map(value => {
+		return value[1]-value[0];
+	});
+	var delta = Math.max(...delta_bbox)/1000;
+
+	// double the vertices using the plane normal vector
+	var new_vertices = vertices.map((v) => {
+		return v.map((value, index) => {
+			return value + delta*direction[index];
+		});
+	});
+
+	new_vertices.push(...vertices);
+
+	return new_vertices;
+}
+
+function getColinearVerticesBBoxBoundaries(vertices)
+{
+	var idx_dim = -1;
+	var min_vert=vertices[0], max_vert=vertices[0];
+	while (idx_dim+1 < vertices[0].length && min_vert[idx_dim+1] === max_vert[idx_dim+1]) {
+		idx_dim++;
+		for (let v of vertices) {
+			if (v[idx_dim] > max_vert[idx_dim]) {
+				max_vert = v;
+			}
+			if (v[idx_dim] < min_vert[idx_dim]) {
+				min_vert = v;
+			}
+		};
+	}
+
+	return [min_vert, max_vert];
+}
+
+function get3DPolylitope(vertices)
+{
+	if (vertices.length === 1) {
+		return getSinglePoint(vertices);
+	}
+
+	// Get 3 vertices that do not belong to the same line (we are assuming no repetitions)
+	var idx=2;
+	while (idx < vertices.length && areColinear(vertices[0], vertices[1], vertices[idx])) {
+		idx++;
+	}
+
+	// If they exist
+	if (idx < vertices.length) {
+
+		// Compute the plane that contains them
+		var plane = getPlanePassingThrough(vertices[0], vertices[1], vertices[idx]);
+
+		// If all the vertices belong to the same plane
+		if (areAllLayingOn(vertices, plane)) {
+			vertices = doubleOnDirection(vertices, plane.normal_vect);
+		}
+
+		return {
+			x: vertices.map(e => e[0]),
+			y: vertices.map(e => e[1]),
+			z: vertices.map(e => e[2]),
+			type: 'mesh3d',
+			alphahull: 0,
+			color: '#ff8f00',
+			hoverinfo: 'none'
+		};
+	} 
+	
+	// all the vertices are colinear and
+	// their bounding box is a segment
+
+	// get the segment boundaries
+	var boundaries = getColinearVerticesBBoxBoundaries(vertices)
+
+	return {
+		x: [boundaries[0][0], boundaries[1][0]],
+		y: [boundaries[0][1], boundaries[1][1]],
+		z: [boundaries[0][2], boundaries[1][2]],
+		type: 'scatter3d',
+		mode: 'lines',
+		line: {
+			width: 6,
+			color: '#ff8f00'
+		}
+	};
 }

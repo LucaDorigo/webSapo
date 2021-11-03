@@ -7,9 +7,10 @@ exports.generateModelFile = (
   boxesMethod,
   polytopesMethod,
   parallelotopesMethod,
-	leftButtonActive,
-	rightButtonActive,
-	numberOfIterations,
+  leftButtonActive,
+  rightButtonActive,
+  numberOfIterations,
+  maxParamSplits,
   parametersMatrix,
   lMatrix,
   tMatrix,
@@ -39,6 +40,9 @@ exports.generateModelFile = (
 	
 	// iterations
 	model += "iterations: " + numberOfIterations + ";\n";
+
+	// max parameter splits
+	model += "max_parameter_splits: " + maxParamSplits + ";\n";
 	
 	model += "\n";
 	
