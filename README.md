@@ -1,24 +1,14 @@
 # webSapo
-GUI for SAPO as a web app.
-This is already online [here](http://encase.uniud.it:3001/#/).
+A web UI for [Sapo](https://github.com/dreossi/sapo). You can find a working instance of it [here](http://encase.uniud.it:3001/#/).
 
 ## Installation
 
-### SAPO dependencies
-We need dependencies for SAPO to work (see also [SAPO](https://github.com/dreossi/sapo))
-- [GiNaC](www.ginac.de)
-- [CLN](www.ginac.de/cln)
-- [GLPK](https://www.gnu.org/software/glpk/)
+### Dependencies
+In addition to [Sapo](https://github.com/dreossi/sapo) dependecies,
+nodejs and npm are required. All the remaining dependencies will be
+automatically installed by the building procedure.
 
-We also need a C++11 compatible compiler.
-If we want to modify parser and lexer, also [Flex](https://github.com/westes/flex)/[Bison](https://www.gnu.org/software/bison/) must be installed.
-
-### Interface dependencies
-We need nodejs and npm installed.
-All dependencies will be automatically installed in the following.
-
-
-### Downloading and installing
+### Downloading and Building
 If thes dependencies are met, we can download and install the tool
 ```
 git clone --recurse-submodules https://github.com/LucaDorigo/webSapo
@@ -27,7 +17,7 @@ cd webSapo
 npm install
 #install dependencies for client
 (cd client && npm install)
-#build SAPO
+#build Sapo
 (cd sapoCore && cmake . && make)
 ```
 
