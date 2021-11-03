@@ -82,6 +82,54 @@
   flex-direction: column;
 }
 
+.about {
+  margin: 10px;
+  background-color: white;
+  font-size: 15px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.bug_report {
+  margin-top: 30px;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.about .columns {
+  display: flex;
+  align-items: stretch;
+}
+
+.about .columns div {
+  width: 30%;
+  margin: 0px;
+  text-align: center;
+  align-items: center;
+}
+
+.about .columns div.logo {
+  width: 60%;
+}
+
+.about .columns div div {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.about .columns div div div {
+  margin: 0px;
+  width: 100%;
+}
+
+.logo img {
+  width: 55%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .main {
   width: 100%;
   height: 80vh;

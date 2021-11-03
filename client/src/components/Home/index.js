@@ -15,6 +15,8 @@ import Popover from "react-tiny-popover";
 import { MdMenu } from "react-icons/md";
 import PulseLoader from "react-spinners/PulseLoader";
 
+import generatedGitInfo from '../../generatedGitInfo.json';
+
 type Props = {};
 
 export default class BoxesPage extends Component<Props> {
@@ -110,6 +112,17 @@ export default class BoxesPage extends Component<Props> {
 												}
 										>
 											Export model file
+										</p>
+										<p
+											className={styles.menuElement}
+											onClick={() => {
+												this.setState({ isPopoverOpen: false});
+												document.getElementById("about").style.display =
+													"block";
+												window.dispatchEvent(new Event('resize'));
+											}}
+										>
+										About webSapo...
 										</p>
 									</div>
 								)}
@@ -598,6 +611,51 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 				</div>
 				{/*end modal for showing chart*/}
+
+
+				{/*modal for showing the about*/}
+				<div id="about" className={modalStyles.modal}>
+					<div className={modalStyles.modal_content}>
+						<div className={modalStyles.modal_header}>
+							<span
+								onClick={() => {
+									document.getElementById("about").style.display =
+										"none";
+								}}
+								className={modalStyles.close}
+							>
+								&times; {/*X in HTML*/}
+							</span>
+						</div>
+						<div className={modalStyles.modal_body}>
+							<div className={styles.about}>
+								<div className={styles.columns}>
+								<div className={styles.logo}>
+								<img src={require('./logo.png')} alt="webSapo Logo"/>
+								</div>
+								<div>
+								<div><h2><a href="https://github.com/LucaDorigo/webSapo" target="_blank" rel="noopener noreferrer">webSapo</a></h2></div>
+								<div>Commit: <code>{generatedGitInfo.gitCommitHash}</code></div>
+								<div>
+								<div>Luca Dorigo</div>
+								<div>Alberto Casagrande</div>
+								<div>Alessandro Grisafi</div>
+								<div>Gianluca Ermacora</div>
+								</div>
+								<div><h2><a href="https://github.com/dreossi/sapo" target="_blank" rel="noopener noreferrer">Sapo</a></h2></div>
+								<div>
+								<div>Tommaso Dreossi</div>
+								<div>Alberto Casagrande</div>
+								<div>Luca Dorigo</div>
+								</div>
+								</div>
+								</div>
+							</div>								
+							<div className={styles.bug_report}>Please, report any bug <a href="https://github.com/LucaDorigo/webSapo/issues" target="_blank" rel="noopener noreferrer">here</a> describing the bug itself, mentioning the commit hash <code>{generatedGitInfo.gitCommitHash}</code>, and uploading the JSON configuration file that produced it.</div>
+						</div>
+					</div>
+				</div>
+				{/*end of the modal about*/}
 			</div>
 		);
 	}
