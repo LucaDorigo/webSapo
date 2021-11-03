@@ -80,7 +80,8 @@ export default class HomeContainer extends Component {
 		this.setState({
 			parameters: [],
 			disabledAddParameter: false,
-			parametersMatrix: math.zeros(1)
+			parametersMatrix: math.zeros(1),
+			sapoResults: undefined
 		});
 	};
 
@@ -109,9 +110,9 @@ export default class HomeContainer extends Component {
 
 		if (value > 0 && Number.isInteger(parseFloat(value, 10)) === true) {
 			// parseInt is not used because does an automatic truncate and returns always an int
-			this.setState({ numberOfIterations: value });
+			this.setState({ numberOfIterations: value, sapoResults: undefined});
 		} else {
-			this.setState({ numberOfIterations: 1 });
+			this.setState({ numberOfIterations: 1, sapoResults: undefined});
 		}
 	};
 
@@ -120,9 +121,9 @@ export default class HomeContainer extends Component {
 
 		if (value >= 0 && Number.isInteger(parseFloat(value, 10)) === true) {
 			// parseInt is not used because does an automatic truncate and returns always an int
-			this.setState({ maxParamSplits: value });
+			this.setState({ maxParamSplits: value, sapoResults: undefined});
 		} else {
-			this.setState({ maxParamSplits: 0 });
+			this.setState({ maxParamSplits: 0, sapoResults: undefined});
 		}
 	};
 
@@ -136,7 +137,8 @@ export default class HomeContainer extends Component {
 			synthesis: false,
 			boxesMethod: false,
 			polytopesMethod: false,
-			parallelotopesMethod: false
+			parallelotopesMethod: false,
+			sapoResults: undefined
 		});
 
 		// assumes that there is only reachability and synthesis
@@ -170,11 +172,13 @@ export default class HomeContainer extends Component {
 
 		if (parameter) {
 			this.setState({
-				parameters: copiedArray
+				parameters: copiedArray,
+				sapoResults: undefined
 			});
 		} else {
 			this.setState({
-				variables: copiedArray
+				variables: copiedArray,
+				sapoResults: undefined
 			});
 		}
 	}
@@ -380,7 +384,8 @@ export default class HomeContainer extends Component {
 		equations.splice(index, 1);
 
 		this.setState({
-			equations: equations
+			equations: equations,
+			sapoResults: undefined
 		});
 	};
 
@@ -395,7 +400,8 @@ export default class HomeContainer extends Component {
 		}
 
 		this.setState({
-			equations: equations
+			equations: equations,
+			sapoResults: undefined
 		});
 	};
 
@@ -405,7 +411,8 @@ export default class HomeContainer extends Component {
 		obj.equation = e.target.value;
 
 		this.setState({
-			equations: equations
+			equations: equations,
+			sapoResults: undefined
 		});
 	};
 
@@ -447,7 +454,8 @@ export default class HomeContainer extends Component {
 			);
 
 			this.setState({
-				lMatrix: newMatrix
+				lMatrix: newMatrix,
+				sapoResults: undefined
 			});
 		}
 	};
@@ -460,7 +468,8 @@ export default class HomeContainer extends Component {
 		newMatrix.resize(matrixDimensions);
 
 		this.setState({
-			parametersMatrix: newMatrix
+			parametersMatrix: newMatrix,
+			sapoResults: undefined
 		});
 	};
 
@@ -474,7 +483,8 @@ export default class HomeContainer extends Component {
 			newMatrix.resize(matrixDimensions);
 
 			this.setState({
-				parametersMatrix: newMatrix
+				parametersMatrix: newMatrix,
+				sapoResults: undefined
 			});
 		} else {
 			alert(
@@ -500,7 +510,8 @@ export default class HomeContainer extends Component {
 
 		this.setState({
 			variables: copiedArray,
-			lMatrix: newMatrix
+			lMatrix: newMatrix,
+			sapoResults: undefined
 		});
 	};
 
@@ -521,7 +532,8 @@ export default class HomeContainer extends Component {
 
 			this.setState({
 				variables: copiedArray,
-				lMatrix: newMatrix
+				lMatrix: newMatrix,
+				sapoResults: undefined
 			});
 		} else {
 			alert(
@@ -539,7 +551,8 @@ export default class HomeContainer extends Component {
 			);
 
 			this.setState({
-				tMatrix: newMatrix
+				tMatrix: newMatrix,
+				sapoResults: undefined
 			});
 		} else {
 			alert(
@@ -556,7 +569,8 @@ export default class HomeContainer extends Component {
 		newMatrix.resize(matrixDimensions);
 
 		this.setState({
-			tMatrix: newMatrix
+			tMatrix: newMatrix,
+			sapoResults: undefined
 		});
 	};
 
@@ -570,7 +584,8 @@ export default class HomeContainer extends Component {
 			newMatrix.resize(matrixDimensions);
 
 			this.setState({
-				tMatrix: newMatrix
+				tMatrix: newMatrix,
+				sapoResults: undefined
 			});
 		} else {
 			alert("Can't delete row because otherwise the matrix would be empty");
@@ -583,7 +598,8 @@ export default class HomeContainer extends Component {
 		let new_logicFormulas = this.state.logicFormulas;
 		new_logicFormulas.push("");
 		this.setState({
-			logicFormulas: new_logicFormulas
+			logicFormulas: new_logicFormulas,
+			sapoResults: undefined
 		});
 	};
 
@@ -605,7 +621,8 @@ export default class HomeContainer extends Component {
 				index: index,
 				startPosition: e.target.selectionStart,
 				endPosition: e.target.selectionEnd
-			}
+			},
+			sapoResults: undefined
 		});
 	};
 
@@ -614,7 +631,8 @@ export default class HomeContainer extends Component {
 		new_logicFormulas.splice(id, 1);
 		this.setState({
 			cursorPositionForLogicFormula: {},
-			logicFormulas: new_logicFormulas
+			logicFormulas: new_logicFormulas,
+			sapoResults: undefined
 		});
 	};
 
@@ -656,7 +674,8 @@ export default class HomeContainer extends Component {
 					index: index,
 					startPosition: startPosition + txt.length,
 					endPosition: startPosition + txt.length
-				}
+				},
+				sapoResults: undefined
 			});
 
 			// refocus on the input form
