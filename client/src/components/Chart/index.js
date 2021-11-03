@@ -811,8 +811,8 @@ function areAllLayingOn(vertices, plane)
 
 function getBoundingBox(vertices)
 {
-	var max_values = vertices.map(v => {return 0}),
-		min_values = vertices.map(v => {return 0});
+	var max_values = vertices[0].map(v => 0),
+		min_values = vertices[0].map(v => 0);
 
 	vertices.forEach((v) => {
 		v.forEach((value, index) => {
@@ -856,7 +856,29 @@ function onTheSameLine(vertex_a, vertex_b, vertex_c)
 	return true;
 }
 
-function doubleVerticesIfCoplanar(vertices)
+function doubleOnDirection(vertices, direction)
+{
+	// Compute what is meant to be a small number w.r.t. the plot values
+	var bbox = getBoundingBox(vertices);
+
+	var delta_bbox = bbox.map(value => {
+		return value[1]-value[0];
+	});
+	var delta = Math.max(...delta_bbox)/1000;
+
+	// double the vertices using the plane normal vector
+	var new_vertices = vertices.map((v) => {
+		return v.map((value, index) => {
+			return value + delta*direction[index];
+		});
+	});
+
+	new_vertices.push(...vertices);
+
+	return new_vertices;
+}
+
+function get3DPolylitope(vertices)
 {
 	// Get 3 vertices that do not belong to the same line (we are assuming no repetitions)
 	var idx=2;
@@ -864,49 +886,50 @@ function doubleVerticesIfCoplanar(vertices)
 		idx++;
 	}
 
-	// If they exists
+	// If they exist
 	if (idx < vertices.length) {
+
 		// Compute the plane that contains them
 		var plane = getPlanePassingThrough(vertices[0], vertices[1], vertices[idx]);
 
 		// If all the vertices belong to the same plane
 		if (areAllLayingOn(vertices, plane)) {
-
-			// Compute what is meant to be a small number w.r.t. the plot values
-			var bbox = getBoundingBox(vertices);
-
-			var delta_bbox = bbox.map(value => {
-				return value[1]-value[0];
-			});
-			var delta = Math.max(...delta_bbox)/1000;
-
-			// double the vertices using the plane normal vector
-			var new_vertices = vertices.map((v) => {
-				return v.map((value, index) => {
-					return value + delta*plane.normal_vect[index];
-				});
-			});
-
-			new_vertices.push(...vertices);
-
-			return new_vertices;
+			vertices = doubleOnDirection(vertices, plane.normal_vect);
 		}
+
+		return {
+			x: vertices.map(e => e[0]),
+			y: vertices.map(e => e[1]),
+			z: vertices.map(e => e[2]),
+			type: 'mesh3d',
+			alphahull: 0,
+			color: '#ff8f00',
+			hoverinfo: 'none'
+		};
+	} else { // all the vertices are colinear and
+	         // their bounding box is a segment
+
+		// get the segment boundaries
+		var idx = -1;
+		var min_vert=vertices[0], max_vert=vertices[0];
+		while (idx+1 < vertices[0].length && min_vert[idx+1]==max_vert[idx+1]) {
+			idx++;
+			vertices.forEach(v => {
+				if (v[idx]>max_vert[idx]) max_vert = v;
+				if (v[idx]<min_vert[idx]) min_vert = v;
+			});
+		}
+
+		return {
+			x: [min_vert[0], max_vert[0]],
+			y: [min_vert[1], max_vert[1]],
+			z: [min_vert[2], max_vert[2]],
+			type: 'scatter3d',
+			mode: 'lines',
+			line: {
+				width: 6,
+				color: '#ff8f00'
+			}
+		};
 	}
-
-	return vertices;
-}
-
-function get3DPolylitope(vertices)
-{
-	vertices = doubleVerticesIfCoplanar(vertices);
-
-	return {
-		x: vertices.map(e => e[0]),
-		y: vertices.map(e => e[1]),
-		z: vertices.map(e => e[2]),
-		type: 'mesh3d',
-		alphahull: 0,
-		color: '#ff8f00',
-		hoverinfo: 'none'
-	};
 }
