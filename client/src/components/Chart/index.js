@@ -176,14 +176,13 @@ export default class Chart extends Component<Props> {
 								   { dataType: e.target.value, changed: true }));
 	}
 
-	componentDidUpdate(prevProps) {
-		var newProps;
-
+	componentDidUpdate(prevProps) 
+	{
 		if (prevProps.sapoResults !== this.props.sapoResults &&
 				(this.state.xAxis === undefined || this.state.yAxis === undefined ||
 				 this.state.zAxis === undefined)) {
 
-			newProps = this.getAxisNames(this.state.dataType);
+			var newProps = this.getAxisNames(this.state.dataType);
 			newProps.changed = true;
 
 			this.setState(newProps);

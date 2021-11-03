@@ -851,7 +851,11 @@ export default class HomeContainer extends Component {
 							tMatrix: math.matrix(stateFromFile.tMatrix.data),
 							parametersMatrix: math.matrix(
 								stateFromFile.parametersMatrix.data
-							)
+							),
+							sapoResults: undefined,
+							sapoParams: undefined,
+							hasResults: false,
+							updateChart: true
 						},
 						() => {
 							console.log(this.state);
