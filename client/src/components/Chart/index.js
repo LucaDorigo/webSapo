@@ -664,18 +664,24 @@ function findNextCombination(combination)
 	return true;
 }
 
-function get2DSinglePoint(vertices)
+function getSinglePoint(vertices)
 {
-	return {
-		x: [vertices[0][0]],
-		y: [vertices[0][1]],
-		mode: 'markers',
-		type: 'scatter',
-		marker: {
-			color: '#ff8f00',
-			size: 7
-		}
-	};	
+	var plot_param =  {
+			x: [vertices[0][0]],
+			y: [vertices[0][1]],
+			mode: 'markers',
+			type: 'scatter',
+			marker: {
+				color: '#ff8f00',
+				size: 7
+			}
+		};
+	
+	if (vertices[0].length > 2) {
+		plot_param.y = [vertices[0][2]];
+	}
+
+	return plot_param;
 }
 
 function get2DConvexHullVertices(vertices)
@@ -696,7 +702,7 @@ function get2DConvexHullVertices(vertices)
 function get2DPolygon(vertices)
 {
 	if (vertices.length === 1) {
-		return get2DSinglePoint(vertices);
+		return getSinglePoint(vertices);
 	}
 
 	var chull = get2DConvexHullVertices(vertices)
@@ -709,7 +715,7 @@ function get2DPolygon(vertices)
 		fill: 'toself',
 		line: {
 			color: '#ff8f00',
-			width: 0
+			width: 1
 		}
 	};
 }
@@ -829,7 +835,7 @@ function getBoundingBox(vertices)
 	return min_values.map((value, index) => [value, max_values[index]]);
 }
 
-function onTheSameLine(vertex_a, vertex_b, vertex_c)
+function areColinear(vertex_a, vertex_b, vertex_c)
 {
 	var delta1 = math.subtract(vertex_b, vertex_a);
 	if (math.norm(delta1, Infinity) === 0) {
@@ -878,11 +884,30 @@ function doubleOnDirection(vertices, direction)
 	return new_vertices;
 }
 
+function getColinearVerticesBBoxBoundaries(vertices)
+{
+	var idx_dim = -1;
+	var min_vert=vertices[0], max_vert=vertices[0];
+	while (idx_dim+1 < vertices[0].length && min_vert[idx_dim+1]==max_vert[idx_dim+1]) {
+		idx_dim++;
+		vertices.forEach(v => {
+			if (v[idx_dim]>max_vert[idx_dim]) max_vert = v;
+			if (v[idx_dim]<min_vert[idx_dim]) min_vert = v;
+		});
+	}
+
+	return [min_vert, max_vert];
+}
+
 function get3DPolylitope(vertices)
 {
+	if (vertices.length === 1) {
+		return getSinglePoint(vertices);
+	}
+
 	// Get 3 vertices that do not belong to the same line (we are assuming no repetitions)
 	var idx=2;
-	while (idx < vertices.length && onTheSameLine(vertices[0], vertices[1], vertices[idx])) {
+	while (idx < vertices.length && areColinear(vertices[0], vertices[1], vertices[idx])) {
 		idx++;
 	}
 
@@ -906,30 +931,23 @@ function get3DPolylitope(vertices)
 			color: '#ff8f00',
 			hoverinfo: 'none'
 		};
-	} else { // all the vertices are colinear and
-	         // their bounding box is a segment
+	} 
+	
+	// all the vertices are colinear and
+	// their bounding box is a segment
 
-		// get the segment boundaries
-		var idx = -1;
-		var min_vert=vertices[0], max_vert=vertices[0];
-		while (idx+1 < vertices[0].length && min_vert[idx+1]==max_vert[idx+1]) {
-			idx++;
-			vertices.forEach(v => {
-				if (v[idx]>max_vert[idx]) max_vert = v;
-				if (v[idx]<min_vert[idx]) min_vert = v;
-			});
+	// get the segment boundaries
+	var boundaries = getColinearVerticesBBoxBoundaries(vertices)
+
+	return {
+		x: [boundaries[0][0], boundaries[1][0]],
+		y: [boundaries[0][1], boundaries[1][1]],
+		z: [boundaries[0][2], boundaries[1][2]],
+		type: 'scatter3d',
+		mode: 'lines',
+		line: {
+			width: 6,
+			color: '#ff8f00'
 		}
-
-		return {
-			x: [min_vert[0], max_vert[0]],
-			y: [min_vert[1], max_vert[1]],
-			z: [min_vert[2], max_vert[2]],
-			type: 'scatter3d',
-			mode: 'lines',
-			line: {
-				width: 6,
-				color: '#ff8f00'
-			}
-		};
-	}
+	};
 }
