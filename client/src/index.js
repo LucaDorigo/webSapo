@@ -6,6 +6,11 @@ import Home from "./containers/Home";
 
 const store = configureStore();
 
+// remove console log in production
+if (process.env.NODE_ENV === "production" ) {
+  console.log = () => {};
+}
+
 render(
   <AppContainer>
     <Home store={store} history={history} />
