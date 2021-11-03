@@ -69,7 +69,7 @@ export default class HomeContainer extends Component {
 			disabledAddVariable: false,
 			disabledAddParameter: false,
 			// will display a combination of 'reachability/synthesis and methods'
-			nameSelectedMenu: "Method of analysis",
+			nameSelectedMenu: "Analysis method",
 			sapoResults: undefined,
 			sapoParams: undefined,
 			updateChart: true

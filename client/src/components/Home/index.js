@@ -139,13 +139,13 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 					{/* end of the header*/}
 
-					{this.props.nameSelectedMenu === "Method of analysis" && (
+					{this.props.nameSelectedMenu === "Analysis method" && (
 						<div className={styles.selectMethodContainer}>
-							<p>Select a method of analysis from the header menu</p>
+							<p>Select an analysis method from the header menu</p>
 						</div>
 					)}
 
-					{this.props.nameSelectedMenu !== "Method of analysis" && (
+					{this.props.nameSelectedMenu !== "Analysis method" && (
 						<div className={styles.mainContainer}>
 							<div className={styles.main}>
 								<div className={styles.grid_container}>
