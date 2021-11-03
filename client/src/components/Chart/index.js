@@ -98,10 +98,10 @@ export default class Chart extends Component<Props> {
 				<div className={styles.right_controls}>
 					{this.props.sapoParams !== undefined && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked value="vars" label="variables" name="dataType"/> Variables
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType === "vars"} value="vars" label="variables" name="dataType"/> Variables
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" value="params" label="parameters" name="dataType"/> Parameters
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType !== "vars"} value="params" label="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
@@ -202,7 +202,7 @@ export default class Chart extends Component<Props> {
 				return this.state.varData;
 			else
 				return this.state.paramData;
-				
+
 		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
 				(this.state.dataType === "params" && this.props.sapoParams === undefined))
 		{
@@ -213,9 +213,9 @@ export default class Chart extends Component<Props> {
 				newProps=Object.assign(newProps, { varData: [], changed: false });
 			else
 				newProps=Object.assign(newProps, { paramData: [], changed: false });
-			
+
 			this.setState(newProps);
-			
+
 			return [];
 		}
 
@@ -888,12 +888,16 @@ function getColinearVerticesBBoxBoundaries(vertices)
 {
 	var idx_dim = -1;
 	var min_vert=vertices[0], max_vert=vertices[0];
-	while (idx_dim+1 < vertices[0].length && min_vert[idx_dim+1]==max_vert[idx_dim+1]) {
+	while (idx_dim+1 < vertices[0].length && min_vert[idx_dim+1] === max_vert[idx_dim+1]) {
 		idx_dim++;
-		vertices.forEach(v => {
-			if (v[idx_dim]>max_vert[idx_dim]) max_vert = v;
-			if (v[idx_dim]<min_vert[idx_dim]) min_vert = v;
-		});
+		for (let v of vertices) {
+			if (v[idx_dim] > max_vert[idx_dim]) {
+				max_vert = v;
+			}
+			if (v[idx_dim] < min_vert[idx_dim]) {
+				min_vert = v;
+			}
+		};
 	}
 
 	return [min_vert, max_vert];
