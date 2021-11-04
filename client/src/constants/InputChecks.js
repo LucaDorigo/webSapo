@@ -214,10 +214,14 @@ const cheksEquationsVarAndParams = (
       let cleanedEquation = equation.replace(/[^A-Za-z0-9_]+/gi, " ");
       let equationArray = cleanedEquation.split(" ");
 			
-			equationArray.forEach((e, i) => {
-				if (!e.match(/[A-Za-z][A-Za-z0-9_]*/g))
-					equationArray.splice(i, 1);
-			});
+			let equationIndex = 0;
+			while (equationIndex < equationArray.length) {
+				if (!equationArray[equationIndex].match(/[A-Za-z][A-Za-z0-9_]*/g)) {
+					equationArray.splice(equationIndex, 1);
+				} else {
+					equationIndex++;
+				}
+			}
 
       for (let index = 0; index < equationArray.length; index++) {
         const subEquation = equationArray[index];
