@@ -18,12 +18,34 @@
 	flex-direction: row;
 }
 
-.radio_element {
-	margin: 10%;
-}
-
 .radio_input {
 } 
+
+.radio_element {
+	margin: 10%;
+	margin-top: 5%;
+	margin-bottom: 5%;
+}
+
+.input_selector {
+	display: flex;
+	flex-direction: row;
+}
+
+.input_selector div {
+	margin: 10%;
+	margin-top: 5%;
+	margin-bottom: 5%;
+	width: 100%;
+}
+
+.input_selector div div {
+	margin: 0%;
+}
+
+.input_selector div div input {
+	width: 100%;
+}
 
 .selects {
 	display: flex;

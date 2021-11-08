@@ -49,12 +49,18 @@ export default class Chart extends Component<Props> {
 	constructor(props) {
 		super(props);
 		this.state = {
-			varData: [],
-			paramData: [],
-			colors: [],
-			changed: false,
-			chartType: "2D",
-			dataType: "vars",
+			varData: [],        // Overall variables data: one flow pipe per parameter set
+			paramData: [],      // Overall parameter set data: a list of parameter set
+			varPlottable: [],   // variable polygons filtered by selection
+			paramPlottable: [], // parameter polygons filtered by selection
+			selection_text: "", // the text describing the parameter set selection
+			pset_selection: [], // a Boolean filter for varData and paramData 
+			colors: [],         // colors for varData and paramData 
+			typing: false,      // change Boolean flag for the selector
+			typingTimeout: 0,   // a timeout for the selector
+			changed: false,     // a Boolean flag for changes
+			chartType: "2D",    // chart type, i.e., either "2D" or "3D"
+			dataType: "vars",   // data type, i.e., either "vars" or "params"
 			xAxis: undefined,
 			yAxis: undefined,
 			zAxis: undefined
@@ -128,6 +134,16 @@ export default class Chart extends Component<Props> {
 							<input className={styles.radio_input} id="multicolor" type="checkbox" value="distinguish" onChange={e => this.changeDistinguish(e, this)}/> Distinguish parameter set data 
 						</div>
 					</div>} {/*closing checkbox group*/}
+					{(this.props.sapoResults !== undefined) && (this.props.sapoResults.length > 1) && <div className={styles.input_selector}>
+						<div>
+							<div>
+								<label for="pset-selector">Select parameter sets</label>
+							</div>
+							<div>
+								<input id="pset-selector" type="text" placeholder="e.g., '2-4, 6'" onChange={e => this.changedPSetSelector(e)}/>
+							</div>
+						</div>
+					</div>} {/*closing text group*/}
 					<div className={styles.selects}>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
@@ -209,16 +225,91 @@ export default class Chart extends Component<Props> {
 		obj.setState({ colors: colors, changed: true });
 	}
 
+	parseSelected(sel_text) {
+		var selection = [];
+
+		if (sel_text==="") {
+			for (let i=0; i< this.props.sapoResults.length; i++) {
+				selection.push(true);
+			}
+			return selection;
+		}
+
+		for (let i=0; i< this.props.sapoResults.length; i++) {
+			selection.push(false);
+		}
+
+		var blocks = sel_text.replace(/\s/g,'').split(',');
+		var boundaries;
+		for (let block of blocks) {
+			if (isNaN(block)) {
+				boundaries = block.split('-');
+				if (boundaries.length !== 2 || isNaN(boundaries[0]) || boundaries[1]==="" || isNaN(boundaries[1])) {
+					return undefined;
+				}
+				boundaries = [parseInt(boundaries[0]), parseInt(boundaries[1])]
+			} else {
+				boundaries = [parseInt(block), parseInt(block)]
+			}
+
+			if (boundaries[0]>boundaries[1] || boundaries[0]<0 || boundaries[1]>=selection.length) {
+				return undefined;
+			}
+
+			for (let i=boundaries[0]; i<=boundaries[1]; i++) {
+				selection[i] = true;
+			}
+		}
+
+		return selection;
+	}
+
+	changedPSetSelector(e)
+	{
+		const self = this;
+
+		// Changes selection only after 1.5 seconds after the user stops writing
+		if (self.state.typingTimeout) {
+       		clearTimeout(this.state.typingTimeout);
+    	}
+
+		this.setState({
+			selection_text: e.currentTarget.value,
+			typing: false,
+			typingTimeout: setTimeout(function () {
+				if (self.props.sapoResults !== undefined) { // Things may be changed in 1.5 seconds
+					var selection = self.parseSelected(self.state.selection_text);
+
+					if (selection !== undefined) {
+						self.setState({pset_selection: selection,
+										varPlottable: collectSelectedFlowpipes(self.state.varData, selection),
+										paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
+										changed: true });
+					}
+				}
+			}, 1500),
+		    changed: true
+		});
+	}
+
 	componentDidUpdate(prevProps) 
 	{
 		if (prevProps.sapoResults === undefined && this.props.sapoResults !== undefined) {
 			var newProps = this.getAxisNames(this.state.dataType);
-			newProps.changed = true;
-			newProps.colors = [];
+
 			var color = getDistinctColors(1)[0];
+			newProps.colors = [];
 			for (let i=0; i<this.props.sapoResults.length; i++) {
 				newProps.colors.push(color);
 			}
+
+			newProps.selection_text = "";
+			newProps.pset_selection = [];
+			for (let i=0; i<this.props.sapoResults.length; i++) {
+				newProps.pset_selection.push(true);
+			}
+
+			newProps.changed = true;
 
 			this.setState(newProps);
 		}
@@ -234,9 +325,9 @@ export default class Chart extends Component<Props> {
 		
 		if (!this.state.changed)
 			if (this.state.dataType === "vars")
-				return this.state.varData;
+				return this.state.varPlottable;
 			else
-				return this.state.paramData;
+				return this.state.paramPlottable;
 
 		if ((this.state.dataType === "vars" && !hasVarData(this.props.sapoResults)) ||
 				(this.state.dataType === "params" && !hasParamData(this.props.sapoResults)))
@@ -245,19 +336,23 @@ export default class Chart extends Component<Props> {
 					yAxis: undefined,
 					zAxis: undefined};
 			if (this.state.dataType === "vars")
-				newProps=Object.assign(newProps, { varData: [], changed: false });
+				newProps=Object.assign(newProps, { varData: [], varPlottable: [], changed: false });
 			else
-				newProps=Object.assign(newProps, { paramData: [], changed: false });
+				newProps=Object.assign(newProps, { paramData: [], paramPlottable: [], changed: false });
 
 			this.setState(newProps);
 
 			return [];
 		}
 
-		if (this.state.dataType === "vars")
-			return this.calcVarData();
-		
-		return this.calcParamData();
+		var polytopes;
+		if (this.state.dataType === "vars") {
+			polytopes = this.calcVarData();
+		} else {
+			polytopes = this.calcParamData();
+		}
+
+		return polytopes;
 	}	// end calcData
 
 	getProjSubspace(variables)
@@ -400,29 +495,28 @@ export default class Chart extends Component<Props> {
 			// this is just to exploit 2D time series properties and speed-up 
 			// their plotting with respect to getPolytopes-based plotting
 			this.props.sapoResults.forEach((elem, i) => {
-				this.getFlowpipe2DTimePolygons(elem[ 'flowpipe' ], this.props.variables, 
-										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
-					polytopes.push(polytope);
-				});
+				polytopes.push(this.getFlowpipe2DTimePolygons(elem[ 'flowpipe' ], this.props.variables, 
+										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)));
 			});
 		} else {
 			this.props.sapoResults.forEach((elem, i) => {
-				this.getFlowpipePolytopes(elem[ 'flowpipe' ], this.props.variables, 
-										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
-					polytopes.push(polytope);
-				});
+				polytopes.push(this.getFlowpipePolytopes(elem[ 'flowpipe' ], this.props.variables, 
+										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)));
 			});
 		}
 
 		if (polytopes.length === 0) {
 			alert("There is no data to display");
 		}
-		this.setState({ varData: polytopes, changed: false });
+
+		this.setState({ varData: polytopes,
+						varPlottable: collectSelectedFlowpipes(polytopes, this.state.pset_selection),
+						changed: false });
 
 		// var end_time = new Date();
 		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
 
-		return polytopes;
+		return this.state.varPlottable;
 	} // end calcVarData
 	
 	
@@ -439,10 +533,29 @@ export default class Chart extends Component<Props> {
 		if (polytopes.length === 0) {
 			alert("The set of parameters is empty!");
 		}
-		this.setState({ paramData: polytopes, changed: false });
-	    return polytopes;
+
+		var plottable = polytopes.filter((e,i) => this.state.pset_selection[i]);
+		this.setState({ paramData: polytopes,
+		                paramPlottable: plottable,
+						changed: false });
+
+		return this.state.paramPlottable;
 	}
 }	// end Chart
+
+function collectSelectedFlowpipes(data, selection)
+{
+	var polytopes = [];
+	data.forEach((data_elem, i) => {
+		if (selection[i]) {
+			data_elem.forEach((polytope) => {
+				polytopes.push(polytope);
+			});
+		}
+	});
+
+	return polytopes;
+}
 
 function findMinMaxItvl(vertices, dim=0)
 {
