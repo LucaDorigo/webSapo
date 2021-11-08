@@ -51,6 +51,7 @@ export default class Chart extends Component<Props> {
 		this.state = {
 			varData: [],
 			paramData: [],
+			colors: [],
 			changed: false,
 			chartType: "2D",
 			dataType: "vars",
@@ -106,7 +107,7 @@ export default class Chart extends Component<Props> {
 					/>
 				</div>
 				<div className={styles.right_controls}>
-					{hasParamData(this.props.sapoResults) !== undefined && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
+					{hasParamData(this.props.sapoResults) && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
 							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType === "vars"} value="vars" label="variables" name="dataType"/> Variables
 						</div>
@@ -122,6 +123,11 @@ export default class Chart extends Component<Props> {
 							<input className={styles.radio_input} type="radio" value="3D" label="3D" name="dimensions"/> 3D
 						</div>
 					</div> {/*closing radio group*/}
+					{(this.props.sapoResults !== undefined) && (this.props.sapoResults.length > 1) && <div className={styles.radio_group}>
+						<div className={styles.radio_element}>
+							<input className={styles.radio_input} id="multicolor" type="checkbox" value="distinguish" onChange={e => this.changeDistinguish(e, this)}/> Distinguish parameter set data 
+						</div>
+					</div>} {/*closing checkbox group*/}
 					<div className={styles.selects}>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
@@ -185,15 +191,34 @@ export default class Chart extends Component<Props> {
 		obj.setState(Object.assign(this.getAxisNames(e.target.value),
 								   { dataType: e.target.value, changed: true }));
 	}
+	
+	changeDistinguish(e, obj)
+	{
+		var colors;
+		if (e.currentTarget.checked) {
+			colors = getDistinctColors(this.props.sapoResults.length);
+		} else {
+			var color = getDistinctColors(1)[0];
+
+			colors = [];
+			for (let i=0; i<this.props.sapoResults.length; i++) {
+				colors.push(color);
+			}
+		}
+
+		obj.setState({ colors: colors, changed: true });
+	}
 
 	componentDidUpdate(prevProps) 
 	{
-		if (prevProps.sapoResults !== this.props.sapoResults &&
-				(this.state.xAxis === undefined || this.state.yAxis === undefined ||
-				 this.state.zAxis === undefined)) {
-
+		if (prevProps.sapoResults === undefined && this.props.sapoResults !== undefined) {
 			var newProps = this.getAxisNames(this.state.dataType);
 			newProps.changed = true;
+			newProps.colors = [];
+			var color = getDistinctColors(1)[0];
+			for (let i=0; i<this.props.sapoResults.length; i++) {
+				newProps.colors.push(color);
+			}
 
 			this.setState(newProps);
 		}
@@ -255,7 +280,7 @@ export default class Chart extends Component<Props> {
 		return subspace;
 	}
 
-	get2DTimePolygons(flowpipe, variables)
+	getFlowpipe2DTimePolygons(flowpipe, variables, param_set_idx = undefined)
 	{
 		var polygons = [];
 		var subspace = this.getProjSubspace(variables);
@@ -277,7 +302,11 @@ export default class Chart extends Component<Props> {
 				var vertices = [[time, itvl.min], [time, itvl.max]];
 
 				// add the polytope to the dataset
-				polygons.push(get2DTimePolygon(vertices, time));
+				if (param_set_idx !== undefined) {
+					polygons.push(get2DTimePolygon(vertices, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
+				} else {
+					polygons.push(get2DTimePolygon(vertices, time, this.state.colors[0], undefined));
+				}
 			});
 			time = time + 1;
 		});
@@ -285,20 +314,51 @@ export default class Chart extends Component<Props> {
 		return polygons;
 	}
 
-	getPolytopes(flowpipe, variables)
+	getPolytopes(convex_polihedra_union, variables, param_set_idx=undefined)
 	{
-		const polytope_gen = function (vertices, state, time) {
+		const polytope_gen = function (vertices, state, color, name) {
+			if (state.chartType === "2D") {
+				return get2DPolygon(vertices, color, name);
+			} else {
+				return get3DPolylitope(vertices, color, name);
+			}
+		};
+	
+		var polytopes = [];
+		var subspace = this.getProjSubspace(variables);
+
+		convex_polihedra_union.forEach((convex_polihedron) => {
+			var vertices = computeConvexPolyhedronVertices(convex_polihedron);
+			if (vertices.length !== 0)  // some valid vertices found in
+			{
+				// vertices projected in the subspace
+				var proj = getVerticesProjection(vertices, subspace);
+
+				// add the polytope to the dataset
+				if (param_set_idx !== undefined) {
+					polytopes.push(polytope_gen(proj, this.state, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
+				} else {
+					polytopes.push(polytope_gen(proj, this.state, this.state.colors[0], undefined));
+				}
+			}
+		});
+
+		return polytopes;
+	}
+
+	getFlowpipePolytopes(flowpipe, variables, param_set_idx=undefined) {
+		const polytope_gen = function (vertices, state, time, color, name) {
 			if (state.xAxis !== "Time") {
 				if (state.chartType === "2D") {
-					return get2DPolygon(vertices);
+					return get2DPolygon(vertices, color, name);
 				} else {
-					return get3DPolylitope(vertices);
+					return get3DPolylitope(vertices, color, name);
 				}
 			} else {
 				if (state.chartType === "2D") {
-					return get2DTimePolygon(vertices, time);
+					return get2DTimePolygon(vertices, time, color, name);
 				} else {
-					return get3DTimePolylitope(vertices, time);
+					return get3DTimePolylitope(vertices, time, color, name);
 				}
 			}
 		};
@@ -316,14 +376,18 @@ export default class Chart extends Component<Props> {
 					var proj = getVerticesProjection(vertices, subspace);
 
 					// add the polytope to the dataset
-					polytopes.push(polytope_gen(proj, this.state, time));
+					if (param_set_idx !== undefined) {
+						polytopes.push(polytope_gen(proj, this.state, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
+					} else {
+						polytopes.push(polytope_gen(proj, this.state, time, this.state.colors[0], undefined));
+					}
 				}
 			});
 
 			time = time + 1;
 		});
 
-		return polytopes;
+		return polytopes;		
 	}
 
 	calcVarData()
@@ -334,18 +398,20 @@ export default class Chart extends Component<Props> {
 		var polytopes = [];
 		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
 			// this is just to exploit 2D time series properties and speed-up 
-			// their plotting with respect to getPolytopes-based plotting 
-			for (let elem of this.props.sapoResults) {
-				this.get2DTimePolygons(elem[ 'flowpipe' ], this.props.variables).forEach((polytope) => {
+			// their plotting with respect to getPolytopes-based plotting
+			this.props.sapoResults.forEach((elem, i) => {
+				this.getFlowpipe2DTimePolygons(elem[ 'flowpipe' ], this.props.variables, 
+										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
 					polytopes.push(polytope);
 				});
-			}
+			});
 		} else {
-			for (let elem of this.props.sapoResults) {
-				this.getPolytopes(elem[ 'flowpipe' ], this.props.variables).forEach((polytope) => {
+			this.props.sapoResults.forEach((elem, i) => {
+				this.getFlowpipePolytopes(elem[ 'flowpipe' ], this.props.variables, 
+										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
 					polytopes.push(polytope);
 				});
-			}
+			});
 		}
 
 		if (polytopes.length === 0) {
@@ -363,11 +429,12 @@ export default class Chart extends Component<Props> {
 	calcParamData()
 	{
 		var polytopes = [];
-		for (let elem of this.props.sapoResults) {
-			this.getPolytopes(elem[ 'parameter set' ], this.props.parameters).forEach((polytope) => {
+		this.props.sapoResults.forEach((elem, i) => {
+			this.getPolytopes(elem[ 'parameter set' ], this.props.parameters, 
+										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
 				polytopes.push(polytope);
 			});
-		}
+		});
 
 		if (polytopes.length === 0) {
 			alert("The set of parameters is empty!");
@@ -443,7 +510,7 @@ function compareItvls(a, b)
 function compareArray(v1, v2)
 {
 	if (v1.length < v2.length) return -1;
-	if (v1.lenght > v2.length) return 1;
+	if (v1.length > v2.length) return 1;
 	
 	for (var i = 0; i < v1.length; i++)
 	{
@@ -680,15 +747,16 @@ function findNextCombination(combination)
 	return true;
 }
 
-function getSinglePoint(vertices)
+function getSinglePoint(vertices, color = '#ff8f00', name = undefined)
 {
 	var plot_param =  {
 			x: [vertices[0][0]],
 			y: [vertices[0][1]],
 			mode: 'markers',
 			type: 'scatter',
+			name: name,
 			marker: {
-				color: '#ff8f00',
+				color: color,
 				size: 7
 			}
 		};
@@ -698,6 +766,20 @@ function getSinglePoint(vertices)
 	}
 
 	return plot_param;
+}
+
+// https://stackoverflow.com/a/470747 must be acknowledged for inspiring the following function
+function getDistinctColors(num_colors)
+{ 
+	// TODO: implements a more efficient algorithm (see https://stackoverflow.com/a/4382138)
+
+	var colors = []
+	for(let i = 0; i < num_colors; i++) {
+		var frag = 10*i/num_colors;
+		colors.push(`hsl(${ 36*frag }, ${ 90+frag }, ${ 50+frag })`);
+	}
+
+	return colors;
 }
 
 function get2DConvexHullVertices(vertices)
@@ -715,10 +797,10 @@ function get2DConvexHullVertices(vertices)
 	return removeInnerVertices(vertices);
 }
 
-function get2DPolygon(vertices)
+function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 {
 	if (vertices.length === 1) {
-		return getSinglePoint(vertices);
+		return getSinglePoint(vertices, color, name);
 	}
 
 	var chull = get2DConvexHullVertices(vertices)
@@ -729,14 +811,17 @@ function get2DPolygon(vertices)
 		mode: 'lines',
 		type: 'scatter',
 		fill: 'toself',
+		color: color,
+		name: name,
+		hoverinfo: (name !== undefined ? 'x+y+name' : 'x+y'),
 		line: {
-			color: '#ff8f00',
+			color: color,
 			width: 1
 		}
 	};
 }
 
-function get2DTimePolygon(vertices, time, thickness = 0.4)
+function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, thickness = 0.4)
 {
 	var chull = get2DConvexHullVertices(vertices);
 
@@ -760,14 +845,17 @@ function get2DTimePolygon(vertices, time, thickness = 0.4)
 		mode: 'lines',
 		type: 'scatter',
 		fill: 'toself',
+		color: color,
+		name: name,
+		hoverinfo: (name !== undefined ? 'x+y+name' : 'x+y'),
 		line: {
-			color: '#ff8f00',
-			width: 2
+			color: color,
+			width: 1
 		}
 	};
 }
 
-function get3DTimePolylitope(vertices, time, thickness = 0.4)
+function get3DTimePolylitope(vertices, time, color = '#ff8f00', name = undefined, thickness = 0.4)
 {
 	var times = []
 	var y = vertices.map(e => e[1]);
@@ -789,8 +877,9 @@ function get3DTimePolylitope(vertices, time, thickness = 0.4)
 		z: z,
 		alphahull: 0,
 		type: 'mesh3d',
-		color: '#ff8f00',
-		hoverinfo: 'none'
+		color: color,
+		name: name,
+		hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z')
 	};
 }
 
@@ -919,7 +1008,7 @@ function getColinearVerticesBBoxBoundaries(vertices)
 	return [min_vert, max_vert];
 }
 
-function get3DPolylitope(vertices)
+function get3DPolylitope(vertices, color = '#ff8f00', name = undefined)
 {
 	if (vertices.length === 1) {
 		return getSinglePoint(vertices);
@@ -948,8 +1037,9 @@ function get3DPolylitope(vertices)
 			z: vertices.map(e => e[2]),
 			type: 'mesh3d',
 			alphahull: 0,
-			color: '#ff8f00',
-			hoverinfo: 'none'
+			color: color,
+			name: name,
+			hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z')
 		};
 	} 
 	
@@ -965,9 +1055,12 @@ function get3DPolylitope(vertices)
 		z: [boundaries[0][2], boundaries[1][2]],
 		type: 'scatter3d',
 		mode: 'lines',
+		color: color,
+		name: name,
+		hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z'),
 		line: {
 			width: 6,
-			color: '#ff8f00'
+			color: color
 		}
 	};
 }
