@@ -601,7 +601,6 @@ export default class BoxesPage extends Component<Props> {
 						<div className={modalStyles.modal_body_chart}>
 							<Chart
 									sapoResults={this.props.sapoResults}
-									sapoParams={this.props.sapoParams}
 									variables={this.props.variables}
 									parameters={this.props.parameters}
 									updateChart={this.props.updateChart}

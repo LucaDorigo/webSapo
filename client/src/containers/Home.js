@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { deepCopy, downloadFile, parseFlowpipe, parseParams } from "../constants/global";
+import { deepCopy, downloadFile } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
@@ -71,7 +71,6 @@ export default class HomeContainer extends Component {
 			// will display a combination of 'reachability/synthesis and methods'
 			nameSelectedMenu: "Analysis method",
 			sapoResults: undefined,
-			sapoParams: undefined,
 			updateChart: true
 		};
 	}
@@ -809,29 +808,18 @@ export default class HomeContainer extends Component {
 							res.on('end', () => {
 								if (! killed)
 								{
-									var parts = JSON.parse(str);
-									if (this.state.reachability)
-									{
-										downloadFile(parts.vars, "result.txt", "text/plain");
-										this.setState({
-											sapoResults: parseFlowpipe(parts.vars),
-											sapoParams: undefined,
-											hasResults: true,
-											executing: false,
-											updateChart:true
-										});
-									}
-									else
-									{
-										downloadFile(parts.params, "result.txt", "text/plain");
-										this.setState({
-											sapoResults: parseFlowpipe(parts.vars),
-											sapoParams: parseParams(parts.params),
-											hasResults: true,
-											executing: false,
-											updateChart: true
-										});
-									}
+									var result = JSON.parse(str);
+									downloadFile(result, "result.json", "text/plain");
+									this.setState({
+										/*
+										sapoResults: parseFlowpipe(parts.vars),
+										sapoParams: parseParams(parts.params),
+										*/
+										sapoResults: result,
+										hasResults: true,
+										executing: false,
+										updateChart:true
+									});
 								}
 								killed = false;
 							});
@@ -872,7 +860,6 @@ export default class HomeContainer extends Component {
 								stateFromFile.parametersMatrix.data
 							),
 							sapoResults: undefined,
-							sapoParams: undefined,
 							hasResults: false,
 							updateChart: true
 						},
@@ -1001,7 +988,6 @@ export default class HomeContainer extends Component {
 				deleteRowTMatrix={this.deleteRowTMatrix}
 				//
 				sapoResults={this.state.sapoResults}
-				sapoParams={this.state.sapoParams}
 				updateChart={this.state.updateChart}
 				setUpdated={() => this.setState({updateChart: false})}
 			/>

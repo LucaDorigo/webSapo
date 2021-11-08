@@ -59,10 +59,9 @@ app.post("/websapo", (req, res, next) => {
 
     // execute the sapo tool
     globals.executeShellCommand(
-      ("echo '" + model.replace(/(?:\r\n|\r|\n)/g, " ") + "' | ./sapoCore/bin/sapo | sed '0,/^RESULTS$/d'"),		// print model, execute sapo and remove useless output
+      ("echo '" + model.replace(/(?:\r\n|\r|\n)/g, " ") + "' | ./sapoCore/bin/sapo -j"),		// print model, execute sapo, and read the JSON output format
       (result) => {
-				var parts = result.split("END RESULTS\n");
-				res.write(JSON.stringify({vars: parts[0], params: parts[1]}));
+				res.write(result);
 				res.end();
 			}
     );

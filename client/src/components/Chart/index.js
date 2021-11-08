@@ -34,6 +34,16 @@ function name_if_valid(property, pos, alternative=undefined)
 	return alternative;
 }
 
+function hasVarData(result)
+{
+	return (result !== undefined && result.length > 0 && 'flowpipe' in result[0]);
+}
+
+function hasParamData(result)
+{
+	return (result !== undefined && result.length > 0 && 'parameter set' in result[0]);
+}
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
@@ -96,7 +106,7 @@ export default class Chart extends Component<Props> {
 					/>
 				</div>
 				<div className={styles.right_controls}>
-					{this.props.sapoParams !== undefined && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
+					{hasParamData(this.props.sapoResults) !== undefined && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
 							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType === "vars"} value="vars" label="variables" name="dataType"/> Variables
 						</div>
@@ -203,8 +213,8 @@ export default class Chart extends Component<Props> {
 			else
 				return this.state.paramData;
 
-		if ((this.state.dataType === "vars" && this.props.sapoResults === undefined) ||
-				(this.state.dataType === "params" && this.props.sapoParams === undefined))
+		if ((this.state.dataType === "vars" && !hasVarData(this.props.sapoResults)) ||
+				(this.state.dataType === "params" && !hasParamData(this.props.sapoResults)))
 		{
 			var newProps = {xAxis: undefined,
 					yAxis: undefined,
@@ -245,16 +255,16 @@ export default class Chart extends Component<Props> {
 		return subspace;
 	}
 
-	get2DTimePolygons(linear_system_sets, variables)
+	get2DTimePolygons(flowpipe, variables)
 	{
 		var polygons = [];
 		var subspace = this.getProjSubspace(variables);
 
 		var time = 0;
-		linear_system_sets.forEach((linear_system_set) => {
+		flowpipe.forEach((convex_polihedra_union) => {
 			var intervals = [];
-			linear_system_set.linear_systems.forEach((linear_system) => {		
-				var vertices = computeLinearSystemVertices(linear_system);
+			convex_polihedra_union.forEach((convex_polihedron) => {
+				var vertices = computeConvexPolyhedronVertices(convex_polihedron);
 				if (vertices.length !== 0)  // some valid vertices found in
 				{
 					intervals.push(findMinMaxItvl(vertices, subspace[1]));
@@ -275,7 +285,7 @@ export default class Chart extends Component<Props> {
 		return polygons;
 	}
 
-	getPolytopes(linear_system_sets, variables)
+	getPolytopes(flowpipe, variables)
 	{
 		const polytope_gen = function (vertices, state, time) {
 			if (state.xAxis !== "Time") {
@@ -297,9 +307,9 @@ export default class Chart extends Component<Props> {
 		var subspace = this.getProjSubspace(variables);
 
 		var time = 0;
-		linear_system_sets.forEach((linear_system_set) => {
-			linear_system_set.linear_systems.forEach((linear_system) => {
-				var vertices = computeLinearSystemVertices(linear_system);
+		flowpipe.forEach((convex_polihedra_union) => {
+			convex_polihedra_union.forEach((convex_polihedron) => {
+				var vertices = computeConvexPolyhedronVertices(convex_polihedron);
 				if (vertices.length !== 0)  // some valid vertices found in
 				{
 					// vertices projected in the subspace
@@ -321,15 +331,21 @@ export default class Chart extends Component<Props> {
 		// console.log("Computing polytope vertices")
 		// var begin_time = new Date();
 
-		var input = this.props.sapoResults;
-
 		var polytopes = [];
 		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
 			// this is just to exploit 2D time series properties and speed-up 
 			// their plotting with respect to getPolytopes-based plotting 
-			polytopes = this.get2DTimePolygons(input.step_sets, this.props.variables);
+			for (let elem of this.props.sapoResults) {
+				this.get2DTimePolygons(elem[ 'flowpipe' ], this.props.variables).forEach((polytope) => {
+					polytopes.push(polytope);
+				});
+			}
 		} else {
-			polytopes = this.getPolytopes(input.step_sets, this.props.variables);
+			for (let elem of this.props.sapoResults) {
+				this.getPolytopes(elem[ 'flowpipe' ], this.props.variables).forEach((polytope) => {
+					polytopes.push(polytope);
+				});
+			}
 		}
 
 		if (polytopes.length === 0) {
@@ -346,18 +362,18 @@ export default class Chart extends Component<Props> {
 	
 	calcParamData()
 	{
-		var input = this.props.sapoParams;
-
-		var polytopes = this.getPolytopes([input], this.props.parameters);
-		
-		if (polytopes.length > 0) {
-			this.setState({ paramData: polytopes, changed: false });
-			return polytopes;
-		} else {
-			alert("The set of parameters is empty!");
-			this.setState({ paramData: polytopes, changed: false });
-			return polytopes;
+		var polytopes = [];
+		for (let elem of this.props.sapoResults) {
+			this.getPolytopes(elem[ 'parameter set' ], this.props.parameters).forEach((polytope) => {
+				polytopes.push(polytope);
+			});
 		}
+
+		if (polytopes.length === 0) {
+			alert("The set of parameters is empty!");
+		}
+		this.setState({ paramData: polytopes, changed: false });
+	    return polytopes;
 	}
 }	// end Chart
 
@@ -483,12 +499,12 @@ function compare(p1, p2, c)
 	}
 }
 
-function isValidVertex(vertex, linear_system, tol)
+function isValidVertex(vertex, convex_polihedron, tol)
 {
-	for (var i = 0; i < linear_system.directions.length; i++)
+	for (var i = 0; i < convex_polihedron.A.length; i++)
 	{
-		var dir = math.dot(linear_system.directions[i], vertex);
-		if (dir > linear_system.offsets[i] + tol) {
+		var dir = math.dot(convex_polihedron.A[i], vertex);
+		if (dir > convex_polihedron.b[i] + tol) {
 			return false;
 		}
 	}
@@ -496,12 +512,12 @@ function isValidVertex(vertex, linear_system, tol)
 	return true;
 }
 
-function computeLinearSystemVertices(linear_system, tol = 0.01)
+function computeConvexPolyhedronVertices(convex_polihedron, tol = 0.01)
 {
 	var vertices = [];
 				
-	var directions = linear_system.directions;
-	var offsets = linear_system.offsets;
+	let directions = convex_polihedron.A;
+	let offsets = convex_polihedron.b;
 
 	if (directions.length === 0) {
 		return vertices;
@@ -518,7 +534,7 @@ function computeLinearSystemVertices(linear_system, tol = 0.01)
 			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
 			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
 
-			if (isValidVertex(vertex, linear_system, tol)) {
+			if (isValidVertex(vertex, convex_polihedron, tol)) {
 				vertices.push(vertex);
 			}
 		}
