@@ -867,7 +867,7 @@ function getSinglePoint(vertices, color = '#ff8f00', name = undefined)
 			y: [vertices[0][1]],
 			mode: 'markers',
 			type: 'scatter',
-			name: name,
+			text: name,
 			marker: {
 				color: color,
 				size: 7
@@ -925,8 +925,8 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 		type: 'scatter',
 		fill: 'toself',
 		color: color,
-		name: name,
-		hoverinfo: (name !== undefined ? 'x+y+name' : 'x+y'),
+		text: name,
+		hoverinfo: (name !== undefined ? 'text+x+y' : 'x+y'),
 		line: {
 			color: color,
 			width: 1
@@ -959,8 +959,8 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 		type: 'scatter',
 		fill: 'toself',
 		color: color,
-		name: name,
-		hoverinfo: (name !== undefined ? 'x+y+name' : 'x+y'),
+		text: name,
+		hoverinfo: (name !== undefined ? 'text+x+y' : 'x+y'),
 		line: {
 			color: color,
 			width: 1
@@ -991,8 +991,8 @@ function get3DTimePolylitope(vertices, time, color = '#ff8f00', name = undefined
 		alphahull: 0,
 		type: 'mesh3d',
 		color: color,
-		name: name,
-		hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z')
+		text: name,
+		hoverinfo: (name !== undefined ? 'text+x+y+z' : 'x+y+z')
 	};
 }
 
@@ -1151,8 +1151,8 @@ function get3DPolylitope(vertices, color = '#ff8f00', name = undefined)
 			type: 'mesh3d',
 			alphahull: 0,
 			color: color,
-			name: name,
-			hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z')
+			text: name,
+			hoverinfo: (name !== undefined ? 'text+x+y+z' : 'x+y+z')
 		};
 	} 
 	
@@ -1169,8 +1169,8 @@ function get3DPolylitope(vertices, color = '#ff8f00', name = undefined)
 		type: 'scatter3d',
 		mode: 'lines',
 		color: color,
-		name: name,
-		hoverinfo: (name !== undefined ? 'x+y+z+name' : 'x+y+z'),
+		text: name,
+		hoverinfo: (name !== undefined ? 'text+x+y+z' : 'x+y+z'),
 		line: {
 			width: 6,
 			color: color
