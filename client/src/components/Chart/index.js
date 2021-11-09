@@ -43,9 +43,13 @@ export default class Chart extends Component<Props> {
 			paramData: [],             // Overall parameter set data: a list of parameter set
 			reachPlottable: [],        // reachability polygons filtered by pset_selection
 			paramPlottable: [],        // parameter polygons filtered by pset_selection
+			animFrames: [],           // frames for reachability animation
+			animBBox: [],			   // the bounding box of the reachability procedure
+			slider_steps: [],          // the slider steps for reachability animation
+			animate: true,             // a Boolean flag for reachability animation
 			selection_text: "",        // the text describing the parameter set selection
 			pset_selection: [],        // a Boolean filter for reachData and paramData 
-			colors: [],                // colors for reachData and paramData 
+			colors: [],                // colors for reachData and paramData
 			typing: false,             // change Boolean flag for the parameter set selector
 			typingTimeout: 0,          // a timeout for the parameter set selector
 			changed: false,            // a Boolean flag for changes
@@ -64,11 +68,20 @@ export default class Chart extends Component<Props> {
 				<div className={styles.left_chart}>
 					<Plot
 						data = {this.calcData()}
+						frames={this.state.animFrames}
 						layout={{
 							autosize: true,
 							showlegend: false,
-							xaxis: { title: { text: this.state.xAxis } },
-							yaxis: { title: { text: this.state.yAxis } },
+							xaxis: { 
+								title: { text: this.state.xAxis },
+								autorange: !this.plottingAnimation(),
+								range: this.state.animBBox.x
+							 },
+							yaxis: { 
+								title: { text: this.state.yAxis },
+								autorange: !this.plottingAnimation(),
+								range: this.state.animBBox.y
+							},
 							scene: {
 								xaxis: { title: {
 									text: this.state.xAxis,
@@ -94,21 +107,82 @@ export default class Chart extends Component<Props> {
 										color: '#ff8f00'
 									}
 								}}
-							}
+							},
+							updatemenus: [{
+								x: 0,
+								y: 0,
+								yanchor: "top",
+								xanchor: "right",
+								showactive: false,
+								direction: "left",
+								type: "buttons",
+								pad: {"t": 87, "r": 10},
+								buttons: [{
+									method: "animate",
+									args: [null, {
+									fromcurrent: true,
+									transition: {
+										duration: 50,
+									},
+									frame: {
+										duration: 50
+									}
+									}],
+									label: "Play"
+								}, {
+									method: "animate",
+									args: [
+									[null],
+									{
+										mode: "immediate",
+										transition: {
+										duration: 0
+										},
+										frame: {
+										duration: 0
+										}
+									}
+									],
+									label: "Pause"
+								}]
+								}],
+								sliders: [{
+								active: 0,
+								steps: this.state.slider_steps,
+								x: 0,
+								len: 0.9,
+								xanchor: "left",
+								y: 0,
+								yanchor: "top",
+								pad: {t: 50, b: 10},
+								currentvalue: {
+									visible: true,
+									prefix: "Timestamp:",
+									xanchor: "right",
+									font: {
+									size: 20,
+									color: "#666"
+									}
+								},
+								transition: {
+									duration: 0,
+									easing: "cubic-in-out"
+								}
+							}]
 						}}
-						
 						useResizeHandler={true}
 						style={{width: '100%', height: '80vh'}}
 						config={{responsive: true}}
+						/*onUpdate={(figure) => this.updateFigure(figure)}*/
 					/>
 				</div>
 				<div className={styles.right_controls}>
 					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.plotReachability()} value="reachability" name="dataType"/> Reachability
+							<input className={styles.radio_input} type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.plotParameters()} value="parameters" name="dataType"/> Parameters
+							<input className={styles.radio_input} type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
@@ -138,11 +212,11 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.plotReachability() && <option value="Time" selected="selected">Time</option> }
-								{this.plotReachability() && this.props.variables.map((item, index) => {
+								{this.plottingReachability() && <option value="Time" selected="selected">Time</option> }
+								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, false);
 								})}
-								{this.plotParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===0);
 								})}
 							</select>
@@ -150,10 +224,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.plotReachability() && this.props.variables.map((item, index) => {
+								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===0);
 								})}
-								{this.plotParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===1);
 								})}
 							</select>
@@ -162,10 +236,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.plotReachability() && this.props.variables.map((item, index) => {
+								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===1);
 								})}
-								{this.plotParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===2);
 								})}
 							</select>
@@ -176,14 +250,27 @@ export default class Chart extends Component<Props> {
 		);
 	}
 
-	plotReachability()
+	updateFigure(figure)
+	{
+		console.log("Update")
+		console.log(figure)
+		console.log(this.state.animBBox);
+		//this.setState({ camera: figure.layout.scene.camera, changed: false });
+	}
+
+	plottingReachability()
 	{
 		return this.state.dataType === "reachability";
 	}
 
-	plotParameters()
+	plottingParameters()
 	{
 		return this.state.dataType === "parameters";
+	}
+
+	plottingAnimation()
+	{
+		return this.plottingReachability() && this.state.animate
 	}
 
 	hasData(name)
@@ -296,10 +383,20 @@ export default class Chart extends Component<Props> {
 					var selection = self.parseSelected(self.state.selection_text);
 
 					if (selection !== undefined) {
-						self.setState({pset_selection: selection,
-										reachPlottable: collectSelectedFlowpipes(self.state.reachData, selection),
-										paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
-										changed: true });
+
+						if (self.plottingAnimation()) {
+							var frames = getFramesForSelectedFlowpipes(self.state.reachData, selection);
+							self.setState({ pset_selection: selection,
+											reachPlottable: frames[0].data,
+											animFrames: frames,
+											paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
+											changed: true });
+						} else {
+							self.setState({pset_selection: selection,
+											reachPlottable: getSelectedFlowpipesPolytopes(self.state.reachData, selection),
+											paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
+											changed: true });
+						}
 					}
 				}
 			}, 1500),
@@ -338,19 +435,29 @@ export default class Chart extends Component<Props> {
 			this.props.setUpdated()
 		}
 		
-		if (!this.state.changed)
-			if (this.plotReachability())
-				return this.state.reachPlottable;
-			else
+		if (!this.state.changed) {
+			if (this.plottingReachability()) {
+				if (this.plottingAnimation()) {
+					if (this.state.animFrames.length > 0) {
+						return this.state.animFrames[0].data;
+					} else {
+						return [];
+					}
+				} else {
+					return this.state.reachPlottable;
+				}
+			} else {
 				return this.state.paramPlottable;
+			}
+		}
 
-		if ((this.plotReachability() && !this.hasReachData()) ||
-				(this.plotParameters() && !this.hasParamData()))
+		if ((this.plottingReachability() && !this.hasReachData()) ||
+				(this.plottingParameters() && !this.hasParamData()))
 		{
 			var newProps = {xAxis: undefined,
 					yAxis: undefined,
 					zAxis: undefined};
-			if (this.plotReachability())
+			if (this.plottingReachability())
 				newProps=Object.assign(newProps, { reachData: [], reachPlottable: [], changed: false });
 			else
 				newProps=Object.assign(newProps, { paramData: [], paramPlottable: [], changed: false });
@@ -361,7 +468,7 @@ export default class Chart extends Component<Props> {
 		}
 
 		var polytopes;
-		if (this.plotReachability()) {
+		if (this.plottingReachability()) {
 			polytopes = this.calcReachData();
 		} else {
 			polytopes = this.calcParamData();
@@ -406,6 +513,7 @@ export default class Chart extends Component<Props> {
 				}
 			});
 
+			polygons[time] = [];
 			// join overlapping intervals
 			joinOverlappingItvls(intervals).forEach((itvl) => {
 				// create the two vertices
@@ -413,9 +521,9 @@ export default class Chart extends Component<Props> {
 
 				// add the polytope to the dataset
 				if (param_set_idx !== undefined) {
-					polygons.push(get2DTimePolygon(vertices, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
+					polygons[time].push(get2DTimePolygon(vertices, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
 				} else {
-					polygons.push(get2DTimePolygon(vertices, time, this.state.colors[0], undefined));
+					polygons[time].push(get2DTimePolygon(vertices, time, this.state.colors[0], undefined));
 				}
 			});
 			time = time + 1;
@@ -478,6 +586,7 @@ export default class Chart extends Component<Props> {
 
 		var time = 0;
 		flowpipe.forEach((convex_polihedra_union) => {
+			polytopes[time] = [];
 			convex_polihedra_union.forEach((convex_polihedron) => {
 				var vertices = computeConvexPolyhedronVertices(convex_polihedron);
 				if (vertices.length !== 0)  // some valid vertices found in
@@ -487,9 +596,9 @@ export default class Chart extends Component<Props> {
 
 					// add the polytope to the dataset
 					if (param_set_idx !== undefined) {
-						polytopes.push(polytope_gen(proj, this.state, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
+						polytopes[time].push(polytope_gen(proj, this.state, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
 					} else {
-						polytopes.push(polytope_gen(proj, this.state, time, this.state.colors[0], undefined));
+						polytopes[time].push(polytope_gen(proj, this.state, time, this.state.colors[0], undefined));
 					}
 				}
 			});
@@ -524,9 +633,27 @@ export default class Chart extends Component<Props> {
 			alert("There is no data to display");
 		}
 
-		this.setState({ reachData: polytopes,
-						reachPlottable: collectSelectedFlowpipes(polytopes, this.state.pset_selection),
-						changed: false });
+		if (this.plottingAnimation()) {
+			var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
+			this.setState({ reachData: polytopes,
+							reachPlottable: frames[0].data,
+							animFrames: frames,
+							animBBox: getFramesBBox(frames),
+							slider_steps: build_slider_steps(frames.length),
+							changed: false });
+			this.props.setUpdated()
+
+			return frames[0].data;
+		} else {
+			var reachPlottable = getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection);
+			this.setState({ reachData: polytopes,
+							reachPlottable: reachPlottable,
+							animFrames: [],
+							animBBox: [],
+							slider_steps: [],
+							changed: false });
+			return reachPlottable;
+		}
 
 		// var end_time = new Date();
 		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
@@ -558,18 +685,86 @@ export default class Chart extends Component<Props> {
 	}
 }	// end Chart
 
-function collectSelectedFlowpipes(data, selection)
+function getFramesBBox(frames)
 {
-	var polytopes = [];
-	data.forEach((data_elem, i) => {
+	var dims = ['x', 'y', 'z'];
+
+	var bbox = {};
+
+	frames.forEach((frame) => {
+		frame.data.forEach((polytope) => {
+			for (let dim of dims) {
+				if (dim in polytope) {
+					let polytope_min = Math.min(...polytope[dim])
+					let polytope_max = Math.max(...polytope[dim])
+
+					if (dim in bbox) {
+						bbox[dim][0] = Math.min(polytope_min, bbox[dim][0]);
+						bbox[dim][1] = Math.max(polytope_max, bbox[dim][1]);
+					} else {
+						bbox[dim] = [polytope_min, polytope_max];
+					}
+				}
+			}
+		});
+	});
+
+	return bbox;
+}
+
+function build_slider_steps(num_of_frames, time_step = 1)
+{
+	var slider_steps = [];
+
+	for (let i=0; i<num_of_frames; i++) {
+		slider_steps.push ({
+			label: (time_step*i).toString(),
+			method: "animate",
+			args: [[i], {
+				mode: "immediate",
+				transition: {duration: 300},
+				frame: {duration: 300}
+			}]
+		});
+	}
+
+	return slider_steps;
+}
+
+function getSelectedFlowpipesPolytopes(flowpipes, selection)
+{
+	var result = [];
+	flowpipes.forEach((flowpipe, i) => {
 		if (selection[i]) {
-			data_elem.forEach((polytope) => {
-				polytopes.push(polytope);
+			flowpipe.forEach((polytopes) => {
+				polytopes.forEach((polytope) => {
+					result.push(polytope);
+				})
 			});
 		}
 	});
 
-	return polytopes;
+	return result;
+}
+
+function getFramesForSelectedFlowpipes(flowpipes, selection)
+{
+	var frames = [];
+	flowpipes.forEach((flowpipe, i) => {
+		if (selection[i]) {
+			while (frames.length < flowpipe.length) {
+				frames.push({name: frames.length.toString(), data: [], traces: [] });
+			}
+			flowpipe.forEach((polytopes, timestamp) => {
+				polytopes.forEach((polytope) => {
+					frames[timestamp].data.push(polytope);
+					frames[timestamp].traces.push(frames[timestamp].traces.length)
+				})
+			});
+		}
+	});
+
+	return frames;
 }
 
 function findMinMaxItvl(vertices, dim=0)
