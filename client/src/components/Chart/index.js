@@ -34,39 +34,29 @@ function name_if_valid(property, pos, alternative=undefined)
 	return alternative;
 }
 
-function hasVarData(result)
-{
-	return (result !== undefined && result.length > 0 && 'flowpipe' in result[0]);
-}
-
-function hasParamData(result)
-{
-	return (result !== undefined && result.length > 0 && 'parameter set' in result[0]);
-}
-
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
 		super(props);
 		this.state = {
-			varData: [],        // Overall variables data: one flow pipe per parameter set
-			paramData: [],      // Overall parameter set data: a list of parameter set
-			varPlottable: [],   // variable polygons filtered by selection
-			paramPlottable: [], // parameter polygons filtered by selection
-			selection_text: "", // the text describing the parameter set selection
-			pset_selection: [], // a Boolean filter for varData and paramData 
-			colors: [],         // colors for varData and paramData 
-			typing: false,      // change Boolean flag for the selector
-			typingTimeout: 0,   // a timeout for the selector
-			changed: false,     // a Boolean flag for changes
-			chartType: "2D",    // chart type, i.e., either "2D" or "3D"
-			dataType: "vars",   // data type, i.e., either "vars" or "params"
+			reachData: [],             // Overall reachability data: one flow pipe per parameter set
+			paramData: [],             // Overall parameter set data: a list of parameter set
+			reachPlottable: [],        // reachability polygons filtered by pset_selection
+			paramPlottable: [],        // parameter polygons filtered by pset_selection
+			selection_text: "",        // the text describing the parameter set selection
+			pset_selection: [],        // a Boolean filter for reachData and paramData 
+			colors: [],                // colors for reachData and paramData 
+			typing: false,             // change Boolean flag for the parameter set selector
+			typingTimeout: 0,          // a timeout for the parameter set selector
+			changed: false,            // a Boolean flag for changes
+			chartType: "2D",           // chart type, i.e., either "2D" or "3D"
+			dataType: "reachability",  // data type, i.e., either "reachability" or "parameters"
 			xAxis: undefined,
 			yAxis: undefined,
 			zAxis: undefined
 		};
 	}
-	
+
 	render()
 	{
 		return (
@@ -113,12 +103,12 @@ export default class Chart extends Component<Props> {
 					/>
 				</div>
 				<div className={styles.right_controls}>
-					{hasParamData(this.props.sapoResults) && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
+					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType === "vars"} value="vars" label="variables" name="dataType"/> Variables
+							<input className={styles.radio_input} type="radio" defaultChecked={this.plotReachability()} value="reachability" name="dataType"/> Reachability
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.state.dataType !== "vars"} value="params" label="parameters" name="dataType"/> Parameters
+							<input className={styles.radio_input} type="radio" defaultChecked={this.plotParameters()} value="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
@@ -148,11 +138,11 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.state.dataType === "vars" && <option value="Time" selected="selected">Time</option> }
-								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+								{this.plotReachability() && <option value="Time" selected="selected">Time</option> }
+								{this.plotReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, false);
 								})}
-								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+								{this.plotParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===0);
 								})}
 							</select>
@@ -160,10 +150,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+								{this.plotReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===0);
 								})}
-								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+								{this.plotParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===1);
 								})}
 							</select>
@@ -172,10 +162,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.state.dataType === "vars" && this.props.variables.map((item, index) => {
+								{this.plotReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===1);
 								})}
-								{this.state.dataType === "params" && this.props.parameters.map((item, index) => {
+								{this.plotParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===2);
 								})}
 							</select>
@@ -185,11 +175,36 @@ export default class Chart extends Component<Props> {
 			</>
 		);
 	}
-	
+
+	plotReachability()
+	{
+		return this.state.dataType === "reachability";
+	}
+
+	plotParameters()
+	{
+		return this.state.dataType === "parameters";
+	}
+
+	hasData(name)
+	{
+		return (this.props.sapoResults !== undefined && this.props.sapoResults.length > 0 && name in this.props.sapoResults[0]);
+	}
+
+	hasReachData()
+	{
+		return this.hasData('flowpipe');
+	}
+
+	hasParamData()
+	{
+		return this.hasData('parameter set');
+	}
+
 	getAxisNames(dataType)
 	{
 		var axis_names = {};
-		if (dataType === "vars") {
+		if (dataType === "reachability") {
 			axis_names.xAxis = "Time";
 			axis_names.yAxis = name_if_valid(this.props.variables, 0, axis_names.xAxis);
 			axis_names.zAxis = name_if_valid(this.props.variables, 1, axis_names.xAxis);
@@ -282,7 +297,7 @@ export default class Chart extends Component<Props> {
 
 					if (selection !== undefined) {
 						self.setState({pset_selection: selection,
-										varPlottable: collectSelectedFlowpipes(self.state.varData, selection),
+										reachPlottable: collectSelectedFlowpipes(self.state.reachData, selection),
 										paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
 										changed: true });
 					}
@@ -324,19 +339,19 @@ export default class Chart extends Component<Props> {
 		}
 		
 		if (!this.state.changed)
-			if (this.state.dataType === "vars")
-				return this.state.varPlottable;
+			if (this.plotReachability())
+				return this.state.reachPlottable;
 			else
 				return this.state.paramPlottable;
 
-		if ((this.state.dataType === "vars" && !hasVarData(this.props.sapoResults)) ||
-				(this.state.dataType === "params" && !hasParamData(this.props.sapoResults)))
+		if ((this.plotReachability() && !this.hasReachData()) ||
+				(this.plotParameters() && !this.hasParamData()))
 		{
 			var newProps = {xAxis: undefined,
 					yAxis: undefined,
 					zAxis: undefined};
-			if (this.state.dataType === "vars")
-				newProps=Object.assign(newProps, { varData: [], varPlottable: [], changed: false });
+			if (this.plotReachability())
+				newProps=Object.assign(newProps, { reachData: [], reachPlottable: [], changed: false });
 			else
 				newProps=Object.assign(newProps, { paramData: [], paramPlottable: [], changed: false });
 
@@ -346,8 +361,8 @@ export default class Chart extends Component<Props> {
 		}
 
 		var polytopes;
-		if (this.state.dataType === "vars") {
-			polytopes = this.calcVarData();
+		if (this.plotReachability()) {
+			polytopes = this.calcReachData();
 		} else {
 			polytopes = this.calcParamData();
 		}
@@ -485,7 +500,7 @@ export default class Chart extends Component<Props> {
 		return polytopes;		
 	}
 
-	calcVarData()
+	calcReachData()
 	{
 		// console.log("Computing polytope vertices")
 		// var begin_time = new Date();
@@ -496,12 +511,12 @@ export default class Chart extends Component<Props> {
 			// their plotting with respect to getPolytopes-based plotting
 			this.props.sapoResults.forEach((elem, i) => {
 				polytopes.push(this.getFlowpipe2DTimePolygons(elem[ 'flowpipe' ], this.props.variables, 
-										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)));
+										  (this.hasParamData() && this.props.sapoResults.length > 1 ? i : undefined)));
 			});
 		} else {
 			this.props.sapoResults.forEach((elem, i) => {
 				polytopes.push(this.getFlowpipePolytopes(elem[ 'flowpipe' ], this.props.variables, 
-										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)));
+										  (this.hasParamData() && this.props.sapoResults.length > 1 ? i : undefined)));
 			});
 		}
 
@@ -509,15 +524,15 @@ export default class Chart extends Component<Props> {
 			alert("There is no data to display");
 		}
 
-		this.setState({ varData: polytopes,
-						varPlottable: collectSelectedFlowpipes(polytopes, this.state.pset_selection),
+		this.setState({ reachData: polytopes,
+						reachPlottable: collectSelectedFlowpipes(polytopes, this.state.pset_selection),
 						changed: false });
 
 		// var end_time = new Date();
 		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
 
-		return this.state.varPlottable;
-	} // end calcVarData
+		return this.state.reachPlottable;
+	} // end calcReachData
 	
 	
 	calcParamData()
@@ -525,7 +540,7 @@ export default class Chart extends Component<Props> {
 		var polytopes = [];
 		this.props.sapoResults.forEach((elem, i) => {
 			this.getPolytopes(elem[ 'parameter set' ], this.props.parameters, 
-										  (hasParamData(this.props.sapoResults) && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
+										  (this.hasParamData() && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
 				polytopes.push(polytope);
 			});
 		});
