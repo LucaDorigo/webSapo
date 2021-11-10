@@ -878,8 +878,8 @@ export default class HomeContainer extends Component {
 		}
 	};
 
-	saveConfiguration = () => {
-		downloadFile(JSON.stringify(this.state), "config.json", "application/json");
+	saveConfiguration = (proj_extension) => {
+		downloadFile(JSON.stringify(this.state), "config." + proj_extension, "application/json");
 	};
 
 	exportSourceFile = () => {

@@ -25,7 +25,8 @@ export default class BoxesPage extends Component<Props> {
 	constructor(props) {
 		super(props);
 		this.state = {
-			isPopoverOpen: false
+			isPopoverOpen: false,
+			proj_extension: "webSapo"
 		};
 	}
 
@@ -92,13 +93,13 @@ export default class BoxesPage extends Component<Props> {
 												Load configuration from file
 											</label>
 										</p>
-										<input id={styles.file} type="file" accept="application/json" onChange={() => {
+										<input id={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
 												this.props.loadConfiguration(styles.file);
 												this.setState({ isPopoverOpen: false})}}/>
 										<p
 											className={styles.menuElement}
 											onClick={() => {
-													this.props.saveConfiguration();
+													this.props.saveConfiguration(this.state.proj_extension);
 													this.setState({ isPopoverOpen: false})}
 												}
 										>

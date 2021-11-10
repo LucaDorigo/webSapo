@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import * as math from "mathjs";
 import styles from "./style.module.css";
+import { deepCopy } from "../../constants/global";
 
 import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
@@ -40,11 +41,6 @@ function getInitialCamera() {
 			 eye: {x: -1.25, y: -1.25, z: 1.25},
 			 up: {x: 0, y: 0, z: 1}
 		   };
-}
-
-function clone(obj)
-{
-	return JSON.parse(JSON.stringify(obj));
 }
 
 function hasManyPSets(sapoResults)
@@ -478,7 +474,7 @@ export default class Chart extends Component<Props> {
 
 							/* the following line bypasses a reactjs-plotly bug.
 							   See https://github.com/plotly/plotly.js/issues/1839 */
-							var plottable = clone(frames[0].data);
+							var plottable = deepCopy(frames[0].data);
 							self.setState({ pset_selection: selection,
 											reachPlottable: plottable,
 											animFrames: frames,
@@ -723,7 +719,7 @@ export default class Chart extends Component<Props> {
 			if (frames.length > 0) {
 				/* the following line bypasses a reactjs-plotly bug.
 				   See https://github.com/plotly/plotly.js/issues/1839 */
-				var plottable = clone(frames[0].data);
+				var plottable = deepCopy(frames[0].data);
 				this.setState({ reachData: polytopes,
 								reachPlottable: plottable,
 								animFrames: frames,
