@@ -71,6 +71,7 @@ export default class HomeContainer extends Component {
 			// will display a combination of 'reachability/synthesis and methods'
 			nameSelectedMenu: "Analysis method",
 			sapoResults: undefined,
+			projectName: undefined,
 			updateChart: true
 		};
 	}
@@ -860,6 +861,7 @@ export default class HomeContainer extends Component {
 								stateFromFile.parametersMatrix.data
 							),
 							sapoResults: undefined,
+							projectName: file.name.replace(/\.[^/.]+$/, ""),
 							hasResults: false,
 							updateChart: true
 						},
@@ -988,6 +990,7 @@ export default class HomeContainer extends Component {
 				deleteRowTMatrix={this.deleteRowTMatrix}
 				//
 				sapoResults={this.state.sapoResults}
+				projectName={this.state.projectName}
 				updateChart={this.state.updateChart}
 				setUpdated={() => this.setState({updateChart: false})}
 			/>

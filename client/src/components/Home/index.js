@@ -92,7 +92,7 @@ export default class BoxesPage extends Component<Props> {
 												Load configuration from file
 											</label>
 										</p>
-										<input id={styles.file} type="file" onChange={() => {
+										<input id={styles.file} type="file" accept="application/json" onChange={() => {
 												this.props.loadConfiguration(styles.file);
 												this.setState({ isPopoverOpen: false})}}/>
 										<p
@@ -601,6 +601,7 @@ export default class BoxesPage extends Component<Props> {
 						<div className={modalStyles.modal_body_chart}>
 							<Chart
 									sapoResults={this.props.sapoResults}
+									projectName={this.props.projectName}
 									variables={this.props.variables}
 									parameters={this.props.parameters}
 									updateChart={this.props.updateChart}

@@ -34,31 +34,54 @@ function name_if_valid(property, pos, alternative=undefined)
 	return alternative;
 }
 
+function getInitialCamera() {
+	return {
+			 center: {x: 0, y:0 ,z: 0},
+			 eye: {x: -1.25, y: -1.25, z: 1.25},
+			 up: {x: 0, y: 0, z: 1}
+		   };
+}
+
+function clone(obj)
+{
+	return JSON.parse(JSON.stringify(obj));
+}
+
+function hasManyPSets(sapoResults)
+{
+	return sapoResults !== undefined && sapoResults.length > 1;
+}
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
 		super(props);
 		this.state = {
-			reachData: [],             // Overall reachability data: one flow pipe per parameter set
-			paramData: [],             // Overall parameter set data: a list of parameter set
-			reachPlottable: [],        // reachability polygons filtered by pset_selection
-			paramPlottable: [],        // parameter polygons filtered by pset_selection
-			animFrames: [],           // frames for reachability animation
-			animBBox: [],			   // the bounding box of the reachability procedure
-			slider_steps: [],          // the slider steps for reachability animation
-			animate: true,             // a Boolean flag for reachability animation
-			selection_text: "",        // the text describing the parameter set selection
-			pset_selection: [],        // a Boolean filter for reachData and paramData 
-			colors: [],                // colors for reachData and paramData
-			typing: false,             // change Boolean flag for the parameter set selector
-			typingTimeout: 0,          // a timeout for the parameter set selector
-			changed: false,            // a Boolean flag for changes
-			chartType: "2D",           // chart type, i.e., either "2D" or "3D"
-			dataType: "reachability",  // data type, i.e., either "reachability" or "parameters"
-			xAxis: undefined,
-			yAxis: undefined,
-			zAxis: undefined
+			reachData: [],                // Overall reachability data: one flow pipe per parameter set
+			paramData: [],                // Overall parameter set data: a list of parameter set
+			reachPlottable: [],           // reachability polygons filtered by pset_selection
+			paramPlottable: [],           // parameter polygons filtered by pset_selection
+			animFrames: [],               // frames for reachability animation
+			current_frame: 0,			  // index of the current frame
+			animBBox: [],			      // the bounding box of the reachability procedure
+			slider_steps: [],             // the slider steps for reachability animation
+			camera:	getInitialCamera(),   // camera object for 3D plots (see Plotly.scene.camera)			   		   
+			animate: true,                // a Boolean flag for reachability animation
+			selection_text: "",           // the text describing the parameter set selection
+			pset_selection: [],           // a Boolean filter for reachData and paramData 
+			colors: [],                   // colors for reachData and paramData
+			pset_distinction: undefined,  // a Boolean flag for distinguishing parameter set data
+			typing: false,                // change Boolean flag for the parameter set selector
+			typingTimeout: 0,             // a timeout for the parameter set selector
+			changed: false,               // a Boolean flag for changes
+			chartType: "2D",              // chart type, i.e., either "2D" or "3D"
+			dataType: "reachability",     // data type, i.e., either "reachability" or "parameters"
+			axes: { x: undefined,         // axis names
+			        y: undefined, 
+					z: undefined }
 		};
+
+		this.state.pset_distinction = hasManyPSets(props.sapoResults)
 	}
 
 	render()
@@ -70,114 +93,162 @@ export default class Chart extends Component<Props> {
 						data = {this.calcData()}
 						frames={this.state.animFrames}
 						layout={{
+							/* to remove title space */
+							margin: { l: 50, r: 50, b: 50, t: 50, pad: 4 },
 							autosize: true,
 							showlegend: false,
 							xaxis: { 
-								title: { text: this.state.xAxis },
+								title: { text: this.state.axes.x },
 								autorange: !this.plottingAnimation(),
 								range: this.state.animBBox.x
 							 },
 							yaxis: { 
-								title: { text: this.state.yAxis },
+								title: { text: this.state.axes.y },
 								autorange: !this.plottingAnimation(),
 								range: this.state.animBBox.y
 							},
 							scene: {
-								xaxis: { title: {
-									text: this.state.xAxis,
-									font: {
-										family: 'Courier New, monospace',
-										size: 30,
-										color: '#ff8f00'
-									}
-								}},
-								yaxis: { title: {
-									text: this.state.yAxis,
-									font: {
-										family: 'Courier New, monospace',
-										size: 30,
-										color: '#ff8f00'
-									}
-								}},
-								zaxis: { title: {
-									text: this.state.zAxis,
-									font: {
-										family: 'Courier New, monospace',
-										size: 30,
-										color: '#ff8f00'
-									}
-								}}
+								xaxis: { 
+									title: {
+										text: this.state.axes.x,
+										font: {
+											family: 'Courier New, monospace',
+											size: 25,
+											color: '#ff8f00'
+										}
+									},
+									autorange: !this.plottingAnimation(),
+									range: this.state.animBBox.x
+								},
+								yaxis: { 
+									title: {
+										text: this.state.axes.y,
+										font: {
+											family: 'Courier New, monospace',
+											size: 25,
+											color: '#ff8f00'
+										}
+									},
+									autorange: !this.plottingAnimation(),
+									range: this.state.animBBox.y
+								},
+								zaxis: { 
+									title: {
+										text: this.state.axes.z,
+										font: {
+											family: 'Courier New, monospace',
+											size: 25,
+											color: '#ff8f00'
+										}
+									},
+									autorange: !this.plottingAnimation(),
+									range: this.state.animBBox.z
+								},
+								camera: this.state.camera
 							},
-							updatemenus: [{
-								x: 0,
+							updatemenus: (this.plottingAnimation() ? [{
+								x: 0.1,
 								y: 0,
 								yanchor: "top",
 								xanchor: "right",
 								showactive: false,
 								direction: "left",
 								type: "buttons",
-								pad: {"t": 87, "r": 10},
+								pad: {"t": 67, "r": 10},
 								buttons: [{
-									method: "animate",
-									args: [null, {
-									fromcurrent: true,
-									transition: {
-										duration: 50,
-									},
-									frame: {
-										duration: 50
+										method: "animate",
+										args: [null, 
+											{
+												fromcurrent: true,
+												transition: {
+													duration: 50,
+												},
+												frame: {
+													duration: 50
+												}
+											}
+										],
+										label: "Play"
+									}, {
+										method: "animate",
+										args: [[null],
+											{
+												mode: "immediate",
+												transition: {
+												duration: 0
+												},
+												frame: {
+												duration: 0
+												}
+											}
+										],
+										label: "Pause"
 									}
-									}],
-									label: "Play"
-								}, {
-									method: "animate",
-									args: [
-									[null],
-									{
-										mode: "immediate",
-										transition: {
-										duration: 0
-										},
-										frame: {
-										duration: 0
-										}
-									}
-									],
-									label: "Pause"
-								}]
-								}],
-								sliders: [{
-								active: 0,
+								]
+							}]:[]),
+							sliders: (this.plottingAnimation() ? [{
+								active: this.state.current_frame,
 								steps: this.state.slider_steps,
-								x: 0,
+								x: 0.1,
 								len: 0.9,
 								xanchor: "left",
 								y: 0,
 								yanchor: "top",
-								pad: {t: 50, b: 10},
+								pad: {t: 60, b: 10},
 								currentvalue: {
-									visible: true,
-									prefix: "Timestamp:",
-									xanchor: "right",
-									font: {
-									size: 20,
-									color: "#666"
-									}
+									visible: false,
 								},
 								transition: {
 									duration: 0,
 									easing: "cubic-in-out"
 								}
-							}]
+							}]:[])
 						}}
 						useResizeHandler={true}
 						style={{width: '100%', height: '80vh'}}
-						config={{responsive: true}}
-						/*onUpdate={(figure) => this.updateFigure(figure)}*/
+						config={{responsive: true,
+								 /* TODO: add a button to save a video
+								  modeBarButtonsToAdd: 
+										(this.state.chartType === '3D' ? [[{
+											name: 'save camera',
+											icon: Plotly.Icons.movie,
+											click: function(gd) {
+												var images = []
+
+												gd.on('plotly_animated', () => {
+													Plotly.toImage(gd).then((img) => {
+														images.push(img)
+													})
+												})
+
+												Plotly.animate(gd)
+
+												// join PNGs in a video
+											}
+										}]] : []),*/
+								 modeBarButtonsToRemove: 
+										(this.state.chartType === '3D' ? ['resetCameraDefault3d', 'resetCameraLastSave3d'] :
+										['autoScale2d', 'resetScale2d']),
+								 toImageButtonOptions: {
+									format: 'png', // one of png, svg, jpeg, webp
+									filename: (this.props.projectName !== undefined ? this.props.projectName : 'webSapo') + "_image",
+									height: 1000,
+									width: 2000,
+									scale: 1 // Multiply title/legend/axis/canvas sizes by this factor
+							     }
+  						       }}
+						onRelayout={(layout) => { if ('scene.camera' in layout) {
+								// here using setState bring me back to frame 0
+								this.setState({camera: layout['scene.camera']});
+							}
+						}}
+						onAnimatingFrame={(frame) => {
+							this.setState({current_frame: parseInt(frame.name)});
+						}}
 					/>
 				</div>
 				<div className={styles.right_controls}>
-					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e, this)}>
+					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
 							<input className={styles.radio_input} type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
 						</div>
@@ -187,18 +258,23 @@ export default class Chart extends Component<Props> {
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked value="2D" label="2D" name="dimensions"/> 2D
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions"/> 2D
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" value="3D" label="3D" name="dimensions"/> 3D
+							<input className={styles.radio_input} type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions"/> 3D
 						</div>
 					</div> {/*closing radio group*/}
-					{(this.props.sapoResults !== undefined) && (this.props.sapoResults.length > 1) && <div className={styles.radio_group}>
+					{ this.plottingReachability() && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} id="multicolor" type="checkbox" value="distinguish" onChange={e => this.changeDistinguish(e, this)}/> Distinguish parameter set data 
+							<input className={styles.radio_input} id="multicolor" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
 						</div>
 					</div>} {/*closing checkbox group*/}
-					{(this.props.sapoResults !== undefined) && (this.props.sapoResults.length > 1) && <div className={styles.input_selector}>
+					{ hasManyPSets(this.props.sapoResults) && <div className={styles.radio_group}>
+						<div className={styles.radio_element}>
+							<input className={styles.radio_input} id="multicolor" type="checkbox" value="distinguish" defaultChecked={this.state.pset_distinction} onChange={e => this.changeDistinguish(e)}/> Distinguish parameter set data 
+						</div>
+					</div>} {/*closing checkbox group*/}
+					{this.state.pset_distinction && <div className={styles.input_selector}>
 						<div>
 							<div>
 								<label for="pset-selector">Select parameter sets</label>
@@ -211,10 +287,10 @@ export default class Chart extends Component<Props> {
 					<div className={styles.selects}>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
-							<select name="xAxis" onChange={e => {this.setState({ xAxis: e.target.value, changed: true}); }} className={styles.select}>
-								{this.plottingReachability() && <option value="Time" selected="selected">Time</option> }
+							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select}>
+								{this.plottingReachability() && <option value="Time">Time</option> }
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
-									return getOption(item, false);
+									return getOption(item, index===0);
 								})}
 								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===0);
@@ -223,9 +299,9 @@ export default class Chart extends Component<Props> {
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
-							<select name="yAxis" onChange={e => {this.setState({ yAxis: e.target.value, changed: true}); }} className={styles.select}>
+							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select}>
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
-									return getOption(item, index===0);
+									return getOption(item, index===1);
 								})}
 								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===1);
@@ -235,9 +311,9 @@ export default class Chart extends Component<Props> {
 						{this.state.chartType === "3D" && 
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
-							<select name="zAxis" onChange={e => {this.setState({ zAxis: e.target.value, changed: true}); }} className={styles.select}>
+							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select}>
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
-									return getOption(item, index===1);
+									return getOption(item, index===2);
 								})}
 								{this.plottingParameters() && this.props.parameters.map((item, index) => {
 									return getOption(item, index===2);
@@ -250,22 +326,21 @@ export default class Chart extends Component<Props> {
 		);
 	}
 
-	updateFigure(figure)
+	changeAxis(axis_name, value)
 	{
-		console.log("Update")
-		console.log(figure)
-		console.log(this.state.animBBox);
-		//this.setState({ camera: figure.layout.scene.camera, changed: false });
+		var axes = this.state.axes;
+		axes[ axis_name ] = value;
+		this.setState({ axes: axes, changed: true }); 
 	}
 
 	plottingReachability()
 	{
-		return this.state.dataType === "reachability";
+		return this.props.sapoResults !== undefined && this.state.dataType === "reachability";
 	}
 
 	plottingParameters()
 	{
-		return this.state.dataType === "parameters";
+		return this.props.sapoResults !== undefined && this.state.dataType === "parameters";
 	}
 
 	plottingAnimation()
@@ -291,29 +366,36 @@ export default class Chart extends Component<Props> {
 	getAxisNames(dataType)
 	{
 		var axis_names = {};
+
+		var dims;
 		if (dataType === "reachability") {
-			axis_names.xAxis = "Time";
-			axis_names.yAxis = name_if_valid(this.props.variables, 0, axis_names.xAxis);
-			axis_names.zAxis = name_if_valid(this.props.variables, 1, axis_names.xAxis);
+			dims = this.props.variables;
 		} else {
-			axis_names.xAxis = name_if_valid(this.props.parameters, 0);
-			axis_names.yAxis = name_if_valid(this.props.parameters, 1, axis_names.xAxis);
-			axis_names.zAxis = name_if_valid(this.props.parameters, 2, axis_names.xAxis);
+			dims = this.props.parameters;
 		}
 
-		return axis_names;
+		axis_names.x = name_if_valid(dims, 0);
+		axis_names.y = name_if_valid(dims, 1, axis_names.x);
+		axis_names.z = name_if_valid(dims, 2, axis_names.x);
+
+		return {axes: axis_names};
 	}
 
-	changeDataType(e, obj)
+	changeDataType(e)
 	{
-		obj.setState(Object.assign(this.getAxisNames(e.target.value),
+		this.setState(Object.assign(this.getAxisNames(e.target.value),
 								   { dataType: e.target.value, changed: true }));
 	}
 	
-	changeDistinguish(e, obj)
+	changeAnimation(e)
+	{
+		this.setState({ animate: e.currentTarget.checked, changed: true });
+	}
+
+	createColors(distinct)
 	{
 		var colors;
-		if (e.currentTarget.checked) {
+		if (distinct) {
 			colors = getDistinctColors(this.props.sapoResults.length);
 		} else {
 			var color = getDistinctColors(1)[0];
@@ -324,7 +406,14 @@ export default class Chart extends Component<Props> {
 			}
 		}
 
-		obj.setState({ colors: colors, changed: true });
+		return colors;
+	}
+
+	changeDistinguish(e)
+	{
+		this.setState({ pset_distinction: e.currentTarget.checked, 
+						colors: this.createColors(e.currentTarget.checked),
+						changed: true });
 	}
 
 	parseSelected(sel_text) {
@@ -386,8 +475,12 @@ export default class Chart extends Component<Props> {
 
 						if (self.plottingAnimation()) {
 							var frames = getFramesForSelectedFlowpipes(self.state.reachData, selection);
+
+							/* the following line bypasses a reactjs-plotly bug.
+							   See https://github.com/plotly/plotly.js/issues/1839 */
+							var plottable = clone(frames[0].data);
 							self.setState({ pset_selection: selection,
-											reachPlottable: frames[0].data,
+											reachPlottable: plottable,
 											animFrames: frames,
 											paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
 											changed: true });
@@ -409,11 +502,8 @@ export default class Chart extends Component<Props> {
 		if (prevProps.sapoResults === undefined && this.props.sapoResults !== undefined) {
 			var newProps = this.getAxisNames(this.state.dataType);
 
-			var color = getDistinctColors(1)[0];
-			newProps.colors = [];
-			for (let i=0; i<this.props.sapoResults.length; i++) {
-				newProps.colors.push(color);
-			}
+			newProps.pset_distinction = hasManyPSets(this.props.sapoResults);
+			newProps.colors = this.createColors(newProps.pset_distinction);
 
 			newProps.selection_text = "";
 			newProps.pset_selection = [];
@@ -437,15 +527,7 @@ export default class Chart extends Component<Props> {
 		
 		if (!this.state.changed) {
 			if (this.plottingReachability()) {
-				if (this.plottingAnimation()) {
-					if (this.state.animFrames.length > 0) {
-						return this.state.animFrames[0].data;
-					} else {
-						return [];
-					}
-				} else {
-					return this.state.reachPlottable;
-				}
+				return this.state.reachPlottable;
 			} else {
 				return this.state.paramPlottable;
 			}
@@ -454,9 +536,7 @@ export default class Chart extends Component<Props> {
 		if ((this.plottingReachability() && !this.hasReachData()) ||
 				(this.plottingParameters() && !this.hasParamData()))
 		{
-			var newProps = {xAxis: undefined,
-					yAxis: undefined,
-					zAxis: undefined};
+			var newProps = {axes: { x: undefined, y: undefined, z: undefined} };
 			if (this.plottingReachability())
 				newProps=Object.assign(newProps, { reachData: [], reachPlottable: [], changed: false });
 			else
@@ -464,6 +544,10 @@ export default class Chart extends Component<Props> {
 
 			this.setState(newProps);
 
+			return [];
+		}
+
+		if (this.props.sapoResults === undefined) {
 			return [];
 		}
 
@@ -486,11 +570,11 @@ export default class Chart extends Component<Props> {
 			subspace = [-1,-1,-1];
 		
 		variables.forEach((v, i) => {
-			if (v.name === this.state.xAxis)
+			if (v.name === this.state.axes.x)
 				subspace[0] = i;
-			if (v.name === this.state.yAxis)
+			if (v.name === this.state.axes.y)
 				subspace[1] = i;
-			if (v.name === this.state.zAxis)
+			if (v.name === this.state.axes.z)
 				subspace[2] = i;
 		});
 
@@ -566,7 +650,7 @@ export default class Chart extends Component<Props> {
 
 	getFlowpipePolytopes(flowpipe, variables, param_set_idx=undefined) {
 		const polytope_gen = function (vertices, state, time, color, name) {
-			if (state.xAxis !== "Time") {
+			if (state.axes.x !== "Time") {
 				if (state.chartType === "2D") {
 					return get2DPolygon(vertices, color, name);
 				} else {
@@ -615,7 +699,7 @@ export default class Chart extends Component<Props> {
 		// var begin_time = new Date();
 
 		var polytopes = [];
-		if (this.state.xAxis === "Time" && this.state.chartType === "2D") {
+		if (this.state.axes.x === "Time" && this.state.chartType === "2D") {
 			// this is just to exploit 2D time series properties and speed-up 
 			// their plotting with respect to getPolytopes-based plotting
 			this.props.sapoResults.forEach((elem, i) => {
@@ -635,15 +719,19 @@ export default class Chart extends Component<Props> {
 
 		if (this.plottingAnimation()) {
 			var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
-			this.setState({ reachData: polytopes,
-							reachPlottable: frames[0].data,
-							animFrames: frames,
-							animBBox: getFramesBBox(frames),
-							slider_steps: build_slider_steps(frames.length),
-							changed: false });
-			this.props.setUpdated()
 
-			return frames[0].data;
+			if (frames.length > 0) {
+				/* the following line bypasses a reactjs-plotly bug.
+				   See https://github.com/plotly/plotly.js/issues/1839 */
+				var plottable = clone(frames[0].data);
+				this.setState({ reachData: polytopes,
+								reachPlottable: plottable,
+								animFrames: frames,
+								animBBox: getFramesBBox(frames),
+								slider_steps: build_slider_steps(frames.length),
+								changed: false });
+				this.props.setUpdated()
+			}
 		} else {
 			var reachPlottable = getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection);
 			this.setState({ reachData: polytopes,
@@ -652,7 +740,6 @@ export default class Chart extends Component<Props> {
 							animBBox: [],
 							slider_steps: [],
 							changed: false });
-			return reachPlottable;
 		}
 
 		// var end_time = new Date();
@@ -685,7 +772,7 @@ export default class Chart extends Component<Props> {
 	}
 }	// end Chart
 
-function getFramesBBox(frames)
+function getFramesBBox(frames, expand_ratio=0.05)
 {
 	var dims = ['x', 'y', 'z'];
 
@@ -709,6 +796,14 @@ function getFramesBBox(frames)
 		});
 	});
 
+	for (let dim of dims) {
+		if (dim in bbox) {
+			var expand_size = (bbox[dim][1]-bbox[dim][0])*expand_ratio/2;
+			bbox[dim][0] -= expand_size;
+			bbox[dim][1] += expand_size;
+		}
+	}
+
 	return bbox;
 }
 
@@ -722,8 +817,8 @@ function build_slider_steps(num_of_frames, time_step = 1)
 			method: "animate",
 			args: [[i], {
 				mode: "immediate",
-				transition: {duration: 300},
-				frame: {duration: 300}
+				transition: {duration: 50},
+				frame: {duration: 50}
 			}]
 		});
 	}
