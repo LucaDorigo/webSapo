@@ -246,6 +246,9 @@ export default class HomeContainer extends Component {
 		);
 		let obj = copiedArray[e.target.id];
 		obj.lowerBound = parseFloat(e.target.value);
+		if (obj.lowerBound>obj.upperBound) {
+			obj.upperBound = obj.lowerBound;
+		}
 
 		this.saveChanges(copiedArray, parameter);
 	};
@@ -256,6 +259,9 @@ export default class HomeContainer extends Component {
 		);
 		let obj = copiedArray[e.target.id];
 		obj.upperBound = parseFloat(e.target.value);
+		if (obj.lowerBound>obj.upperBound) {
+			obj.lowerBound = obj.upperBound;
+		}
 
 		this.saveChanges(copiedArray, parameter);
 	};
