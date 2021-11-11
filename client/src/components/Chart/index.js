@@ -67,8 +67,7 @@ export default class Chart extends Component<Props> {
 	constructor(props) {
 		super(props);
 		var real_params = getRealParameters(props.parameters);
-		var pset_dist = hasManyPSets(props.sapoResults);
-	
+
 		this.state = {
 			reachData: [],                // Overall reachability data: one flow pipe per parameter set
 			paramData: [],                // Overall parameter set data: a list of parameter set
@@ -84,7 +83,7 @@ export default class Chart extends Component<Props> {
 			selection_text: "",           // the text describing the parameter set selection
 			pset_selection: [],           // a Boolean filter for reachData and paramData 
 			colors: [],                   // colors for reachData and paramData
-			pset_distinction: pset_dist,  // a Boolean flag for distinguishing parameter set data
+			pset_distinction: false,      // a Boolean flag for distinguishing parameter set data
 			typing: false,                // change Boolean flag for the parameter set selector
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
@@ -278,12 +277,12 @@ export default class Chart extends Component<Props> {
 					</div> {/*closing radio group*/}
 					{ this.plottingReachability() && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} id="multicolor" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
+							<input className={styles.radio_input} name="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
 						</div>
 					</div>} {/*closing checkbox group*/}
 					{ hasManyPSets(this.props.sapoResults) && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} id="multicolor" type="checkbox" value="distinguish" defaultChecked={this.state.pset_distinction} onChange={e => this.changeDistinguish(e)}/> Distinguish parameter set data 
+							<input className={styles.radio_input} name="multicolor" type="checkbox" value="distinguish" defaultChecked={this.state.pset_distinction} onChange={e => this.changeDistinguish(e)}/> Distinguish parameter set data 
 						</div>
 					</div>} {/*closing checkbox group*/}
 					{this.state.pset_distinction && <div className={styles.input_selector}>
@@ -525,9 +524,17 @@ export default class Chart extends Component<Props> {
 				newProps.pset_selection.push(true);
 			}
 
-			newProps.changed = true;
-
 			this.setState(newProps);
+
+			if (this.plottingReachability()) {
+				this.calcReachData();
+			} else {
+				this.calcParamData();
+			}
+
+			this.props.setExecuting(false);
+
+			this.setState({changed: true});
 		}
 	}
 
@@ -571,8 +578,6 @@ export default class Chart extends Component<Props> {
 		} else {
 			polytopes = this.calcParamData();
 		}
-
-		this.props.setExecuting(false);
 
 		return polytopes;
 	}	// end calcData
@@ -1192,7 +1197,8 @@ function getSinglePoint(vertices, color = '#ff8f00', name = undefined)
 			marker: {
 				color: color,
 				size: 7
-			}
+			},
+			hoverinfo: (name !== undefined ? 'text+x+y' : 'x+y')
 		};
 	
 	if (vertices[0].length > 2) {
@@ -1242,7 +1248,7 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 	return {
 		x: chull.map(e => e[0]).concat([chull[0][0]]),
 		y: chull.map(e => e[1]).concat([chull[0][1]]),
-		mode: 'lines',
+		mode: 'lines+markers',
 		type: 'scatter',
 		fill: 'toself',
 		color: color,
@@ -1251,6 +1257,9 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 		line: {
 			color: color,
 			width: 1
+		},
+		marker: {
+			size: 1
 		}
 	};
 }
@@ -1276,7 +1285,7 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 	return {
 		x: times,
 		y: y,
-		mode: 'lines',
+		mode: 'lines+markers',
 		type: 'scatter',
 		fill: 'toself',
 		color: color,
@@ -1285,6 +1294,9 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 		line: {
 			color: color,
 			width: 1
+		},
+		marker: {
+			size: 1
 		}
 	};
 }
