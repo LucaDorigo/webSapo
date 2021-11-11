@@ -58,11 +58,11 @@ export default class LogicDisplayer extends Component<Props> {
               <p>ADD FORMULA</p>
             </button>
           </div>
-          <p className={styles.textNote}>suports only &#61;&lt; and &lt;</p>
+          <p className={styles.textNote}>Atom syntax admits the following symbols: +, *, &gt;&#61;, &lt;&#61;, &#61;</p>
           <p className={styles.textNote}>
-            doesn't support ¬ Until nor number with E
+            ¬ Until formulas, numbers in scientific notation, 
           </p>
-          <p className={styles.textNote}>numbers with max 6 decimals</p>
+          <p className={styles.textNote}>and numbers having more than 6 decimals are not supported</p>
         </div>
         {/*end grid item*/}
 

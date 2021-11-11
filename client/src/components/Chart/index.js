@@ -572,6 +572,8 @@ export default class Chart extends Component<Props> {
 			polytopes = this.calcParamData();
 		}
 
+		this.props.setExecuting(false);
+
 		return polytopes;
 	}	// end calcData
 

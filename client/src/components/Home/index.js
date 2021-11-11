@@ -607,6 +607,7 @@ export default class BoxesPage extends Component<Props> {
 									parameters={this.props.parameters}
 									updateChart={this.props.updateChart}
 									setUpdated={this.props.setUpdated}
+									setExecuting={this.props.setExecuting}
 								/>
 						</div>
 					</div>

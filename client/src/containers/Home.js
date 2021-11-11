@@ -800,32 +800,51 @@ export default class HomeContainer extends Component {
 						}
 
 						const req = http.request(options, (res) => {
-							let str = '';
+							let msg = '';
 
 							res.on('data', (d) => {
-								str += d;
+								msg += d;
 							});
 
 							res.on('end', () => {
 								if (! killed)
 								{
-									var result = JSON.parse(str);
-									downloadFile(result, "result.json", "text/plain");
-									this.setState({
-										/*
-										sapoResults: parseFlowpipe(parts.vars),
-										sapoParams: parseParams(parts.params),
-										*/
-										sapoResults: result,
-										hasResults: true,
-										executing: false,
-										updateChart:true
-									});
+									killed = false;
+									var msg_data = JSON.parse(msg);
+									var result = "";
+
+									try {
+										if (msg.stdout !== "") {
+											result = JSON.parse(msg_data.stdout);
+											msg_data.stderr = "";
+										}
+									} catch (e) {}
+
+									if (msg_data.stderr === "") {
+										downloadFile(result, "result.json", "text/plain");
+										this.setState({
+											sapoResults: result,
+											hasResults: true,
+											updateChart:true
+										});
+									} else {
+										alert(msg_data.stderr);
+
+										this.setState({
+											hasResults: false,
+											executing: false
+										});
+									}
 								}
-								killed = false;
 							});
 						}).on('error', (error) => {
 							console.error(error)
+							killed = false;
+
+							this.setState({
+								hasResults: false,
+								executing: false
+							});
 						});
 						req.write(data);
 						req.end();
@@ -993,6 +1012,7 @@ export default class HomeContainer extends Component {
 				projectName={this.state.projectName}
 				updateChart={this.state.updateChart}
 				setUpdated={() => this.setState({updateChart: false})}
+				setExecuting={(status) => this.setState({executing: status})}
 			/>
 		);
 	}

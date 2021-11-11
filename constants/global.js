@@ -39,7 +39,9 @@ exports.executeShellCommand = (
       console.log(`stdout: ${stdout}`);
       console.log(`stderr: ${stderr}`);
 			
-      callback(stdout);
+      msg = JSON.stringify({stderr: stderr, stdout: stdout})
+
+      callback(msg);
     }
   );
 };
