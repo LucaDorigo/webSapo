@@ -43,6 +43,20 @@ function getInitialCamera() {
 		   };
 }
 
+function getRealParameters(parameters)
+{
+	var real_params = [];
+
+	parameters.forEach((p) => {
+		if (p.lowerBound !== p.upperBound) {
+			real_params.push(p)
+		}
+	});
+
+	return real_params;
+};
+
+
 function hasManyPSets(sapoResults)
 {
 	return sapoResults !== undefined && sapoResults.length > 1;
@@ -52,9 +66,13 @@ export default class Chart extends Component<Props> {
 
 	constructor(props) {
 		super(props);
+		var real_params = getRealParameters(props.parameters);
+		var pset_dist = hasManyPSets(props.sapoResults);
+	
 		this.state = {
 			reachData: [],                // Overall reachability data: one flow pipe per parameter set
 			paramData: [],                // Overall parameter set data: a list of parameter set
+			real_params: real_params,     // the parameters whose domain is not a singleton (not constants)
 			reachPlottable: [],           // reachability polygons filtered by pset_selection
 			paramPlottable: [],           // parameter polygons filtered by pset_selection
 			animFrames: [],               // frames for reachability animation
@@ -66,7 +84,7 @@ export default class Chart extends Component<Props> {
 			selection_text: "",           // the text describing the parameter set selection
 			pset_selection: [],           // a Boolean filter for reachData and paramData 
 			colors: [],                   // colors for reachData and paramData
-			pset_distinction: undefined,  // a Boolean flag for distinguishing parameter set data
+			pset_distinction: pset_dist,  // a Boolean flag for distinguishing parameter set data
 			typing: false,                // change Boolean flag for the parameter set selector
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
@@ -76,8 +94,6 @@ export default class Chart extends Component<Props> {
 			        y: undefined, 
 					z: undefined }
 		};
-
-		this.state.pset_distinction = hasManyPSets(props.sapoResults)
 	}
 
 	render()
@@ -288,7 +304,7 @@ export default class Chart extends Component<Props> {
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===0);
 								})}
-								{this.plottingParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.state.real_params.map((item, index) => {
 									return getOption(item, index===0);
 								})}
 							</select>
@@ -299,7 +315,7 @@ export default class Chart extends Component<Props> {
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===1);
 								})}
-								{this.plottingParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.state.real_params.map((item, index) => {
 									return getOption(item, index===1);
 								})}
 							</select>
@@ -311,7 +327,7 @@ export default class Chart extends Component<Props> {
 								{this.plottingReachability() && this.props.variables.map((item, index) => {
 									return getOption(item, index===2);
 								})}
-								{this.plottingParameters() && this.props.parameters.map((item, index) => {
+								{this.plottingParameters() && this.state.real_params.map((item, index) => {
 									return getOption(item, index===2);
 								})}
 							</select>
@@ -367,7 +383,7 @@ export default class Chart extends Component<Props> {
 		if (dataType === "reachability") {
 			dims = this.props.variables;
 		} else {
-			dims = this.props.parameters;
+			dims = this.state.real_params;
 		}
 
 		axis_names.x = name_if_valid(dims, 0);
@@ -500,7 +516,9 @@ export default class Chart extends Component<Props> {
 
 			newProps.pset_distinction = hasManyPSets(this.props.sapoResults);
 			newProps.colors = this.createColors(newProps.pset_distinction);
-
+			
+			newProps.real_params = getRealParameters(prevProps.parameters);
+			
 			newProps.selection_text = "";
 			newProps.pset_selection = [];
 			for (let i=0; i<this.props.sapoResults.length; i++) {
@@ -749,7 +767,7 @@ export default class Chart extends Component<Props> {
 	{
 		var polytopes = [];
 		this.props.sapoResults.forEach((elem, i) => {
-			this.getPolytopes(elem[ 'parameter set' ], this.props.parameters, 
+			this.getPolytopes(elem[ 'parameter set' ], this.state.real_params, 
 										  (this.hasParamData() && this.props.sapoResults.length > 1 ? i : undefined)).forEach((polytope) => {
 				polytopes.push(polytope);
 			});
