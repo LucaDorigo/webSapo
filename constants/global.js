@@ -11,7 +11,7 @@ let childProcess;
 exports.createFile = (path, content) => {
   fs.writeFile(path, content, err => {
     if (err) {
-      alert("An error ocurred creating the file " + err.message);
+      toast.error(err.message);
       return;
     }
   });

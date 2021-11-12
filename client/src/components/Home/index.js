@@ -15,6 +15,8 @@ import Popover from "react-tiny-popover";
 import { MdMenu } from "react-icons/md";
 import PulseLoader from "react-spinners/PulseLoader";
 
+import { toast } from 'react-toastify';
+
 import generatedGitInfo from '../../generatedGitInfo.json';
 
 type Props = {};
@@ -90,7 +92,7 @@ export default class BoxesPage extends Component<Props> {
 												className={styles.menuElement}
 												for={styles.file}
 											>
-												Load configuration from file
+												Load project
 											</label>
 										</p>
 										<input id={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
@@ -103,7 +105,7 @@ export default class BoxesPage extends Component<Props> {
 													this.setState({ isPopoverOpen: false})}
 												}
 										>
-											Save current configuration
+											Save project
 										</p>
 										<p
 											className={styles.menuElement}
@@ -348,9 +350,17 @@ export default class BoxesPage extends Component<Props> {
 								{this.props.sapoResults !== undefined && <button
 									className={styles.chartButton}
 									onClick={() => {
-										document.getElementById("chart").style.display =
-											"block";
-										window.dispatchEvent(new Event('resize'));
+										if (this.props.sapoResults.length > 0) {
+											document.getElementById("chart").style.display = "block";
+											window.dispatchEvent(new Event('resize'));
+										} else {
+											if (this.props.reachability) {
+												toast.info("The reachable set is empty", {position: "bottom-center"});
+											}
+											if (this.props.synthesis) {
+												toast.info("The synthesized set is empty", {position: "bottom-center"});
+											}
+										}
 									}}
 								>
 									<p>PLOTS</p>
@@ -658,6 +668,7 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 				</div>
 				{/*end of the modal about*/}
+
 			</div>
 		);
 	}

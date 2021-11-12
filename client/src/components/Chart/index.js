@@ -5,6 +5,8 @@ import { deepCopy } from "../../constants/global";
 
 import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
+import { toast } from 'react-toastify';
+
 const Plot = createPlotlyComponent(Plotly);
 
 type Props = {};
@@ -81,10 +83,10 @@ export default class Chart extends Component<Props> {
 			camera:	getInitialCamera(),   // camera object for 3D plots (see Plotly.scene.camera)			   		   
 			animate: true,                // a Boolean flag for reachability animation
 			selection_text: "",           // the text describing the parameter set selection
-			pset_selection: [],           // a Boolean filter for reachData and paramData 
+			pset_selection: [],           // a Boolean filter for reachData and paramData
+			pset_selection_error: false,  // a Boolean flag signaling an error on the last selection
 			colors: [],                   // colors for reachData and paramData
 			pset_distinction: false,      // a Boolean flag for distinguishing parameter set data
-			typing: false,                // change Boolean flag for the parameter set selector
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
 			chartType: "2D",              // chart type, i.e., either "2D" or "3D"
@@ -182,7 +184,7 @@ export default class Chart extends Component<Props> {
 										label: "Play"
 									}, {
 										method: "animate",
-										args: [[null],
+										args: [null,
 											{
 												mode: "immediate",
 												transition: {
@@ -261,31 +263,31 @@ export default class Chart extends Component<Props> {
 				<div className={styles.right_controls}>
 					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
+							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType"/> Parameters
+							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType"/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions"/> 2D
+							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions"/> 2D
 						</div>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions"/> 3D
+							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions"/> 3D
 						</div>
 					</div> {/*closing radio group*/}
 					{ this.plottingReachability() && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} name="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
+							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
 						</div>
 					</div>} {/*closing checkbox group*/}
 					{ hasManyPSets(this.props.sapoResults) && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input className={styles.radio_input} name="multicolor" type="checkbox" value="distinguish" defaultChecked={this.state.pset_distinction} onChange={e => this.changeDistinguish(e)}/> Distinguish parameter set data 
+							<input id="multicolor" type="checkbox" value="distinguish" defaultChecked={(this.state.pset_distinction ? "true" : "false")} onChange={e => this.changeDistinguish(e)}/> Distinguish parameter set data 
 						</div>
 					</div>} {/*closing checkbox group*/}
-					{this.state.pset_distinction && <div className={styles.input_selector}>
+					{this.state.pset_distinction && <div className={this.psetSelectorClasses()}>
 						<div>
 							<div>
 								<label for="pset-selector">Select parameter sets</label>
@@ -466,6 +468,14 @@ export default class Chart extends Component<Props> {
 		return selection;
 	}
 
+	psetSelectorClasses()
+	{
+		if (this.state.pset_selection_error) {
+			return `${styles.input_text_group} ${styles.error}`;
+		}
+		return styles.input_text_group;
+	}
+
 	changedPSetSelector(e)
 	{
 		const self = this;
@@ -477,7 +487,6 @@ export default class Chart extends Component<Props> {
 
 		this.setState({
 			selection_text: e.currentTarget.value,
-			typing: false,
 			typingTimeout: setTimeout(function () {
 				if (self.props.sapoResults !== undefined) { // Things may be changed in 1.5 seconds
 					var selection = self.parseSelected(self.state.selection_text);
@@ -490,33 +499,35 @@ export default class Chart extends Component<Props> {
 							/* the following line bypasses a reactjs-plotly bug.
 							   See https://github.com/plotly/plotly.js/issues/1839 */
 							var plottable = deepCopy(frames[0].data);
-							self.setState({ pset_selection: selection,
-											reachPlottable: plottable,
-											animFrames: frames,
-											paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
-											changed: true });
+							self.setState({ reachPlottable: plottable,
+											animFrames: frames });
 						} else {
-							self.setState({pset_selection: selection,
-											reachPlottable: getSelectedFlowpipesPolytopes(self.state.reachData, selection),
-											paramPlottable: self.state.paramData.filter( (e, i) => selection[i]),
-											changed: true });
+							self.setState({ reachPlottable: getSelectedFlowpipesPolytopes(self.state.reachData, selection) });
 						}
+
+						self.setState({ pset_selection: selection, 
+									    pset_selection_error: false, 
+										paramPlottable: self.state.paramData.filter( (e, i) => selection[i]), 
+										changed: true });
+					} else {
+						toast.error("Wrong selection");
+						self.setState({ pset_selection_error: true }); 
 					}
 				}
 			}, 1500),
-		    changed: true
+			changed: false
 		});
 	}
 
-	componentDidUpdate(prevProps) 
+	updatePlotData()
 	{
-		if (prevProps.sapoResults === undefined && this.props.sapoResults !== undefined) {
+		if (this.props.sapoResults !== undefined) {
+			this.state.real_params = getRealParameters(this.props.parameters);
+
 			var newProps = this.getAxisNames(this.state.dataType);
 
 			newProps.pset_distinction = hasManyPSets(this.props.sapoResults);
 			newProps.colors = this.createColors(newProps.pset_distinction);
-			
-			newProps.real_params = getRealParameters(prevProps.parameters);
 			
 			newProps.selection_text = "";
 			newProps.pset_selection = [];
@@ -524,34 +535,34 @@ export default class Chart extends Component<Props> {
 				newProps.pset_selection.push(true);
 			}
 
+			newProps.changed = true;
+
 			this.setState(newProps);
-
-			if (this.plottingReachability()) {
-				this.calcReachData();
-			} else {
-				this.calcParamData();
-			}
-
-			this.props.setExecuting(false);
-
-			this.setState({changed: true});
 		}
 	}
 
 	calcData()
 	{
+		if (this.props.sapoResults === undefined) {
+			return [];
+		}
+
 		if (this.props.updateChart)
 		{
-			this.setState({changed: true})
-			this.props.setUpdated()
+			this.updatePlotData();
+			this.props.setUpdated();
 		}
 		
 		if (!this.state.changed) {
 			if (this.plottingReachability()) {
 				return this.state.reachPlottable;
-			} else {
-				return this.state.paramPlottable;
 			}
+			
+			if (this.plottingParameters()) {
+				return this.state.paramPlottable;
+			} 
+
+			return [];
 		}
 
 		if ((this.plottingReachability() && !this.hasReachData()) ||
@@ -565,10 +576,8 @@ export default class Chart extends Component<Props> {
 
 			this.setState(newProps);
 
-			return [];
-		}
+			this.props.setExecuting(false);
 
-		if (this.props.sapoResults === undefined) {
 			return [];
 		}
 
@@ -578,6 +587,8 @@ export default class Chart extends Component<Props> {
 		} else {
 			polytopes = this.calcParamData();
 		}
+
+		this.props.setExecuting(false);
 
 		return polytopes;
 	}	// end calcData
@@ -735,7 +746,7 @@ export default class Chart extends Component<Props> {
 		}
 
 		if (polytopes.length === 0) {
-			alert("There is no data to display");
+			toast.info("The reached set is empty.");
 		}
 
 		if (this.plottingAnimation()) {
@@ -751,7 +762,6 @@ export default class Chart extends Component<Props> {
 								animBBox: getFramesBBox(frames),
 								slider_steps: build_slider_steps(frames.length),
 								changed: false });
-				this.props.setUpdated()
 			}
 		} else {
 			var reachPlottable = getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection);
@@ -781,7 +791,7 @@ export default class Chart extends Component<Props> {
 		});
 
 		if (polytopes.length === 0) {
-			alert("The set of parameters is empty!");
+			toast.info("The set of parameters is empty");
 		}
 
 		var plottable = polytopes.filter((e,i) => this.state.pset_selection[i]);

@@ -2,7 +2,7 @@
 	display: inline-block;
 	width: 70%;
 	margin: 0;
-	padding: 0;
+	padding: 0px 0px 5px 5px;
 }
 
 .right_controls {
@@ -18,33 +18,52 @@
 	flex-direction: row;
 }
 
-.radio_input {
-} 
-
 .radio_element {
 	margin: 10%;
 	margin-top: 5%;
 	margin-bottom: 5%;
 }
 
-.input_selector {
+.input_text_group {
 	display: flex;
 	flex-direction: row;
 }
 
-.input_selector div {
+.input_text_group div {
 	margin: 10%;
 	margin-top: 5%;
 	margin-bottom: 5%;
 	width: 100%;
 }
 
-.input_selector div div {
+.input_text_group div div {
 	margin: 0%;
 }
 
-.input_selector div div input {
+.input_text_group input[type=text] {
 	width: 100%;
+}
+
+.input_text_group label {
+	margin-bottom: 5px;
+}
+
+.error label {
+   color: #cc0033;
+}
+  
+.error input[type=text] {
+	background-color: #fce4e4;
+	border-color: #cc0033;
+	outline: none;
+ }
+  
+ .error-message {
+	color: #cc0033;
+	display: inline-block;
+	font-size: 12px;
+	line-height: 15px;
+	margin: 5px 0 0;
 }
 
 .selects {

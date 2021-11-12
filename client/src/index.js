@@ -8,7 +8,7 @@ const store = configureStore();
 
 // remove console log in production
 if (process.env.NODE_ENV === "production" ) {
-  //console.log = () => {};
+  console.log = () => {};
 }
 
 render(

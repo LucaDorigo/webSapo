@@ -5,6 +5,10 @@ import { deepCopy, downloadFile } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
+import { ToastContainer, toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.min.css';
+
 
 var http = require("http");
 let killed = false; // check if execution has been killed by user
@@ -493,9 +497,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't delete row because otherwise the matrix would have less than 2*number of parameters rows"
-			);
+			toast.error("The number of rows must be at least twice the number of parameters");
 		}
 	};
 
@@ -542,9 +544,8 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't delete row because otherwise the matrix would have less rows than the number of variables"
-			);
+			
+			toast.error("The rows must be at least as many as the variables");
 		}
 	};
 
@@ -561,9 +562,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't insert this value because it's greater than the number of rows of the L matrix"
-			);
+			toast.error('The value is must be at most equal to the number of L matrix rows');
 		}
 	};
 
@@ -594,7 +593,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert("Can't delete row because otherwise the matrix would be empty");
+			toast.error("The matrix cannot be empty");
 		}
 	};
 
@@ -784,10 +783,10 @@ export default class HomeContainer extends Component {
 		);
 
 		if (resultChecks.error) {
-			alert(resultChecks.errorMessagge);
+			toast.error(resultChecks.errorMessagge);
 		} else {
 			if (this.state.executing) {
-				alert("process already in execution");
+				toast.error("The process is already running");
 			} else {
 				this.setState(
 					{ executing: true },
@@ -831,10 +830,10 @@ export default class HomeContainer extends Component {
 										this.setState({
 											sapoResults: result,
 											hasResults: true,
-											updateChart:true
+											updateChart: true
 										});
 									} else {
-										alert(msg_data.stderr);
+										toast.error(msg_data.stderr);
 
 										this.setState({
 											hasResults: false,
@@ -897,7 +896,7 @@ export default class HomeContainer extends Component {
 				}
 				catch (err)
 				{
-					alert("Error parsing JSON string:", err);
+					toast.error(`JSON parsing error: ${err}`);
 				}
 			};
 		}
@@ -932,14 +931,14 @@ export default class HomeContainer extends Component {
 					downloadFile(str, "model.sil", "text/plain");
 				});
 			}).on('error', (error) => {
-				console.error(error)
+				toast.error(error);
 			});
 			req.write(data);
 			req.end();
 	};
 
 	chooseMethod = () => {
-		alert("choose");
+		toast.info("choose");
 	};
 	
 	
@@ -947,6 +946,19 @@ export default class HomeContainer extends Component {
 	
 	render() {
 		return (
+			<>
+			<ToastContainer
+					position="top-center"
+					autoClose={5000}
+					hideProgressBar={false}
+					newestOnTop
+					closeOnClick
+					rtl={false}
+					pauseOnFocusLoss
+					draggable
+					pauseOnHover
+					theme="colored"
+			/>
 			<Home
 				changeNumberOfIterations={this.changeNumberOfIterations}
 				numberOfIterations={this.state.numberOfIterations}
@@ -1020,6 +1032,7 @@ export default class HomeContainer extends Component {
 				setUpdated={() => this.setState({updateChart: false})}
 				setExecuting={(status) => this.setState({executing: status})}
 			/>
+			</>
 		);
 	}
 }
