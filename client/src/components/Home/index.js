@@ -350,7 +350,7 @@ export default class BoxesPage extends Component<Props> {
 								{this.props.sapoResults !== undefined && <button
 									className={styles.chartButton}
 									onClick={() => {
-										if (this.props.sapoResults.length > 0) {
+										if (this.props.sapoResults.data.length > 0) {
 											document.getElementById("chart").style.display = "block";
 											window.dispatchEvent(new Event('resize'));
 										} else {
@@ -613,8 +613,6 @@ export default class BoxesPage extends Component<Props> {
 							<Chart
 									sapoResults={this.props.sapoResults}
 									projectName={this.props.projectName}
-									variables={this.props.variables}
-									parameters={this.props.parameters}
 									updateChart={this.props.updateChart}
 									setUpdated={this.props.setUpdated}
 									setExecuting={this.props.setExecuting}
