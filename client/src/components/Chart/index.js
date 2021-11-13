@@ -496,7 +496,7 @@ function isValidVertex(vertex, linear_system, tol)
 	return true;
 }
 
-function computeLinearSystemVertices(linear_system, tol = 0.01)
+function computeLinearSystemVertices(linear_system, tol = 0.00000001)
 {
 	var vertices = [];
 				
