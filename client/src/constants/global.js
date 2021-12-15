@@ -108,45 +108,6 @@ export const parseLinearSystemSet = (input) =>
 	return result;
 };
 
-export const parseFlowpipe = (input) =>
-{
-	if (input === "") return undefined;
-	
-	var result = {
-		step_sets: []
-	};
-
-	if (input.slice(0, 19) === "---- empty set ----")
-		return result;
-
-	var step_txts = input.split("--------------\n");
-	step_txts.shift(); // the first element in the list is empty
-
-	step_txts.forEach(step_txt => {
-		var step_set = parseLinearSystemSet(step_txt);
-		
-		if (step_set.length !== 0)
-		{
-			result.step_sets.push(step_set);
-		}
-	});
-
-	return result;
-};
-
-export const parseParams = (input) =>
-{
-	if (input === "") return undefined;
-	
-	if (input.slice(0, 19) === "---- empty set ----")
-		return [];
-
-	// remove LinearSystemSet header, i.e., "--------------\n"
-	input = input.substring(input.indexOf("\n") + 1);
-
-	return parseLinearSystemSet(input);
-};
-
 function allZeroes(v)
 {
 	for (var i = 0; i < v.length; i++)

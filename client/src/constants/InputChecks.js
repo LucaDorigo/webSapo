@@ -94,7 +94,7 @@ const checkEquationsCorrectness = (equations, result) => {
  */
 const checkVarAndParamsNames = (elementList, result) => {
   elementList.forEach(element => {
-		if (element.name === "" || !element.name.match(/[A-Za-z][A-Za-z0-9_]*/g))
+		if ((typeof element.name !== "number") && (element.name === "" || !element.name.match(/[A-Za-z][A-Za-z0-9_]*/g)))
 		{
 			result.error = true;
 			result.errorMessage = "Illegal name for symbol: name mut begin with letter and contain only letters, numbers and '_'";

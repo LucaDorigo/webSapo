@@ -15,6 +15,8 @@ import Popover from "react-tiny-popover";
 import { MdMenu } from "react-icons/md";
 import PulseLoader from "react-spinners/PulseLoader";
 
+import { toast } from 'react-toastify';
+
 import generatedGitInfo from '../../generatedGitInfo.json';
 
 type Props = {};
@@ -25,7 +27,8 @@ export default class BoxesPage extends Component<Props> {
 	constructor(props) {
 		super(props);
 		this.state = {
-			isPopoverOpen: false
+			isPopoverOpen: false,
+			proj_extension: "webSapo"
 		};
 	}
 
@@ -89,20 +92,20 @@ export default class BoxesPage extends Component<Props> {
 												className={styles.menuElement}
 												for={styles.file}
 											>
-												Load configuration from file
+												Load project
 											</label>
 										</p>
-										<input id={styles.file} type="file" onChange={() => {
+										<input id={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
 												this.props.loadConfiguration(styles.file);
 												this.setState({ isPopoverOpen: false})}}/>
 										<p
 											className={styles.menuElement}
 											onClick={() => {
-													this.props.saveConfiguration();
+													this.props.saveConfiguration(this.state.proj_extension);
 													this.setState({ isPopoverOpen: false})}
 												}
 										>
-											Save current configuration
+											Save project
 										</p>
 										<p
 											className={styles.menuElement}
@@ -347,9 +350,17 @@ export default class BoxesPage extends Component<Props> {
 								{this.props.sapoResults !== undefined && <button
 									className={styles.chartButton}
 									onClick={() => {
-										document.getElementById("chart").style.display =
-											"block";
-										window.dispatchEvent(new Event('resize'));
+										if (this.props.sapoResults.data.length > 0) {
+											document.getElementById("chart").style.display = "block";
+											window.dispatchEvent(new Event('resize'));
+										} else {
+											if (this.props.reachability) {
+												toast.info("The reachable set is empty", {position: "bottom-center"});
+											}
+											if (this.props.synthesis) {
+												toast.info("The synthesized set is empty", {position: "bottom-center"});
+											}
+										}
 									}}
 								>
 									<p>PLOTS</p>
@@ -601,11 +612,10 @@ export default class BoxesPage extends Component<Props> {
 						<div className={modalStyles.modal_body_chart}>
 							<Chart
 									sapoResults={this.props.sapoResults}
-									sapoParams={this.props.sapoParams}
-									variables={this.props.variables}
-									parameters={this.props.parameters}
+									projectName={this.props.projectName}
 									updateChart={this.props.updateChart}
 									setUpdated={this.props.setUpdated}
+									setExecuting={this.props.setExecuting}
 								/>
 						</div>
 					</div>
@@ -656,6 +666,7 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 				</div>
 				{/*end of the modal about*/}
+
 			</div>
 		);
 	}

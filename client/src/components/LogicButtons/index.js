@@ -47,7 +47,7 @@ export default class LogicButtons extends Component<Props> {
           id="Globally"
           title="Globally/Always"
           onClick={() => {
-            this.props.injectTextInLogicFormula("G_[a,b]()");
+            this.props.injectTextInLogicFormula("G[a,b] ()");
           }}
         >
           <p className={style.button_text}>
@@ -60,7 +60,7 @@ export default class LogicButtons extends Component<Props> {
           title="Finally/Eventualy"
           className={style.button_style}
           onClick={() => {
-            this.props.injectTextInLogicFormula("F_[a,b]()");
+            this.props.injectTextInLogicFormula("F[a,b] ()");
           }}
         >
           <p className={style.button_text}>
@@ -73,7 +73,7 @@ export default class LogicButtons extends Component<Props> {
           title="Until"
           className={style.button_style}
           onClick={() => {
-            this.props.injectTextInLogicFormula("()_U_[a,b]()");
+            this.props.injectTextInLogicFormula("() U[a,b] ()");
           }}
         >
           <p className={style.button_text}>

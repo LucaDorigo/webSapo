@@ -47,7 +47,7 @@ exports.generateModelFile = (
 	model += "\n";
 	
 	// variables
-	var varNum = 0;
+	model += "\n// variables\n";
 	variables.forEach(v => {
 		if (!v.lMatrixExtra)
 		{
@@ -58,33 +58,47 @@ exports.generateModelFile = (
 				model += " in [" + v.lowerBound + ", " + v.upperBound + "]";
 			
 			model += ";\n";
-			
-			varNum++;
 		}
 	});
-	model += "\n";
 	
-	// parameters
-	var paramNum = 0;
-	parameters.forEach(p => {
-		model += "param " + p.name;
-		
-		// if needed, add interval
-		if (leftButtonActive)
-			model += " in [" + p.lowerBound + ", " + p.upperBound + "]";
-		
-		model += ";\n";
-		paramNum++;
+	// constants
+	model += "\n// constants\n"
+	parameters.forEach((p, i) => {
+
+		if (p.lowerBound === p.upperBound) {
+			// this parameter is actually a constant
+			model += "const " + p.name + " = " + p.lowerBound + ";\n";
+		}
 	});
-	model += "\n";
-	
+
+	// parameters
+	model += "\n// parameters\n"
+
+	var realParams = [];
+	parameters.forEach((p, i) => {
+		if (p.lowerBound !== p.upperBound) {
+			// if the upper and lower bounds are different,
+			// this is a real parameter 
+
+			model += "param " + p.name;
+			
+			// if needed, add interval
+			if (leftButtonActive)
+				model += " in [" + p.lowerBound + ", " + p.upperBound + "]";
+			
+			model += ";\n";
+			realParams.push(i);
+		}
+	});
+
+	model += "\n// dynamics\n"
 	// dynamics
 	equations.forEach(e => {
 		model += "dynamic(" + e.variableName + ") = " + e.equation + ";\n";
 	});
-	model += "\n";
 	
 	// spec TODO: implement
+	model += "\n// specification\n"
 	var allFormulas = "";
 	logicFormulas.forEach(f => {
 		if (f != "")
@@ -106,10 +120,11 @@ exports.generateModelFile = (
 //	console.log(allFormulas);
 	
 	if (allFormulas != "")
-		model += "spec: " + allFormulas + ";";
+		model += "spec: " + allFormulas + ";\n";
 	
 	
 	// directions
+	model += "\n// directions\n"
 	if (!boxesMethod)
 	{
 		lMatrix.data.forEach((l, i) => {
@@ -146,8 +161,9 @@ exports.generateModelFile = (
 		{
 			model += "parameter_direction <";
 
-			for (var j = 0; j < paramNum; j++)
-				model += parametersMatrix.data[2*i][j] + (j == paramNum - 1 ? "" : ", ");
+			realParams.forEach((p_idx) => {
+				model += parametersMatrix.data[2*i][p_idx] + (p_idx == realParams.length - 1 ? "" : ", ");
+			});
 
 			model += "> in [" + parameters[i].lowerBound + ", " + parameters[i].upperBound + "];\n";
 		}

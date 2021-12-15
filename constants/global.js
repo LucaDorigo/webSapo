@@ -11,7 +11,7 @@ let childProcess;
 exports.createFile = (path, content) => {
   fs.writeFile(path, content, err => {
     if (err) {
-      alert("An error ocurred creating the file " + err.message);
+      toast.error(err.message);
       return;
     }
   });
@@ -39,7 +39,9 @@ exports.executeShellCommand = (
       console.log(`stdout: ${stdout}`);
       console.log(`stderr: ${stderr}`);
 			
-      callback(stdout);
+      msg = JSON.stringify({stderr: stderr, stdout: stdout})
+
+      callback(msg);
     }
   );
 };

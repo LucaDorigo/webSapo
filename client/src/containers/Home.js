@@ -1,10 +1,14 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { deepCopy, downloadFile, parseFlowpipe, parseParams } from "../constants/global";
+import { deepCopy, downloadFile } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
+import { ToastContainer, toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.min.css';
+
 
 var http = require("http");
 let killed = false; // check if execution has been killed by user
@@ -71,7 +75,7 @@ export default class HomeContainer extends Component {
 			// will display a combination of 'reachability/synthesis and methods'
 			nameSelectedMenu: "Analysis method",
 			sapoResults: undefined,
-			sapoParams: undefined,
+			projectName: undefined,
 			updateChart: true
 		};
 	}
@@ -246,6 +250,9 @@ export default class HomeContainer extends Component {
 		);
 		let obj = copiedArray[e.target.id];
 		obj.lowerBound = parseFloat(e.target.value);
+		if (obj.lowerBound>obj.upperBound) {
+			obj.upperBound = obj.lowerBound;
+		}
 
 		this.saveChanges(copiedArray, parameter);
 	};
@@ -256,6 +263,9 @@ export default class HomeContainer extends Component {
 		);
 		let obj = copiedArray[e.target.id];
 		obj.upperBound = parseFloat(e.target.value);
+		if (obj.lowerBound>obj.upperBound) {
+			obj.lowerBound = obj.upperBound;
+		}
 
 		this.saveChanges(copiedArray, parameter);
 	};
@@ -487,9 +497,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't delete row because otherwise the matrix would have less than 2*number of parameters rows"
-			);
+			toast.error("The number of rows must be at least twice the number of parameters");
 		}
 	};
 
@@ -536,9 +544,8 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't delete row because otherwise the matrix would have less rows than the number of variables"
-			);
+			
+			toast.error("The rows must be at least as many as the variables");
 		}
 	};
 
@@ -555,9 +562,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert(
-				"Can't insert this value because it's greater than the number of rows of the L matrix"
-			);
+			toast.error('The value is must be at most equal to the number of L matrix rows');
 		}
 	};
 
@@ -588,7 +593,7 @@ export default class HomeContainer extends Component {
 				sapoResults: undefined
 			});
 		} else {
-			alert("Can't delete row because otherwise the matrix would be empty");
+			toast.error("The matrix cannot be empty");
 		}
 	};
 
@@ -778,10 +783,10 @@ export default class HomeContainer extends Component {
 		);
 
 		if (resultChecks.error) {
-			alert(resultChecks.errorMessagge);
+			toast.error(resultChecks.errorMessagge);
 		} else {
 			if (this.state.executing) {
-				alert("process already in execution");
+				toast.error("The process is already running");
 			} else {
 				this.setState(
 					{ executing: true },
@@ -800,43 +805,51 @@ export default class HomeContainer extends Component {
 						}
 
 						const req = http.request(options, (res) => {
-							let str = '';
+							let msg = '';
 
 							res.on('data', (d) => {
-								str += d;
+								msg += d;
 							});
 
 							res.on('end', () => {
 								if (! killed)
 								{
-									var parts = JSON.parse(str);
-									if (this.state.reachability)
-									{
-										downloadFile(parts.vars, "result.txt", "text/plain");
+									killed = false;
+									var msg_data = JSON.parse(msg);
+									var result = "";
+
+									try {
+										if (msg.stdout !== "") {
+											result = JSON.parse(msg_data.stdout);
+											msg_data.stderr = "";
+										}
+									} catch (e) {}
+
+									if (msg_data.stderr === "") {
+										downloadFile(result, "result.json", "text/plain");
 										this.setState({
-											sapoResults: parseFlowpipe(parts.vars),
-											sapoParams: undefined,
+											sapoResults: result,
 											hasResults: true,
-											executing: false,
-											updateChart:true
-										});
-									}
-									else
-									{
-										downloadFile(parts.params, "result.txt", "text/plain");
-										this.setState({
-											sapoResults: parseFlowpipe(parts.vars),
-											sapoParams: parseParams(parts.params),
-											hasResults: true,
-											executing: false,
 											updateChart: true
+										});
+									} else {
+										toast.error(msg_data.stderr);
+
+										this.setState({
+											hasResults: false,
+											executing: false
 										});
 									}
 								}
-								killed = false;
 							});
 						}).on('error', (error) => {
 							console.error(error)
+							killed = false;
+
+							this.setState({
+								hasResults: false,
+								executing: false
+							});
 						});
 						req.write(data);
 						req.end();
@@ -872,7 +885,7 @@ export default class HomeContainer extends Component {
 								stateFromFile.parametersMatrix.data
 							),
 							sapoResults: undefined,
-							sapoParams: undefined,
+							projectName: file.name.replace(/\.[^/.]+$/, ""),
 							hasResults: false,
 							updateChart: true
 						},
@@ -883,14 +896,14 @@ export default class HomeContainer extends Component {
 				}
 				catch (err)
 				{
-					alert("Error parsing JSON string:", err);
+					toast.error(`JSON parsing error: ${err}`);
 				}
 			};
 		}
 	};
 
-	saveConfiguration = () => {
-		downloadFile(JSON.stringify(this.state), "config.json", "application/json");
+	saveConfiguration = (proj_extension) => {
+		downloadFile(JSON.stringify(this.state), "config." + proj_extension, "application/json");
 	};
 
 	exportSourceFile = () => {
@@ -918,14 +931,14 @@ export default class HomeContainer extends Component {
 					downloadFile(str, "model.sil", "text/plain");
 				});
 			}).on('error', (error) => {
-				console.error(error)
+				toast.error(error);
 			});
 			req.write(data);
 			req.end();
 	};
 
 	chooseMethod = () => {
-		alert("choose");
+		toast.info("choose");
 	};
 	
 	
@@ -933,6 +946,19 @@ export default class HomeContainer extends Component {
 	
 	render() {
 		return (
+			<>
+			<ToastContainer
+					position="top-center"
+					autoClose={5000}
+					hideProgressBar={false}
+					newestOnTop
+					closeOnClick
+					rtl={false}
+					pauseOnFocusLoss
+					draggable
+					pauseOnHover
+					theme="colored"
+			/>
 			<Home
 				changeNumberOfIterations={this.changeNumberOfIterations}
 				numberOfIterations={this.state.numberOfIterations}
@@ -1001,10 +1027,12 @@ export default class HomeContainer extends Component {
 				deleteRowTMatrix={this.deleteRowTMatrix}
 				//
 				sapoResults={this.state.sapoResults}
-				sapoParams={this.state.sapoParams}
+				projectName={this.state.projectName}
 				updateChart={this.state.updateChart}
 				setUpdated={() => this.setState({updateChart: false})}
+				setExecuting={(status) => this.setState({executing: status})}
 			/>
+			</>
 		);
 	}
 }
