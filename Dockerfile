@@ -19,13 +19,6 @@ RUN tar -zxvf bison-3.5.1.tar.gz && cd bison-3.5.1 && ./configure && make && mak
 RUN apt-get update && apt-get install -y zip
 RUN apt-get update && apt-get install -y wget tar
 
-# CLN
-RUN apt-get update && apt-get install -y libcln-dev libcln6
-
-# GiNaC
-RUN apt-get update && apt-get install -y ginac-tools libginac-dev
-
-
 # GNU MP (for GLPK)
 RUN wget ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz
 RUN tar -xvf gmp-6.2.1.tar.xz && cd gmp-6.2.1 && ./configure && make && make check && make install
