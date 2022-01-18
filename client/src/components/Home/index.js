@@ -45,7 +45,8 @@ export default class BoxesPage extends Component<Props> {
 							/>
 
 							{/*selector for iteration of the system*/}
-							<div className={styles.simplePaddingLeft}>
+							{ (this.props.synthesis || this.props.reachability) && 
+							  <div className={styles.simplePaddingLeft}>
 								Number of iterations:{" "}
 								<input
 									onChange={this.props.changeNumberOfIterations}
@@ -57,8 +58,10 @@ export default class BoxesPage extends Component<Props> {
 									step="1"
 								/>
 							</div>
+							}
 
 							{/*selector for maximum vector magnitude*/}
+							{ (this.props.synthesis || this.props.reachability) &&
 							<div className={styles.simplePaddingLeft}>
 								Max bundle magnitude:{" "}
 								<input
@@ -70,8 +73,10 @@ export default class BoxesPage extends Component<Props> {
 									step="0.01"
 								/>
 							</div>
+							}
 
 							{/*selector for maximum number of parameter splits*/}
+							{ this.props.synthesis &&
 							<div className={styles.simplePaddingLeft}>
 								Max parameter splits:{" "}
 								<input
@@ -82,7 +87,7 @@ export default class BoxesPage extends Component<Props> {
 									min="0"
 									step="1"
 								/>
-							</div>
+							</div>}
 						</div>
 
 						<div className={styles.flexEnd}>
