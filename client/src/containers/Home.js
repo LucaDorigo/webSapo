@@ -13,35 +13,6 @@ import 'react-toastify/dist/ReactToastify.min.css';
 var http = require("http");
 let killed = false; // check if execution has been killed by user
 
-/** layout
-	equations: [
-				{variableName: "x", equation: "x+x"},
-				{variableName: "y", equation: "y+z"},
-				{variableName: "z", equation: "y+z-r"},
-				{variableName: "t", equation: "y+z*z"},
-				{variableName: "r", equation: "y+z/v"},
-				{variableName: "v", equation: "(y+z)*y"}
-			],
-			variables: [
-				{name: "x", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "y", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "z", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "t", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "r", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "v", lowerBound: 10, upperBound: 30, lMatrixExtra: true},
-			],
-			parameters: [
-				{name: "x", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "y", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "z", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "t", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "r", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-				{name: "v", lowerBound: 10, upperBound: 30, lMatrixExtra: false},
-			]
- *
- *
- */
-
 export default class HomeContainer extends Component {
 	props;
 
@@ -50,6 +21,7 @@ export default class HomeContainer extends Component {
 		this.state = {
 			executing: false,
 			numberOfIterations: 1,
+			maxBundleMagnitude: 0.0,
 			maxParamSplits: 0,
 			variables: [], // array of object
 			parameters: [],
@@ -117,6 +89,16 @@ export default class HomeContainer extends Component {
 			this.setState({ numberOfIterations: value, sapoResults: undefined});
 		} else {
 			this.setState({ numberOfIterations: 1, sapoResults: undefined});
+		}
+	};
+
+	changeMaxBundleMagnitude = e => {
+		const value = e.target.value;
+
+		if (value >= 0) {
+			this.setState({ maxBundleMagnitude: value, sapoResults: undefined});
+		} else {
+			this.setState({ maxBundleMagnitude: 0, sapoResults: undefined});
 		}
 	};
 
@@ -826,7 +808,8 @@ export default class HomeContainer extends Component {
 									} catch (e) {}
 
 									if (msg_data.stderr === "") {
-										downloadFile(result, "result.json", "text/plain");
+										console.log(result);
+										downloadFile(JSON.stringify(result), "result.json", "text/plain");
 										this.setState({
 											sapoResults: result,
 											hasResults: true,
@@ -962,7 +945,9 @@ export default class HomeContainer extends Component {
 			<Home
 				changeNumberOfIterations={this.changeNumberOfIterations}
 				numberOfIterations={this.state.numberOfIterations}
+				changeMaxBundleMagnitude={this.changeMaxBundleMagnitude}
 				changeMaxParamSplits={this.changeMaxParamSplits}
+				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
 				handleMethodSelection={this.handleMethodSelection}
 				nameSelectedMenu={this.state.nameSelectedMenu}

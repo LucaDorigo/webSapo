@@ -10,6 +10,7 @@ exports.generateModelFile = (
   leftButtonActive,
   rightButtonActive,
   numberOfIterations,
+  maxBundleMagnitude,
   maxParamSplits,
   parametersMatrix,
   lMatrix,
@@ -40,6 +41,10 @@ exports.generateModelFile = (
 	
 	// iterations
 	model += "iterations: " + numberOfIterations + ";\n";
+
+	if (maxBundleMagnitude > 0) {
+		model += "max_bundle_magnitude: " + maxBundleMagnitude + ";\n";
+	}
 
 	// max parameter splits
 	model += "max_parameter_splits: " + maxParamSplits + ";\n";

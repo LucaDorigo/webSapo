@@ -58,6 +58,19 @@ export default class BoxesPage extends Component<Props> {
 								/>
 							</div>
 
+							{/*selector for maximum vector magnitude*/}
+							<div className={styles.simplePaddingLeft}>
+								Max bundle magnitude:{" "}
+								<input
+									onChange={this.props.changeMaxBundleMagnitude}
+									value={this.props.maxBundleMagnitude}
+									className={styles.textInput}
+									type="number"
+									min="0"
+									step="0.01"
+								/>
+							</div>
+
 							{/*selector for maximum number of parameter splits*/}
 							<div className={styles.simplePaddingLeft}>
 								Max parameter splits:{" "}
@@ -66,7 +79,6 @@ export default class BoxesPage extends Component<Props> {
 									value={this.props.maxParamSplits}
 									className={styles.textInput}
 									type="number"
-									name="numberIterations"
 									min="0"
 									step="1"
 								/>
@@ -90,7 +102,7 @@ export default class BoxesPage extends Component<Props> {
 										>
 											<label
 												className={styles.menuElement}
-												for={styles.file}
+												htmlFor={styles.file}
 											>
 												Load project
 											</label>

@@ -168,7 +168,7 @@ export default class Chart extends Component<Props> {
 										label: "Play"
 									}, {
 										method: "animate",
-										args: [null,
+										args: [[null],
 											{
 												mode: "immediate",
 												transition: {
@@ -855,19 +855,36 @@ function getSelectedFlowpipesPolytopes(flowpipes, selection)
 	return result;
 }
 
+function build_a_fake_polytope(polytope)
+{
+	var vertex = [polytope.x[0], polytope.y[0]];
+	if ("z" in polytope) {
+		vertex.push(polytope.z[0]);
+	}
+	return getSinglePoint([vertex], polytope.color, polytope.text, 1);
+}
+
 function getFramesForSelectedFlowpipes(flowpipes, selection)
 {
 	var frames = [];
 	flowpipes.forEach((flowpipe, i) => {
 		if (selection[i]) {
 			while (frames.length < flowpipe.length) {
-				frames.push({name: frames.length.toString(), data: [], traces: [] });
+				frames.push({name: frames.length.toString(), data: [] /*, traces: []*/ });
 			}
+			var max_polytopes = flowpipe[flowpipe.length-1].length;
 			flowpipe.forEach((polytopes, timestamp) => {
+				// Add missing polytopes when a bundle split occurred
+				var empty_polytope = build_a_fake_polytope(polytopes[0]);
+				while (polytopes.length < max_polytopes) {
+					polytopes.push(empty_polytope);
+				}
+
+				// push the polytopes in the frame
 				polytopes.forEach((polytope) => {
 					frames[timestamp].data.push(polytope);
-					frames[timestamp].traces.push(frames[timestamp].traces.length)
-				})
+					//frames[timestamp].traces.push(frames[timestamp].traces.length);
+				});
 			});
 		}
 	});
@@ -1178,7 +1195,7 @@ function findNextCombination(combination)
 	return true;
 }
 
-function getSinglePoint(vertices, color = '#ff8f00', name = undefined)
+function getSinglePoint(vertices, color = '#ff8f00', name = undefined, marker_size = 7)
 {
 	var plot_param =  {
 			x: [vertices[0][0]],
@@ -1188,13 +1205,13 @@ function getSinglePoint(vertices, color = '#ff8f00', name = undefined)
 			text: name,
 			marker: {
 				color: color,
-				size: 7
+				size: marker_size
 			},
 			hoverinfo: (name !== undefined ? 'text+x+y' : 'x+y')
 		};
 	
 	if (vertices[0].length > 2) {
-		plot_param.y = [vertices[0][2]];
+		plot_param.z = [vertices[0][2]];
 	}
 
 	return plot_param;
