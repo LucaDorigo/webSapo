@@ -809,12 +809,14 @@ export default class HomeContainer extends Component {
 
 									if (msg_data.stderr === "") {
 										console.log(result);
-										downloadFile(JSON.stringify(result), "result.json", "text/plain");
 										this.setState({
 											sapoResults: result,
 											hasResults: true,
 											updateChart: true
 										});
+										downloadFile(JSON.stringify(this.state),
+										             (this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+													 "result.json", "text/plain");
 									} else {
 										toast.error(msg_data.stderr);
 
@@ -867,9 +869,9 @@ export default class HomeContainer extends Component {
 							parametersMatrix: math.matrix(
 								stateFromFile.parametersMatrix.data
 							),
-							sapoResults: undefined,
+							sapoResults: ("sapoResults" in stateFromFile ? stateFromFile.sapoResults : undefined),
 							projectName: file.name.replace(/\.[^/.]+$/, ""),
-							hasResults: false,
+							hasResults: ("hasResults" in stateFromFile ? stateFromFile.stateFromFile : false),
 							updateChart: true
 						},
 						() => {
@@ -886,7 +888,9 @@ export default class HomeContainer extends Component {
 	};
 
 	saveConfiguration = (proj_extension) => {
-		downloadFile(JSON.stringify(this.state), "config." + proj_extension, "application/json");
+		downloadFile(JSON.stringify(this.state),
+					 (this.state.projectName !== undefined ? this.state.projectName : "config") + "." +
+					 proj_extension, "application/json");
 	};
 
 	exportSourceFile = () => {
@@ -911,7 +915,7 @@ export default class HomeContainer extends Component {
 				});
 
 				res.on('end', () => {
-					downloadFile(str, "model.sil", "text/plain");
+					downloadFile(str, (this.state.projectName !== undefined ? this.state.projectName : "model") + ".sil", "text/plain");
 				});
 			}).on('error', (error) => {
 				toast.error(error);
