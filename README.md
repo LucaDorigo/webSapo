@@ -16,7 +16,7 @@ cd webSapo
 #install dependencies for server
 npm install
 #install dependencies for client
-(cd client && npm install)
+(cd client && npm install && npm run git-info)
 #build Sapo
 (cd sapoCore && cmake . && make)
 ```
