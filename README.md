@@ -9,7 +9,7 @@ nodejs and npm are required. All the remaining dependencies will be
 automatically installed by the building procedure.
 
 ### Downloading and Building
-If thes dependencies are met, we can download and install the tool
+When these dependencies are met, you can download and install the tool
 ```
 git clone --recurse-submodules https://github.com/LucaDorigo/webSapo
 cd webSapo
