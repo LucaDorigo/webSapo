@@ -25,6 +25,7 @@ exports.generateModelFile = (
 	else
 		model += "problem: synthesis;\n";
 	
+	/*	var mode is deprecated
 	// var mode
 	if (boxesMethod)
 		model += "variable_mode: boxes;\n";
@@ -32,12 +33,15 @@ exports.generateModelFile = (
 		model += "variable_mode: parallelotopes;\n";
 	else
 		model += "variable_mode: polytopes;\n";
+	*/
 	
+	/* param mode is deprecated
 	// param mode
 	if (leftButtonActive)
 		model += "parameter_mode: boxes;\n";
 	else
 		model += "parameter_mode: parallelotopes;\n";
+	*/
 	
 	// iterations
 	model += "iterations: " + numberOfIterations + ";\n";
@@ -102,7 +106,7 @@ exports.generateModelFile = (
 		model += "dynamic(" + e.variableName + ") = " + e.equation + ";\n";
 	});
 	
-	// spec TODO: implement
+	// spec
 	model += "\n// specification\n"
 	var allFormulas = "";
 	logicFormulas.forEach(f => {
@@ -133,13 +137,15 @@ exports.generateModelFile = (
 	if (!boxesMethod)
 	{
 		lMatrix.data.forEach((l, i) => {
-			model += "direction <";
+			model += "direction ";
 			
 			l.forEach((e, j) => {
-				model += e + (j == l.length - 1 ? "" : ", ");
+				if (e != 0) {
+					model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[i].name;
+				}
 			});
 			
-			model += "> in [" + variables[i].lowerBound + ", " + variables[i].upperBound + "];\n"
+			model += " in [" + variables[i].lowerBound + ", " + variables[i].upperBound + "];\n"
 		});
 		model += "\n";
 	}
@@ -161,16 +167,19 @@ exports.generateModelFile = (
 	// param directions
 	if (!leftButtonActive)
 	{
-		// parameter matrix has two rows for each direction, assumed to be consecutive
-		for (var i = 0; 2*i < parametersMatrix.data.length; i++)
+		for (var i = 0; i < realParams.length; i++)
 		{
-			model += "parameter_direction <";
+			let param = parameters[realParams[i]];
+			model += "parameter_direction ";
 
 			realParams.forEach((p_idx) => {
-				model += parametersMatrix.data[2*i][p_idx] + (p_idx == realParams.length - 1 ? "" : ", ");
+				let coeff = parametersMatrix.data[2*realParams[i]][p_idx];
+				if (coeff != 0) {
+					model += " " + (coeff > 0 ? "+" : "-") + coeff + "*" + param.name;
+				}
 			});
 
-			model += "> in [" + parameters[i].lowerBound + ", " + parameters[i].upperBound + "];\n";
+			model += " in [" + param.lowerBound + ", " + param.upperBound + "];\n";
 		}
 		model += "\n";
 	}
