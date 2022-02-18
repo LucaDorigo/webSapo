@@ -108,13 +108,13 @@ export default class BoxesPage extends Component<Props> {
 										>
 											<label
 												className={styles.menuElement}
-												htmlFor={styles.file}
+												htmlFor="loadConf"
 											>
 												Load project
 											</label>
 										</p>
-										<input id={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
-												this.props.loadConfiguration(styles.file);
+										<input id="loadConf" class={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
+												this.props.loadConfiguration("loadConf");
 												this.setState({ isPopoverOpen: false})}}/>
 										<p
 											className={styles.menuElement}
@@ -125,6 +125,19 @@ export default class BoxesPage extends Component<Props> {
 										>
 											Save project
 										</p>
+										<p
+											className={styles.menuElement}
+										>
+											<label
+												className={styles.menuElement}
+												htmlFor="loadResult"
+											>
+												Load result
+											</label>
+										</p>
+										<input id="loadResult" class={styles.file} type="file" accept={".json"} onChange={() => {
+												this.props.loadResult("loadResult");
+												this.setState({ isPopoverOpen: false})}}/>
 										<p
 											className={styles.menuElement}
 											onClick={() => {

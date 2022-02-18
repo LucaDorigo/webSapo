@@ -858,11 +858,11 @@ export default class HomeContainer extends Component {
 												hasResults: true,
 												updateChart: true
 											});
-										});
 
-										downloadFile(JSON.stringify(this.state),
+											downloadFile(JSON.stringify(this.state),
 													(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-													"result.json", "text/plain");
+													"result.webSapo", "text/plain");
+										});
 									} else {
 										toast.error(msg_data.stderr);
 
@@ -942,6 +942,39 @@ export default class HomeContainer extends Component {
 		downloadFile(JSON.stringify(this.state),
 					 (this.state.projectName !== undefined ? this.state.projectName : "config") + "." +
 					 proj_extension, "application/json");
+	};
+
+	loadResult = (id) => {
+		let file = document.getElementById(id).files[0];
+		if (file)
+		{
+			let reader = new FileReader();
+			reader.readAsText(file, "UTF-8");
+			reader.onload = (e) => {
+				try
+				{
+					let resultFromFile = JSON.parse(e.target.result);
+					this.setState(
+						{
+							sapoResults: resultFromFile,
+							projectName: file.name.replace(/\.[^/.]+$/, ""),
+							hasResults: true,
+							updateChart: true
+						},
+						() => {
+							console.log(this.state);
+						}
+					);
+
+					document.getElementById("chart").style.display = "block";
+					window.dispatchEvent(new Event('resize'));
+				}
+				catch (err)
+				{
+					toast.error(`JSON parsing error: ${err}`);
+				}
+			};
+		}
 	};
 
 	exportSourceFile = () => {
@@ -1043,6 +1076,7 @@ export default class HomeContainer extends Component {
 				//
 				loadConfiguration={this.loadConfiguration}
 				saveConfiguration={this.saveConfiguration}
+				loadResult={this.loadResult}
 				exportSourceFile={this.exportSourceFile}
 				chooseMethod={this.chooseMethod}
 				//
