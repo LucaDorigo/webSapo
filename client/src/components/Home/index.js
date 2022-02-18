@@ -132,7 +132,7 @@ export default class BoxesPage extends Component<Props> {
 												className={styles.menuElement}
 												htmlFor="loadResult"
 											>
-												Load result
+												Load sapo result
 											</label>
 										</p>
 										<input id="loadResult" class={styles.file} type="file" accept={".json"} onChange={() => {
