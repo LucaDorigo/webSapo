@@ -2,6 +2,7 @@
 import React, { Component } from "react";
 import styles from "./style.module.css";
 import modalStyles from "./modalStyle.module.css";
+import ProgressBar from "@ramonak/react-progress-bar";
 import RoundedButton from "../RoundedButton/index";
 import DropdownMenu from "../DropdownMenu/index";
 import VariableRow from "../VariableRow/index";
@@ -340,8 +341,12 @@ export default class BoxesPage extends Component<Props> {
 									</button>
 								)}
 
-								<button
-									onClick={this.props.startExecuting}
+								{this.props.sapoResults === undefined && <button
+									onClick={() => {
+										document.getElementById("progress").style.display =
+													"block";
+										this.props.startExecuting();
+									}}
 									disabled={this.props.executing}
 									className={styles.startButton}
 								>
@@ -354,15 +359,7 @@ export default class BoxesPage extends Component<Props> {
 											loading={this.props.executing}
 										/>
 									)}
-								</button>
-
-								<button
-									onClick={this.props.stopExecuting}
-									className={styles.stopButton}
-								>
-									<p>STOP</p>
-								</button>
-								
+								</button>}
 								
 								{this.props.sapoResults !== undefined && <button
 									className={styles.chartButton}
@@ -683,6 +680,28 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 				</div>
 				{/*end of the modal about*/}
+
+
+				{/*modal for showing the progress bar*/}
+				<div id="progress" className={modalStyles.modal_bar}>
+					<div className={modalStyles.modal_content}>
+						<div className={modalStyles.modal_body_bar}>
+							<div id="progress_msg">
+							</div>
+							<div className={styles.progress_bar}>
+							<ProgressBar completed={this.props.progress} />
+							</div>
+							<div className={styles.buttonBox}>
+								<button
+									onClick={this.props.stopExecuting}
+									className={styles.stopButton}>
+								<p>STOP</p>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				{/* end progress bar model */}
 
 			</div>
 		);

@@ -24,12 +24,13 @@ exports.createFile = (path, content) => {
 
 exports.executeShellCommand = (
   command,
-  callback
+  callback,
+  err_callback
 ) => {
   console.log("exec " + command);
   childProcess = exec(
     command,
-    { maxBuffer: 10 * 1024 * 1024 },
+    { maxBuffer: 1024 * 1024 * 1024 },
     (err, stdout, stderr) => {
       if (err) {
         // node couldn't execute the command
@@ -44,6 +45,10 @@ exports.executeShellCommand = (
       callback(msg);
     }
   );
+
+  childProcess.stderr.on('data', (data) => {
+    err_callback(data);
+	});
 };
 
 

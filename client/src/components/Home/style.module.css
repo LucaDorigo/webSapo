@@ -259,3 +259,8 @@
 #file {
   display: none;
 }
+
+.progress_bar {
+	width: 80%;
+	padding: 10px;
+}

@@ -13,6 +13,10 @@ import 'react-toastify/dist/ReactToastify.min.css';
 var http = require("http");
 let killed = false; // check if execution has been killed by user
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export default class HomeContainer extends Component {
 	props;
 
@@ -20,6 +24,7 @@ export default class HomeContainer extends Component {
 		super(props);
 		this.state = {
 			executing: false,
+			progress: 0,
 			numberOfIterations: 1,
 			maxBundleMagnitude: 0.0,
 			maxParamSplits: 0,
@@ -763,6 +768,9 @@ export default class HomeContainer extends Component {
 			this.state.parameters,
 			this.state.equations
 		);
+		this.setState({ progress: 0});
+		document.getElementById("progress_msg").innerHTML =
+													"Analyzing the problem...";
 
 		if (resultChecks.error) {
 			toast.error(resultChecks.errorMessagge);
@@ -771,7 +779,7 @@ export default class HomeContainer extends Component {
 				toast.error("The process is already running");
 			} else {
 				this.setState(
-					{ executing: true },
+					{ executing: true, progress: 0 },
 					() => {
 						
 						let data = JSON.stringify(this.state);
@@ -788,9 +796,36 @@ export default class HomeContainer extends Component {
 
 						const req = http.request(options, (res) => {
 							let msg = '';
+							let receiving_bar = true;
+							let hash_code = '#'.charCodeAt(0);
+							let backet = '{'.charCodeAt(0);
 
 							res.on('data', (d) => {
-								msg += d;
+								var progress = this.state.progress;
+								
+								var i = 0;
+
+								if (receiving_bar) {
+									while (d.length > i && d[i] !== backet) {
+										if (d[i] === hash_code) {
+											progress += 2; 
+										}
+
+										i += 1;
+									}
+
+									if (d[i] === backet) {
+										receiving_bar = false;
+									}
+								}
+
+								if (progress !== this.state.progress) {
+									this.setState({
+										progress: progress
+									});
+								}
+
+								msg += d.slice(i);
 							});
 
 							res.on('end', () => {
@@ -809,16 +844,30 @@ export default class HomeContainer extends Component {
 
 									if (msg_data.stderr === "") {
 										console.log(result);
-										this.setState({
-											sapoResults: result,
-											hasResults: true,
-											updateChart: true
+										this.setState({ progress: 100 });
+										document.getElementById("progress_msg").innerHTML =
+													"Setting-up plots...";
+										setTimeout(function() {
+											document.getElementById("progress").style.display =
+													"none";
+										}, 1500);
+
+										sleep(1000).then(() => {
+											this.setState({
+												sapoResults: result,
+												hasResults: true,
+												updateChart: true
+											});
 										});
+
 										downloadFile(JSON.stringify(this.state),
-										             (this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-													 "result.json", "text/plain");
+													(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+													"result.json", "text/plain");
 									} else {
 										toast.error(msg_data.stderr);
+
+										document.getElementById("progress").style.display =
+													"none";
 
 										this.setState({
 											hasResults: false,
@@ -849,6 +898,8 @@ export default class HomeContainer extends Component {
 		http.get("/kill", (req, res) => {
 			this.setState({ executing: false });
 		});
+		document.getElementById("progress").style.display =
+													"none";
 	};
 
 	loadConfiguration = (id) => {
@@ -928,9 +979,6 @@ export default class HomeContainer extends Component {
 		toast.info("choose");
 	};
 	
-	
-	
-	
 	render() {
 		return (
 			<>
@@ -982,6 +1030,7 @@ export default class HomeContainer extends Component {
 				injectTextInLogicFormula={this.injectTextInLogicFormula}
 				//
 				executing={this.state.executing}
+				progress={this.state.progress}
 				startExecuting={this.startExecuting}
 				stopExecuting={this.stopExecuting}
 				//

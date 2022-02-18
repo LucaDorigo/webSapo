@@ -1,4 +1,4 @@
-const { exec, execSync, execFileSync } = require("child_process");
+const { exec, execSync, execFileSync, spawn } = require("child_process");
 const fs = require('fs');
 const express = require("express");
 const dotenv = require("dotenv");
@@ -60,11 +60,14 @@ app.post("/websapo", (req, res, next) => {
 
     // execute the sapo tool
     globals.executeShellCommand(
-      ("echo '" + model.replace(/(?:\/\/.*|\r\n|\r|\n)/g, " ") + "' | ./sapoCore/bin/sapo -j -t"),		// print model, execute sapo, and read the JSON output format
+      ("echo '" + model.replace(/(?:\/\/.*|\r\n|\r|\n)/g, " ") + "' | ./sapoCore/bin/sapo -b -j -t"),		// print model, execute sapo, and read the JSON output format
       (result) => {
 				res.write(result);
 				res.end();
-			}
+			},
+	  (stderr_data) => {
+		  res.write(stderr_data);
+	  }
     );
   });
 });
