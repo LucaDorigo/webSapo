@@ -158,10 +158,10 @@ export default class Chart extends Component<Props> {
 											{
 												fromcurrent: true,
 												transition: {
-													duration: 50,
+													duration: 0,
 												},
 												frame: {
-													duration: 50
+													duration: 100
 												}
 											}
 										],
@@ -240,7 +240,7 @@ export default class Chart extends Component<Props> {
 							}
 						}}
 						onAnimatingFrame={(frame) => {
-							this.setState({current_frame: parseInt(frame.name)});
+							//this.setState({current_frame: parseInt(frame.name)});
 						}}
 					/>
 				</div>
