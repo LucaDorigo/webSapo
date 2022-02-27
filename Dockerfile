@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y gcc cmake make
 RUN wget https://github.com/westes/flex/releases/download/v2.6.4/flex-2.6.4.tar.gz
 RUN tar -zxvf flex-2.6.4.tar.gz && cd flex-2.6.4 && ./configure && make && make install
 
-RUN wget http://ftp.gnu.org/gnu/bison/bison-3.5.1.tar.gz
-RUN tar -zxvf bison-3.5.1.tar.gz && cd bison-3.5.1 && ./configure && make && make install
+RUN wget http://ftp.gnu.org/gnu/bison/bison-3.8.2.tar.gz
+RUN tar -zxvf bison-3.8.2.tar.gz && cd bison-3.8.2 && ./configure && make && make install
 
 RUN apt-get update && apt-get install -y zip
 RUN apt-get update && apt-get install -y wget tar
