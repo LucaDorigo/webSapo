@@ -108,11 +108,11 @@ export default class Chart extends Component<Props> {
 								xaxis: { 
 									title: {
 										text: this.state.axes.x,
-										font: {
-											family: 'Courier New, monospace',
-											size: 25,
-											color: '#ff8f00'
-										}
+										/*font: {
+											family: 'Computer Modern Roman',
+											size: 20,
+											//color: '#ff8f00'
+										}*/
 									},
 									autorange: !this.plottingAnimation(),
 									range: this.state.animBBox.x
@@ -120,11 +120,11 @@ export default class Chart extends Component<Props> {
 								yaxis: { 
 									title: {
 										text: this.state.axes.y,
-										font: {
-											family: 'Courier New, monospace',
-											size: 25,
-											color: '#ff8f00'
-										}
+										/*font: {
+											family: 'Computer Modern Roman',
+											size: 20,
+											//color: '#ff8f00'
+										}*/
 									},
 									autorange: !this.plottingAnimation(),
 									range: this.state.animBBox.y
@@ -132,11 +132,11 @@ export default class Chart extends Component<Props> {
 								zaxis: { 
 									title: {
 										text: this.state.axes.z,
-										font: {
-											family: 'Courier New, monospace',
-											size: 25,
-											color: '#ff8f00'
-										}
+										/*font: {
+											family: 'Computer Modern Roman',
+											size: 20,
+											//color: '#ff8f00'
+										}*/
 									},
 									autorange: !this.plottingAnimation(),
 									range: this.state.animBBox.z
