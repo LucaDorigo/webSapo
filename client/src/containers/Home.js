@@ -11,7 +11,6 @@ import 'react-toastify/dist/ReactToastify.min.css';
 
 
 var http = require("http");
-let killed = false; // check if execution has been killed by user
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -24,6 +23,7 @@ export default class HomeContainer extends Component {
 		super(props);
 		this.state = {
 			executing: false,
+			killed: false,
 			progress: 0,
 			numberOfIterations: 1,
 			maxBundleMagnitude: 0.0,
@@ -829,9 +829,8 @@ export default class HomeContainer extends Component {
 							});
 
 							res.on('end', () => {
-								if (! killed)
+								if (! this.state.killed)
 								{
-									killed = false;
 									var msg_data = JSON.parse(msg);
 									var result = "";
 
@@ -862,27 +861,37 @@ export default class HomeContainer extends Component {
 											downloadFile(JSON.stringify(this.state),
 													(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
 													"result.webSapo", "text/plain");
+
+											sleep(500).then(() => {
+												this.setState({
+													progress: 0,
+													killed: false
+												});
+											});
 										});
 									} else {
 										toast.error(msg_data.stderr);
 
-										document.getElementById("progress").style.display =
-													"none";
-
 										this.setState({
 											hasResults: false,
-											executing: false
+											executing: false,
+											progress: 0,
+											killed: false
 										});
+
+										document.getElementById("progress").style.display =
+													"none";
 									}
 								}
 							});
 						}).on('error', (error) => {
 							console.error(error)
-							killed = false;
-
+							document.getElementById("progress").style.display =
+													"none";
 							this.setState({
 								hasResults: false,
-								executing: false
+								executing: false,
+								killed: false
 							});
 						});
 						req.write(data);
@@ -894,7 +903,9 @@ export default class HomeContainer extends Component {
 	};
 
 	stopExecuting = () => {
-		killed = true;
+		this.setState({
+			killed: true
+		});
 		http.get("/kill", (req, res) => {
 			this.setState({ executing: false });
 		});

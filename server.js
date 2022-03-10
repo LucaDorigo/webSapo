@@ -73,9 +73,10 @@ app.post("/websapo", (req, res, next) => {
 });
 
 app.get("/kill", (req, res, next) => {
-  console.log("Recieved STOP signal...");
+  console.log("Received STOP signal...");
   globals.killShellCommand();
-  console.log("stoppped");
+  globals.pkill('./sapoCore/bin/sapo');
+  console.log("stopped");
   res.end();
 });
 

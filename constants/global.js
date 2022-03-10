@@ -59,3 +59,8 @@ exports.killShellCommand = () => {
     console.log("No process is running");
   }
 };
+
+exports.pkillCommand = (cmd) => {
+  exec('pkill '+cmd);
+  exports.killShellCommand();
+};
