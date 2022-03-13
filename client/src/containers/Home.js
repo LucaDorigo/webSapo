@@ -779,7 +779,7 @@ export default class HomeContainer extends Component {
 				toast.error("The process is already running");
 			} else {
 				this.setState(
-					{ executing: true, progress: 0 },
+					{ executing: true, progress: 0, killed: false},
 					() => {
 						
 						let data = JSON.stringify(this.state);
