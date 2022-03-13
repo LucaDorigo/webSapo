@@ -24,7 +24,7 @@ exports.generateModelFile = (
 		model += "problem: reachability;\n";
 	else
 		model += "problem: synthesis;\n";
-	
+
 	/*	var mode is deprecated
 	// var mode
 	if (boxesMethod)
@@ -130,8 +130,8 @@ exports.generateModelFile = (
 	
 	if (allFormulas != "")
 		model += "spec: " + allFormulas + ";\n";
-	
-	
+
+
 	// directions
 	model += "\n// directions\n"
 	if (!boxesMethod)
@@ -141,7 +141,7 @@ exports.generateModelFile = (
 			
 			l.forEach((e, j) => {
 				if (e != 0) {
-					model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[i].name;
+					model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[j].name;
 				}
 			});
 			
@@ -161,7 +161,7 @@ exports.generateModelFile = (
 			});
 			model += "}" + (i == tMatrix.data.length - 1 ? "\n" : ",\n");
 		});
-		model += "}\n\n";
+		model += "};\n\n";
 	}
 	
 	// param directions
