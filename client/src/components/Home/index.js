@@ -308,11 +308,11 @@ export default class BoxesPage extends Component<Props> {
 									{!this.props.boxesMethod && (
 										<div className={styles.grid_item}>
 											<div className={styles.titleBox}>
-												MODIFY APPROXIMATION METHOD MATRIX
+												MODIFY DIRECTION AND TEMPLATE MATRICIES
 											</div>
 											<div className={styles.center}>
 												<RoundedButton
-													text={"MODIFY L MATRIX"}
+													text={"MODIFY DIRECTION MATRIX"}
 													parameter={false}
 													notClickable={false}
 													callback={() => {
@@ -323,7 +323,7 @@ export default class BoxesPage extends Component<Props> {
 												/>
 												{this.props.polytopesMethod && (
 													<RoundedButton
-														text={"MODIFY T MATRIX"}
+														text={"MODIFY TEMPLATE MATRIX"}
 														parameter={false}
 														notClickable={false}
 														callback={() => {
@@ -423,6 +423,7 @@ export default class BoxesPage extends Component<Props> {
 								matrix={this.props.parametersMatrix}
 								list={this.props.parameters}
 								parametersModal={true}
+								tmatrix={false}
 							/>
 							{this.props.parameters.length !== 0 && (
 								<div>
@@ -461,7 +462,7 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>L MATRIX</h2>
+								<h2>Direction Matrix</h2>
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
@@ -473,11 +474,12 @@ export default class BoxesPage extends Component<Props> {
 										matrix={this.props.lMatrix}
 										list={this.props.variables}
 										parametersModal={false}
+										tmatrix={false}
 									/>
 									{(this.props.polytopesMethod ||
 										this.props.parallelotopesMethod) && (
 										<div>
-											<p>Domain declaration</p>
+											<p>Initial Direction Boundaries</p>
 											{this.props.variables.map((item, index) => {
 												return (
 													<div key={index} className={styles.flexRowDomain}>
@@ -489,7 +491,7 @@ export default class BoxesPage extends Component<Props> {
 															}
 															type="number"
 															id={index}
-															pattern="[0-9]+([\.,][0-9]+)?"
+															pattern="(-)?[0-9]+([\.,][0-9]+)?"
 															step="0.0001"
 														/>
 														<p> - </p>
@@ -501,7 +503,7 @@ export default class BoxesPage extends Component<Props> {
 															}
 															type="number"
 															id={index}
-															pattern="[0-9]+([\.,][0-9]+)?"
+															pattern="(-)?[0-9]+([\.,][0-9]+)?"
 															step="0.0001"
 														/>
 													</div>
@@ -549,7 +551,7 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>T MATRIX</h2>
+								<h2>Template Matrix</h2>
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
@@ -558,6 +560,7 @@ export default class BoxesPage extends Component<Props> {
 								matrix={this.props.tMatrix}
 								list={this.props.variables}
 								parametersModal={false}
+								tmatrix={true}
 							/>
 							{this.props.variables.length !== 0 && (
 								<div>

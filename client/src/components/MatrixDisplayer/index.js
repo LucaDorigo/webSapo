@@ -10,6 +10,7 @@ type Props = {};
  * @param updateMatrixElement: callback to modify the value of a specific matrix element
  * @param list: list containing all the info about the parameters/variables to display
  * @param parametersModal: boolean used to understand what info tho show or hide
+ * @param tmatrix: boolean to establish whether a tmatrix should be represented 
  */
 
 export default class MatrixDisplayer extends Component<Props> {
@@ -36,7 +37,7 @@ export default class MatrixDisplayer extends Component<Props> {
                             )}
                           </div>
                         )}
-                        {indexRow === 0 && !this.props.parametersModal && (
+                        {indexRow === 0 && !this.props.tmatrix && !this.props.parametersModal && (
                           <p>{this.props.list[indexColumn].name}</p>
                         )}
                         <input
@@ -70,7 +71,7 @@ export default class MatrixDisplayer extends Component<Props> {
                           }
                           className={styles.matrixElement}
                           type="number"
-                          pattern="[0-9]+([\.,][0-9]+)?"
+                          pattern="(-)?[0-9]+([\.,][0-9]+)?"
                           step="0.0001"
                           name="matrixElement"
                           id={indexColumn}
@@ -80,7 +81,7 @@ export default class MatrixDisplayer extends Component<Props> {
                   })}
                 </div>
               )}
-              {!Array.isArray(itemRow) && <p>No parameters inserted</p>}
+              {/*!Array.isArray(itemRow) && <p>No parameters inserted</p>*/}
             </div>
           );
         })}

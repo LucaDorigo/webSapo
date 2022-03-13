@@ -44,7 +44,7 @@ export default class VariableRow extends Component<Props> {
             )}
             {(this.props.parallelotopesMethod || this.props.polytopesMethod) &&
               !this.props.parameter && (
-                <p>DOMAIN DECLARATION INSIDE MODIFY L MATRIX MODAL</p>
+                <p>DECLARE INITIAL SET IN DIRECTION MATRIX</p>
               )}
             {!this.props.polytopes && this.props.parameter && (
               <p>INITIAL OFFSET</p>
