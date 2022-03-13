@@ -149,9 +149,9 @@ exports.generateModelFile = (
 		});
 		model += "\n";
 	}
-	
+
 	// template
-	if (polytopesMethod)
+	if (polytopesMethod && tMatrix.size[0]>0)
 	{
 		model += "template = {\n";
 		tMatrix.data.forEach((row, i) => {

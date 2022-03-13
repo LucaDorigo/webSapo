@@ -159,8 +159,6 @@ export default class HomeContainer extends Component {
 
 	// save the array at every changes, array contains variables or parameters of the system
 	saveChanges(copiedArray, parameter) {
-		console.log(this.state.lMatrix);
-
 		if (parameter) {
 			this.setState({
 				parameters: copiedArray,
@@ -302,12 +300,7 @@ export default class HomeContainer extends Component {
 			}).length;
 
 			newLMatrix = math.identity(copiedArray.length, numberOfVar);
-			newTMatrix = this.state.tMatrix.resize([1, numberOfVar]);
-			newTMatrix = math.subset(
-				newTMatrix,
-				math.index(0, numberOfVar - 1),
-				numberOfVar - 1
-			);
+			newTMatrix = this.state.tMatrix.resize([0, numberOfVar]);
 
 			this.setState({
 				lMatrix: newLMatrix,
@@ -556,10 +549,20 @@ export default class HomeContainer extends Component {
 	addRowTMatrix = () => {
 		let newMatrix = this.state.tMatrix;
 		let matrixDimensions = newMatrix.size();
-		let numberOfRows = matrixDimensions[0];
-		matrixDimensions[0] = numberOfRows + 1;
-		newMatrix.resize(matrixDimensions);
-
+		if (matrixDimensions[0]===0) {
+			let numberOfVar = this.state.variables.filter(element => {
+				return !element.lMatrixExtra;
+			}).length;
+			newMatrix = newMatrix.resize([1, numberOfVar]);
+			newMatrix = math.subset(
+				newMatrix,
+				math.index(0, numberOfVar - 1),
+				numberOfVar - 1
+			);
+		} else {
+			matrixDimensions[0]+=1;
+			newMatrix.resize(matrixDimensions);
+		}
 		this.setState({
 			tMatrix: newMatrix,
 			sapoResults: undefined
@@ -571,7 +574,7 @@ export default class HomeContainer extends Component {
 		let matrixDimensions = newMatrix.size();
 		let numberOfRows = matrixDimensions[0];
 
-		if (numberOfRows !== 1) {
+		if (numberOfRows > 0) {
 			matrixDimensions[0] = numberOfRows - 1;
 			newMatrix.resize(matrixDimensions);
 
@@ -579,8 +582,6 @@ export default class HomeContainer extends Component {
 				tMatrix: newMatrix,
 				sapoResults: undefined
 			});
-		} else {
-			toast.error("The matrix cannot be empty");
 		}
 	};
 
@@ -779,7 +780,7 @@ export default class HomeContainer extends Component {
 				toast.error("The process is already running");
 			} else {
 				this.setState(
-					{ executing: true, progress: 0, killed: false},
+					{ executing: true, progress: 0, killed: false },
 					() => {
 						
 						let data = JSON.stringify(this.state);
