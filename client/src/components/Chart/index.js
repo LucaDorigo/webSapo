@@ -525,7 +525,7 @@ export default class Chart extends Component<Props> {
 
 	calcData()
 	{
-		if (this.props.sapoResults === undefined) {
+		if (this.props.sapoResults === undefined || this.props.sapoResults.data[0].flowpipe[0].length === 0) {
 			return [];
 		}
 

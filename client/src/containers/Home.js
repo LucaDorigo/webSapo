@@ -852,16 +852,23 @@ export default class HomeContainer extends Component {
 										}, 1500);
 
 										sleep(1000).then(() => {
-											this.setState({
-												sapoResults: result,
-												hasResults: true,
-												updateChart: true
-											});
+											if (result.data[0].flowpipe[0].length === 0) {
+												toast.info("The initial set was empty.");
+												this.setState({
+													hasResults: false,
+													executing: false
+												});
+											} else {
+												this.setState({
+													sapoResults: result,
+													hasResults: true,
+													updateChart: true
+												});
 
-											downloadFile(JSON.stringify(this.state),
-													(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-													"result.webSapo", "text/plain");
-
+												downloadFile(JSON.stringify(this.state),
+														(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+														"result.webSapo", "text/plain");
+											}
 											sleep(500).then(() => {
 												this.setState({
 													progress: 0,
