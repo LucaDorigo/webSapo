@@ -310,7 +310,7 @@ export default class BoxesPage extends Component<Props> {
 									{!this.props.boxesMethod && (
 										<div className={styles.grid_item}>
 											<div className={styles.titleBox}>
-												MODIFY DIRECTION AND TEMPLATE MATRICIES
+												MODIFY DIRECTION AND TEMPLATE MATRICES
 											</div>
 											<div className={styles.center}>
 												<RoundedButton
