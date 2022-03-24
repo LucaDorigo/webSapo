@@ -9,6 +9,8 @@ import VariableRow from "../VariableRow/index";
 import EquationRow from "../EquationRow/index";
 import InlineMenu from "../InlineMenu/index";
 import MatrixDisplayer from "../MatrixDisplayer/index";
+import TemplateDisplayer from "../TemplateDisplayer/index";
+import DirectionVectorDisplayer from "../DirectionVectorDisplayer/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
 import Popover from "react-tiny-popover";
@@ -469,7 +471,7 @@ export default class BoxesPage extends Component<Props> {
 							{this.props.variables.length === 0 && <p>No variables inserted</p>}
 							{this.props.variables.length > 0 && (
 								<div className={styles.flexRow}>
-									<MatrixDisplayer
+									<DirectionVectorDisplayer
 										updateMatrixElement={this.props.updateMatrixElement}
 										matrix={this.props.lMatrix}
 										list={this.props.variables}
@@ -555,12 +557,10 @@ export default class BoxesPage extends Component<Props> {
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
-							<MatrixDisplayer
+							<TemplateDisplayer
 								updateMatrixElement={this.props.updateTMatrixElement}
-								matrix={this.props.tMatrix}
-								list={this.props.variables}
-								parametersModal={false}
-								tmatrix={true}
+								tMatrix={this.props.tMatrix}
+								dVector={this.props.lMatrix}
 							/>
 							{this.props.variables.length !== 0 && (
 								<div>

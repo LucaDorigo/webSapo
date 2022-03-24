@@ -1,0 +1,14 @@
+.matrixElement {
+  border: 1px solid #ff8f00;
+  border-radius: 10px;
+  height: 20px;
+  width: 60px;
+  outline: none;
+  padding: 5px;
+  margin: 5px;
+}
+
+.flexRow {
+  display: flex;
+  flex-direction: row;
+}
