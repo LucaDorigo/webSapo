@@ -201,9 +201,7 @@ export default class HomeContainer extends Component {
 	// ------------- VARIABLE STUFF ----------------------
 
 	changeName = (e, parameter) => {
-		let copiedArray = deepCopy(
-			parameter ? this.state.parameters : this.state.variables
-		);
+		let copiedArray = parameter ? this.state.parameters : this.state.variables;
 
 		let obj = copiedArray[e.target.id];
 		obj.name = e.target.value;
@@ -230,37 +228,38 @@ export default class HomeContainer extends Component {
 	};
 
 	changeLowerBound = (e, parameter) => {
-		let copiedArray = deepCopy(
-			parameter ? this.state.parameters : this.state.variables
-		);
-		let obj = copiedArray[e.target.id];
+		let targetArray = parameter ? this.state.parameters : this.state.variables;
+
+		let obj = targetArray[e.target.id]
 		obj.lowerBound = parseFloat(e.target.value);
+		/* boundaries consistency temporary unabled 
 		if (obj.lowerBound>obj.upperBound) {
 			obj.upperBound = obj.lowerBound;
 		}
+		*/
 
-		this.saveChanges(copiedArray, parameter);
+		this.saveChanges(targetArray, parameter);
 	};
 
 	changeUpperBound = (e, parameter) => {
-		let copiedArray = deepCopy(
-			parameter ? this.state.parameters : this.state.variables
-		);
-		let obj = copiedArray[e.target.id];
+		let targetArray = parameter ? this.state.parameters : this.state.variables;
+
+		let obj = targetArray[e.target.id];
 		obj.upperBound = parseFloat(e.target.value);
+		/* boundaries consistency temporary unabled 
 		if (obj.lowerBound>obj.upperBound) {
 			obj.lowerBound = obj.upperBound;
 		}
+		*/
 
-		this.saveChanges(copiedArray, parameter);
+		this.saveChanges(targetArray, parameter);
 	};
 
 	// callback to add a variable or a parameter, modifying the rispective matrix
 	addCallback = parameter => {
-		let copiedArray = deepCopy(
-			parameter ? this.state.parameters : this.state.variables
-		);
-		copiedArray.push({
+		let targetArray = parameter ? this.state.parameters : this.state.variables;
+
+		targetArray.push({
 			name: "",
 			lowerBound: 0,
 			upperBound: 0,
@@ -268,22 +267,22 @@ export default class HomeContainer extends Component {
 		});
 
 		if (parameter) {
-			const indexFirstMatrixEl = (copiedArray.length - 1) * 2;
+			const indexFirstMatrixEl = (targetArray.length - 1) * 2;
 			const indexSecondMatrixEl = indexFirstMatrixEl + 1;
 
 			let newMatrix = this.state.parametersMatrix.resize([
-				copiedArray.length * 2,
-				copiedArray.length + 1
+				targetArray.length * 2,
+				targetArray.length + 1
 			]);
 
 			newMatrix = math.subset(
 				newMatrix,
-				math.index(indexFirstMatrixEl, copiedArray.length - 1),
+				math.index(indexFirstMatrixEl, targetArray.length - 1),
 				1
 			);
 			newMatrix = math.subset(
 				newMatrix,
-				math.index(indexSecondMatrixEl, copiedArray.length - 1),
+				math.index(indexSecondMatrixEl, targetArray.length - 1),
 				-1
 			);
 
@@ -295,11 +294,11 @@ export default class HomeContainer extends Component {
 			let newLMatrix = this.state.lMatrix;
 			let newTMatrix = this.state.tMatrix;
 
-			let numberOfVar = copiedArray.filter(element => {
+			let numberOfVar = targetArray.filter(element => {
 				return !element.lMatrixExtra;
 			}).length;
 
-			newLMatrix = math.identity(copiedArray.length, numberOfVar);
+			newLMatrix = math.identity(targetArray.length, numberOfVar);
 			newTMatrix = this.state.tMatrix.resize([0, numberOfVar]);
 
 			this.setState({
@@ -308,22 +307,20 @@ export default class HomeContainer extends Component {
 				disabledAddVariable: true
 			});
 		}
-		this.saveChanges(copiedArray, parameter);
+		this.saveChanges(targetArray, parameter);
 	};
 
 	// callback for removing a variable or a parameter, modifying the rispective matrix
 	deleteCallback = (e, parameter) => {
-		let copiedArray = deepCopy(
-			parameter ? this.state.parameters : this.state.variables
-		);
+		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		let name = copiedArray[e.target.id].name;
-		copiedArray.splice(e.target.id, 1);
+		let name = targetArray[e.target.id].name;
+		targetArray.splice(e.target.id, 1);
 
-		this.checkAllDefined(copiedArray, parameter);
+		this.checkAllDefined(targetArray, parameter);
 
 		if (!parameter) {
-			let numberOfVar = copiedArray.filter(element => {
+			let numberOfVar = targetArray.filter(element => {
 				return !element.lMatrixExtra;
 			}).length;
 
@@ -332,7 +329,7 @@ export default class HomeContainer extends Component {
 
 			if (numberOfVar !== 0) {
 				newLMatrix = this.state.lMatrix.resize([
-					copiedArray.length,
+					targetArray.length,
 					numberOfVar
 				]);
 				newTMatrix = this.state.tMatrix.resize([1, numberOfVar]);
@@ -351,10 +348,10 @@ export default class HomeContainer extends Component {
 			}
 		} else {
 			let newMatrix =
-				copiedArray.length !== 0
+				targetArray.length !== 0
 					? this.state.parametersMatrix.resize([
-							copiedArray.length * 2,
-							copiedArray.length + 1
+							targetArray.length * 2,
+							targetArray.length + 1
 						])
 					: math.zeros(1);
 
@@ -363,24 +360,22 @@ export default class HomeContainer extends Component {
 			});
 		}
 
-		this.saveChanges(copiedArray, parameter);
+		this.saveChanges(targetArray, parameter);
 	};
 
 	// ------------- EQUATION STUFF ----------------------
 
 	deleteEquation = index => {
-		let equations = deepCopy(this.state.equations);
-
-		equations.splice(index, 1);
+		this.state.equations.splice(index, 1);
 
 		this.setState({
-			equations: equations,
+			equations: this.state.equations,
 			sapoResults: undefined
 		});
 	};
 
 	addEquation = (index, variableName) => {
-		let equations = deepCopy(this.state.equations);
+		let equations = this.state.equations;
 
 		if (index <= equations.length - 1) {
 			let obj = equations[index];
@@ -396,7 +391,7 @@ export default class HomeContainer extends Component {
 	};
 
 	updateEquation = e => {
-		let equations = deepCopy(this.state.equations);
+		let equations = this.state.equations;
 		let obj = equations[e.target.id];
 		obj.equation = e.target.value;
 
@@ -530,11 +525,11 @@ export default class HomeContainer extends Component {
 	};
 
 	updateTMatrixElement = (e, indexRow, indexColumn) => {
-		if (e.target.value < this.state.variables.length) {
+		if (e.target.value < this.state.lMatrix.size()[0]) {
 			let newMatrix = math.subset(
 				this.state.tMatrix,
 				math.index(indexRow, indexColumn),
-				parseFloat(e.target.value)
+				parseInt(e.target.value)
 			);
 
 			this.setState({
@@ -830,6 +825,7 @@ export default class HomeContainer extends Component {
 							});
 
 							res.on('end', () => {
+								console.log("Computation end");
 								if (! this.state.killed)
 								{
 									var msg_data = JSON.parse(msg);
