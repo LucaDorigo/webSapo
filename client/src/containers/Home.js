@@ -25,7 +25,6 @@ const initState = {
 	maxParamSplits: 0,
 	variables: [], // array of object
 	parameters: [],
-	equations: [],
 	parametersMatrix: math.zeros(1),
 	tMatrix: math.zeros(1),
 	lMatrix: math.identity(1, 1), // updated in this.handleMethodSelection()
@@ -163,74 +162,75 @@ export default class HomeContainer extends Component {
 	};
 
 	// save the array at every changes, array contains variables or parameters of the system
-	saveChanges(copiedArray, parameter) {
+	saveChanges(targetArray, parameter) {
 		if (parameter) {
 			this.setState({
-				parameters: copiedArray,
+				parameters: targetArray,
 				sapoResults: undefined
 			});
 		} else {
 			this.setState({
-				variables: copiedArray,
+				variables: targetArray,
 				sapoResults: undefined
 			});
 		}
 	}
 
 	// prevent the insertion of variables or paramenters if the previous ones aren't defined
-	checkAllDefined = (copiedArray, parameter) => {
-		let allDefined = true;
-
-		for (let i = 0; i < copiedArray.length; i++) {
-			let element = copiedArray[i];
-
-			if (element.name === "") {
-				allDefined = false;
-				break;
+	checkAllDefined = (targetArray, parameter) => {
+		let i = 0;
+		if (!parameter) {
+			while (i < targetArray.length && 
+				 targetArray[i].name !== "" && 
+				 targetArray[i].dynamics !== "") 
+			{
+				i += 1;
 			}
+		} else {
+			while (i < targetArray.length && 
+				targetArray[i].name !== "") 
+			{
+				i += 1;
+			}	
 		}
 
-		if (allDefined === true) {
-			if (parameter) {
-				this.setState({
-					disabledAddParameter: false
-				});
-			} else {
-				this.setState({
-					disabledAddVariable: false
-				});
-			}
+		console.log(i);
+		console.log(targetArray.length);
+		console.log(i===targetArray.length);
+
+		if (parameter) {
+			this.setState({
+				disabledAddParameter: i!==targetArray.length
+			});
+		} else {
+			this.setState({
+				disabledAddVariable: i!==targetArray.length
+			});
 		}
 	};
 
 	// ------------- VARIABLE STUFF ----------------------
 
 	changeName = (e, parameter) => {
-		let copiedArray = parameter ? this.state.parameters : this.state.variables;
+		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		let obj = copiedArray[e.target.id];
+		let obj = targetArray[e.target.id];
 		obj.name = e.target.value;
 
-		if (e.target.value === "") {
-			if (parameter) {
-				this.setState({
-					disabledAddParameter: true
-				});
-			} else {
-				this.setState({
-					disabledAddVariable: true
-				});
-			}
-		} else {
-			this.checkAllDefined(copiedArray, parameter);
-		}
+		this.checkAllDefined(targetArray, parameter);
 
-		if (e.target.value !== "" && !parameter) {
-			this.addEquation(e.target.id, e.target.value);
-		}
-
-		this.saveChanges(copiedArray, parameter);
+		this.saveChanges(targetArray, parameter);
 	};
+
+	changeDynamics = (e) => {
+
+		let obj = this.state.variables[e.target.id];
+		obj.dynamics = e.target.value;
+
+		this.checkAllDefined(this.state.variables, false);
+
+		this.saveChanges(this.state.variables, false);
+	}
 
 	changeLowerBound = (e, parameter) => {
 		let targetArray = parameter ? this.state.parameters : this.state.variables;
@@ -305,6 +305,7 @@ export default class HomeContainer extends Component {
 
 			newLMatrix = math.identity(targetArray.length, numberOfVar);
 			newTMatrix = this.state.tMatrix.resize([0, numberOfVar]);
+			targetArray[targetArray.length-1].dynamics = "";
 
 			this.setState({
 				lMatrix: newLMatrix,
@@ -316,94 +317,58 @@ export default class HomeContainer extends Component {
 	};
 
 	// callback for removing a variable or a parameter, modifying the rispective matrix
-	deleteCallback = (e, parameter) => {
+	deleteCallback = (idx, parameter) => {
 		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		let name = targetArray[e.target.id].name;
-		targetArray.splice(e.target.id, 1);
+		console.log(idx);
+		console.log(targetArray);
 
-		this.checkAllDefined(targetArray, parameter);
+		var parsed = parseInt(idx);
+		if (!isNaN(parsed)) {
 
-		if (!parameter) {
-			let numberOfVar = targetArray.filter(element => {
-				return !element.lMatrixExtra;
-			}).length;
+			targetArray.splice(parsed, 1);
 
-			let newLMatrix;
-			let newTMatrix;
+			this.checkAllDefined(targetArray, parameter);
 
-			if (numberOfVar !== 0) {
-				newLMatrix = this.state.lMatrix.resize([
-					targetArray.length,
-					numberOfVar
-				]);
-				newTMatrix = this.state.tMatrix.resize([1, numberOfVar]);
+			if (!parameter) {
+				let numberOfVar = targetArray.filter(element => {
+					return !element.lMatrixExtra;
+				}).length;
+
+				let newLMatrix;
+				let newTMatrix;
+
+				if (numberOfVar !== 0) {
+					newLMatrix = this.state.lMatrix.resize([
+						targetArray.length,
+						numberOfVar
+					]);
+					newTMatrix = this.state.tMatrix.resize([1, numberOfVar]);
+				} else {
+					newLMatrix = math.identity(1, 1);
+					newTMatrix = math.zeros(1);
+				}
+
+				this.setState({
+					lMatrix: newLMatrix,
+					tMatrix: newTMatrix
+				});
 			} else {
-				newLMatrix = math.identity(1, 1);
-				newTMatrix = math.zeros(1);
+				let newMatrix =
+					targetArray.length !== 0
+						? this.state.parametersMatrix.resize([
+								targetArray.length * 2,
+								targetArray.length + 1
+							])
+						: math.zeros(1);
+
+				this.setState({
+					parametersMatrix: newMatrix
+				});
 			}
 
-			this.setState({
-				lMatrix: newLMatrix,
-				tMatrix: newTMatrix
-			});
-
-			if (name !== "") {
-				this.deleteEquation(e.target.id);
-			}
-		} else {
-			let newMatrix =
-				targetArray.length !== 0
-					? this.state.parametersMatrix.resize([
-							targetArray.length * 2,
-							targetArray.length + 1
-						])
-					: math.zeros(1);
-
-			this.setState({
-				parametersMatrix: newMatrix
-			});
+			this.saveChanges(targetArray, parameter);
 		}
-
-		this.saveChanges(targetArray, parameter);
-	};
-
-	// ------------- EQUATION STUFF ----------------------
-
-	deleteEquation = index => {
-		this.state.equations.splice(index, 1);
-
-		this.setState({
-			equations: this.state.equations,
-			sapoResults: undefined
-		});
-	};
-
-	addEquation = (index, variableName) => {
-		let equations = this.state.equations;
-
-		if (index <= equations.length - 1) {
-			let obj = equations[index];
-			obj.variableName = variableName;
-		} else {
-			equations.push({ variableName: variableName, equation: "" });
-		}
-
-		this.setState({
-			equations: equations,
-			sapoResults: undefined
-		});
-	};
-
-	updateEquation = e => {
-		let equations = this.state.equations;
-		let obj = equations[e.target.id];
-		obj.equation = e.target.value;
-
-		this.setState({
-			equations: equations,
-			sapoResults: undefined
-		});
 	};
 
 	// ------------- MATRIX STUFF ----------------------
@@ -766,8 +731,7 @@ export default class HomeContainer extends Component {
 	startExecuting = () => {
 		let resultChecks = checkInput(
 			this.state.variables,
-			this.state.parameters,
-			this.state.equations
+			this.state.parameters
 		);
 		this.setState({ progress: 0});
 		document.getElementById("progress_msg").innerHTML =
@@ -932,11 +896,9 @@ export default class HomeContainer extends Component {
 		if (configURL) {
 			fetch(configURL)
 			.then(function(response){
-				console.log(response)
 				return response.json();
 			})
 			.then(function(config) {
-				console.log(config);
 				that.setState({
 					...config,
 					lMatrix: math.matrix(config.lMatrix.data),
@@ -1097,9 +1059,9 @@ export default class HomeContainer extends Component {
 				addCallback={this.addCallback}
 				deleteCallback={this.deleteCallback}
 				changeName={this.changeName}
+				changeDynamics={this.changeDynamics}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
-				equations={this.state.equations}
 				updateEquation={this.updateEquation}
 				parametersMatrix={this.state.parametersMatrix}
 				updateMatrixElement={this.updateMatrixElement}

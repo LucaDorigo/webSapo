@@ -1,7 +1,6 @@
 exports.generateModelFile = (
   variables,
   parameters,
-  equations,
   reachability,
   synthesis,
   boxesMethod,
@@ -102,8 +101,11 @@ exports.generateModelFile = (
 
 	model += "\n// dynamics\n"
 	// dynamics
-	equations.forEach(e => {
-		model += "dynamic(" + e.variableName + ") = " + e.equation + ";\n";
+	variables.forEach(v => {
+		if (!v.lMatrixExtra)
+		{
+			model += "dynamic(" + v.name + ") = " + v.dynamics + ";\n";
+		}
 	});
 	
 	// spec
@@ -137,15 +139,17 @@ exports.generateModelFile = (
 	if (!boxesMethod)
 	{
 		lMatrix.data.forEach((l, i) => {
-			model += "direction ";
-			
-			l.forEach((e, j) => {
-				if (e != 0) {
-					model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[j].name;
-				}
-			});
-			
-			model += " in [" + variables[i].lowerBound + ", " + variables[i].upperBound + "];\n"
+			if (i < variables.length) {
+				model += "direction ";
+				
+				l.forEach((e, j) => {
+					if (e != 0) {
+						model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[j].name;
+					}
+				});
+				
+				model += " in [" + variables[i].lowerBound + ", " + variables[i].upperBound + "];\n"
+			}
 		});
 		model += "\n";
 	}

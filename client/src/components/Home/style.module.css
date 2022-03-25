@@ -16,6 +16,14 @@
   height: 10vh;
 }
 
+.headerCenter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
 .titleBox {
   color: black;
   font-size: 20px;
@@ -41,10 +49,19 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  width: 30%
 }
 
 .simplePaddingLeft {
   padding-left: 20px;
+}
+
+.marginRight {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 10vh;
+  width:30%
 }
 
 .flexEnd {
@@ -64,10 +81,26 @@
   padding: 5px;
 }
 
+.grid {
+  display: grid;
+}
+
 .grid_container {
   display: grid;
   grid-template-columns: 50% 50%;
-  height: 100%;
+  height: 65vh;
+}
+
+.grid_container2 {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  height: 25vh;
+}
+
+.grid_container3 {
+  display: grid;
+  grid-template-columns: 33% 33% 33%;
+  height: 25vh;
 }
 
 .grid_item {
@@ -76,7 +109,7 @@
   border: 1px solid #ff8f00;
   border-radius: 10px;
   padding: 20px;
-  font-size: 30px;
+  font-size: 15px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -132,7 +165,7 @@
 
 .main {
   width: 100%;
-  height: 80vh;
+  height: 100%;
 }
 
 .footer {

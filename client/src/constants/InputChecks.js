@@ -29,15 +29,14 @@ const mathFunctions = [
 /**
  * @param variables: JSON object containing all the info's about the variables defined by the user
  * @param parameters: JSON object containing all the info's about the parameters defined by the user
- * @param equations: JSON object containing all the info's about the equations defined by the user
  */
-export const checkInput = (variables, parameters, equations) => {
+export const checkInput = (variables, parameters) => {
   let result = {
     error: false,
     errorMessagge: ""
   };
 
-  checkEquationsCorrectness(equations, result);
+  checkDynamicsCorrectness(variables, result);
   if (result.error) {
     return result;
   }
@@ -65,23 +64,23 @@ export const checkInput = (variables, parameters, equations) => {
     return result;
   }
 
-  cheksEquationsVarAndParams(variables, parameters, equations, result);
+  cheksEquationsVarAndParams(variables, parameters, result);
 
   return result;
 };
 
 /**
- * @param equations: JSON object containing all the info's about the equations defined by the user
+ * @param variables: a list of variable objects
  * @param result: JSON object containing the info to return in case of error to the main file
  */
-const checkEquationsCorrectness = (equations, result) => {
-  equations.map((item, index) => {
+const checkDynamicsCorrectness = (variables, result) => {
+  variables.map((item, index) => {
     try {
-      math.parse(item.equation);
+      math.parse(item.dynamics);
       result.error = false;
     } catch (math) {
       result.errorMessagge =
-        math.toString() + " in equation for variable " + item.variableName;
+        math.toString() + " in equation for variable " + item.name;
       result.error = true;
     }
     return result;
@@ -180,13 +179,11 @@ const checkEqualNamesVarAndParameters = (variables, parameters, result) => {
 /**
  * @param variables: JSON object containing all the info's about the variables defined by the user
  * @param parameters: JSON object containing all the info's about the parameters defined by the user
- * @param equations: JSON object containing all the info's about the equations defined by the user
  * @param result: JSON object containing the info to return in case of error to the main file
  */
 const cheksEquationsVarAndParams = (
   variables,
   parameters,
-  equations,
   result
 ) => {
   let variablesName = [];
@@ -202,17 +199,17 @@ const cheksEquationsVarAndParams = (
 
   let parsedEquation;
 
-  equations.forEach(element => {
-    let equation = element.equation;
+  variables.forEach(element => {
+    let dynamics = element.dynamics;
 
-    if (equation === "") {
+    if (dynamics === "") {
       result.error = true;
       result.errorMessagge =
-        "Equation for variable " + element.variableName + " is empty";
+        "Equation for variable " + element.name + " is empty";
     } else {
 //      let cleanedEquation = equation.replace(/[^A-Z]+/gi, " ");
-      let cleanedEquation = equation.replace(/[^A-Za-z0-9_]+/gi, " ");
-      let equationArray = cleanedEquation.split(" ");
+      let cleanedDynamics = dynamics.replace(/[^A-Za-z0-9_]+/gi, " ");
+      let equationArray = cleanedDynamics.split(" ");
 			
 			let equationIndex = 0;
 			while (equationIndex < equationArray.length) {
@@ -235,17 +232,17 @@ const cheksEquationsVarAndParams = (
               result.errorMessagge =
                 subEquation +
                 " in equation for variable/parameter " +
-                element.variableName +
+                element.name +
                 " is undefined and can't be used";
             } else {
               if (subEquation === "sqrt") {
                 //future checks on sqrt still to be implemented
-                parsedEquation = math.parse(equation);
+                parsedEquation = math.parse(dynamics);
               } else {
                 result.errorMessagge =
                   subEquation +
                   " function in equation for variable " +
-                  element.variableName +
+                  element.name +
                   " can't be used";
               }
             }

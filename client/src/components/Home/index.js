@@ -6,9 +6,9 @@ import ProgressBar from "@ramonak/react-progress-bar";
 import RoundedButton from "../RoundedButton/index";
 import DropdownMenu from "../DropdownMenu/index";
 import FileMenu from "../FileMenu/index";
-import VariableRow from "../VariableRow/index";
-import EquationRow from "../EquationRow/index";
-import InlineMenu from "../InlineMenu/index";
+import VariableRows from "../VariableRows/index";
+import ParameterRows from "../ParameterRows/index";
+//import InlineMenu from "../InlineMenu/index";
 import MatrixDisplayer from "../MatrixDisplayer/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
 import DirectionVectorDisplayer from "../DirectionVectorDisplayer/index";
@@ -45,259 +45,13 @@ export default class BoxesPage extends Component<Props> {
 								handleMethodSelection={this.props.handleMethodSelection}
 								nameSelectedMenu={this.props.nameSelectedMenu}
 							/>
-
-							{/*selector for iteration of the system*/}
-							{ (this.props.synthesis || this.props.reachability) && 
-							  <div className={styles.simplePaddingLeft}>
-								Reachability steps:{" "}
-								<input
-									onChange={this.props.changeNumberOfIterations}
-									value={this.props.numberOfIterations}
-									className={styles.textInput}
-									type="number"
-									name="numberIterations"
-									min="1"
-									step="1"
-								/>
-							</div>
-							}
-
-							{/*selector for maximum vector magnitude*/}
-							{ (this.props.synthesis || this.props.reachability) &&
-							<div className={styles.simplePaddingLeft}>
-								Max bundle magnitude:{" "}
-								<input
-									onChange={this.props.changeMaxBundleMagnitude}
-									value={this.props.maxBundleMagnitude}
-									className={styles.textInput}
-									type="number"
-									min="0"
-									step="0.01"
-								/>
-							</div>
-							}
-
-							{/*selector for maximum number of parameter splits*/}
-							{ this.props.synthesis &&
-							<div className={styles.simplePaddingLeft}>
-								Max parameter splits:{" "}
-								<input
-									onChange={this.props.changeMaxParamSplits}
-									value={this.props.maxParamSplits}
-									className={styles.textInput}
-									type="number"
-									min="0"
-									step="1"
-								/>
-							</div>}
 						</div>
-
-						<div className={styles.flexEnd}>
-							{/* The menu on the top right for load and save*/}
-							<FileMenu
-								projExt = {this.state.proj_extension}
-								resetProject={this.props.resetConfiguration}
-								loadProject={this.props.loadConfiguration}
-								saveProject={() => {
-									this.props.saveConfiguration(this.state.proj_extension);
-									this.setState({ isPopoverOpen: false})}}
-								exportSapo={() => {
-									this.props.exportSourceFile();
-									this.setState({ isPopoverOpen: false})}}
-								fetchProject={this.props.fetchConfiguration}
-								about={() => {
-									this.setState({ isPopoverOpen: false});
-									document.getElementById("about").style.display =
-										"block";
-									window.dispatchEvent(new Event('resize'));}}
-							/>
-						</div>
-						{/* end of menu on the top right */}
-					</div>
-					{/* end of the header*/}
-
-					{this.props.nameSelectedMenu === "Analysis method" && (
-						<div className={styles.selectMethodContainer}>
-							<p>Select an analysis method from the header menu</p>
-						</div>
-					)}
-
-					{this.props.nameSelectedMenu !== "Analysis method" && (
-						<div className={styles.mainContainer}>
-							<div className={styles.main}>
-								<div className={styles.grid_container}>
-									<div className={styles.grid_item}>
-										<div className={styles.titleBox}>VARIABLE DECLARATIONS</div>
-
-										<div className={styles.listBox}>
-											{this.props.variables.map((item, index) => {
-												return (
-													<div key={index}>
-														<VariableRow
-															index={index}
-															name={item.name}
-															lowerBound={item.lowerBound}
-															upperBound={item.upperBound}
-															lMatrixExtra={item.lMatrixExtra}
-															polytopes={false}
-															parameter={false}
-															changeName={this.props.changeName}
-															changeLowerBound={this.props.changeLowerBound}
-															changeUpperBound={this.props.changeUpperBound}
-															deleteCallback={this.props.deleteCallback}
-															boxesMethod={this.props.boxesMethod}
-															polytopesMethod={this.props.polytopesMethod}
-															parallelotopesMethod={
-																this.props.parallelotopesMethod
-															}
-														/>
-														{!item.lMatrixExtra && (
-															<hr className={styles.separator} />
-														)}
-													</div>
-												);
-											})}
-										</div>
-
-										<div className={styles.buttonBox}>
-											<RoundedButton
-												text={"ADD VARIABLE"}
-												parameter={false}
-												callback={this.props.addCallback}
-												notClickable={this.props.disabledAddVariable}
-											/>
-										</div>
-									</div>
-
-									<div className={styles.grid_item}>
-										<div className={styles.titleBox}>
-											PARAMETER DECLARATIONS
-										</div>
-										{/*inline menu selector of the type of parameters*/}
-										<InlineMenu
-											leftButtonText={"BOXES"}
-											rightButtonText={"POLYTOPES"}
-											leftButtonActive={this.props.leftButtonActive}
-											rightButtonActive={this.props.rightButtonActive}
-											setLeftButtonActive={this.props.setLeftButtonActive}
-											setRightButtonActive={this.props.setRightButtonActive}
-										/>
-										{/*printing the parametes of the system*/}
-										<div className={styles.listBox}>
-											{this.props.parameters.map((item, index) => {
-												return (
-													<div key={index}>
-														<VariableRow
-															index={index}
-															name={item.name}
-															polytopes={this.props.rightButtonActive}
-															parameter={true}
-															lowerBound={item.lowerBound}
-															upperBound={item.upperBound}
-															changeName={this.props.changeName}
-															changeLowerBound={this.props.changeLowerBound}
-															changeUpperBound={this.props.changeUpperBound}
-															deleteCallback={this.props.deleteCallback}
-															boxesMethod={this.props.boxesMethod}
-															polytopesMethod={this.props.polytopesMethod}
-															parallelotopesMethod={
-																this.props.parallelotopesMethod
-															}
-														/>
-														<hr className={styles.separator} />
-													</div>
-												);
-											})}
-										</div>
-
-										<div className={styles.buttonBox}>
-											<RoundedButton
-												text={"ADD PARAMETER"}
-												parameter={true}
-												callback={this.props.addCallback}
-												notClickable={this.props.disabledAddParameter}
-											/>
-											{this.props.rightButtonActive && (
-												<RoundedButton
-													text={"SHOW MATRIX"}
-													parameter={true}
-													callback={() => {
-														document.getElementById(
-															"parameterMatrixModal"
-														).style.display = "block";
-													}}
-												/>
-											)}
-										</div>
-									</div>
-									{/*printing the equations of the system*/}
-									<div className={styles.grid_item}>
-										<div className={styles.titleBox}>SYSTEM OF EQUATIONS</div>
-										<div className={styles.listBox}>
-											{this.props.equations.map((item, index) => {
-												return (
-													<EquationRow
-														key={index}
-														index={index}
-														variableName={item.variableName}
-														equation={item.equation}
-														updateEquation={this.props.updateEquation}
-													/>
-												);
-											})}
-										</div>
-									</div>
-
-									{!this.props.boxesMethod && (
-										<div className={styles.grid_item}>
-											<div className={styles.titleBox}>
-												MODIFY DIRECTION AND TEMPLATE MATRICES
-											</div>
-											<div className={styles.center}>
-												<RoundedButton
-													text={"MODIFY DIRECTION MATRIX"}
-													parameter={false}
-													notClickable={false}
-													callback={() => {
-														document.getElementById(
-															"lMatrixModal"
-														).style.display = "block";
-													}}
-												/>
-												{this.props.polytopesMethod && (
-													<RoundedButton
-														text={"MODIFY TEMPLATE MATRIX"}
-														parameter={false}
-														notClickable={false}
-														callback={() => {
-															document.getElementById(
-																"TMatrixModal"
-															).style.display = "block";
-														}}
-													/>
-												)}
-											</div>
-										</div>
-									)}
-								</div>
-							</div>
-
-							{/*footer with buttons*/}
-							<div className={styles.footer}>
-								{/*conditional button*/}
-								{this.props.synthesis && (
-									<button
-										className={styles.logicButton}
-										onClick={() => {
-											document.getElementById("logicModal").style.display =
-												"block";
-										}}
-									>
-										<p>TEMPORAL LOGIC</p>
-									</button>
-								)}
-
-								{this.props.sapoResults === undefined && <button
+						<div className={styles.headerCenter}>
+								{this.props.sapoResults === undefined && 
+								 (this.props.synthesis || this.props.reachability) &&
+								 !this.props.disabledAddVariable &&
+								 !this.props.disabledAddParameter &&  
+								<button
 									onClick={() => {
 										document.getElementById("progress").style.display =
 													"block";
@@ -306,7 +60,7 @@ export default class BoxesPage extends Component<Props> {
 									disabled={this.props.executing}
 									className={styles.startButton}
 								>
-									{!this.props.executing && <p>EXECUTE</p>}
+									{!this.props.executing && <p>Analyze</p>}
 									{this.props.executing && (
 										<PulseLoader
 											sizeUnit={"px"}
@@ -333,10 +87,240 @@ export default class BoxesPage extends Component<Props> {
 										}
 									}}
 								>
-									<p>PLOTS</p>
+									<p>Plot</p>
 								</button>}
 								
 							</div>
+						<div className={styles.marginRight}>
+							<div className={styles.flexEnd}>
+							{/* The menu on the top right for load and save*/}
+							<FileMenu
+								projExt = {this.state.proj_extension}
+								resetProject={this.props.resetConfiguration}
+								loadProject={this.props.loadConfiguration}
+								saveProject={() => {
+									this.props.saveConfiguration(this.state.proj_extension);
+									this.setState({ isPopoverOpen: false})}}
+								exportSapo={() => {
+									this.props.exportSourceFile();
+									this.setState({ isPopoverOpen: false})}}
+								fetchProject={this.props.fetchConfiguration}
+								about={() => {
+									this.setState({ isPopoverOpen: false});
+									document.getElementById("about").style.display =
+										"block";
+									window.dispatchEvent(new Event('resize'));}}
+							/>
+							</div>
+						</div>
+						{/* end of menu on the top right */}
+					</div>
+					{/* end of the header*/}
+
+					{this.props.nameSelectedMenu === "Analysis method" && (
+						<div className={styles.selectMethodContainer}>
+							<p>Select an analysis method from the header menu</p>
+						</div>
+					)}
+
+					{this.props.nameSelectedMenu !== "Analysis method" && (
+						<div className={styles.mainContainer}>
+							<div className={styles.main}>
+								<div className={styles.grid_container}>
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>Variables and Dynamics Laws</div>
+
+										<div className={styles.listBox}>
+											{this.props.variables.map((item, index) => {
+												return (
+													<div key={index}>
+														<VariableRows
+															index={index}
+															name={item.name}
+															dynamics={item.dynamics}
+															lMatrixExtra={item.lMatrixExtra}
+															changeName={this.props.changeName}
+															changeDynamics={this.props.changeDynamics}
+															deleteCallback={this.props.deleteCallback}
+														/>
+														{/*!item.lMatrixExtra && (
+															<hr className={styles.separator} />
+														)*/}
+													</div>
+												);
+											})}
+										</div>
+
+										<div className={styles.buttonBox}>
+											<RoundedButton
+												text={"New Variable"}
+												parameter={false}
+												callback={this.props.addCallback}
+												notClickable={this.props.disabledAddVariable}
+											/>
+										</div>
+									</div>
+									
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>
+											Parameters
+										</div>
+										{/*inline menu selector of the type of parameters*/}
+										{/*
+										<InlineMenu
+											leftButtonText={"Boxes"}
+											rightButtonText={"Polytopes"}
+											leftButtonActive={this.props.leftButtonActive}
+											rightButtonActive={this.props.rightButtonActive}
+											setLeftButtonActive={this.props.setLeftButtonActive}
+											setRightButtonActive={this.props.setRightButtonActive}
+										/>*/}
+										{/*printing the parametes of the system*/}
+										<div className={styles.listBox}>
+											{this.props.parameters.map((item, index) => {
+												return (
+													<div key={index}>
+														<ParameterRows
+															index={index}
+															name={item.name}
+															polytopes={this.props.rightButtonActive}
+															lowerBound={item.lowerBound}
+															upperBound={item.upperBound}
+															changeName={this.props.changeName}
+															changeLowerBound={this.props.changeLowerBound}
+															changeUpperBound={this.props.changeUpperBound}
+															deleteCallback={this.props.deleteCallback}
+														/>
+													</div>
+												);
+											})}
+										</div>
+
+										<div className={styles.buttonBox}>
+											<RoundedButton
+												text={"New Parameter"}
+												parameter={true}
+												callback={this.props.addCallback}
+												notClickable={this.props.disabledAddParameter}
+											/>
+											{this.props.rightButtonActive && (
+												<RoundedButton
+													text={"Parameter Constraints"}
+													parameter={true}
+													callback={() => {
+														document.getElementById(
+															"parameterMatrixModal"
+														).style.display = "block";
+													}}
+												/>
+											)}
+										</div>
+									</div>
+								</div>
+
+								<div className={`${this.props.synthesis?styles.grid_container3:styles.grid_container2}`}>
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>
+											Bundle Space and Initial Set
+										</div>
+										<div className={styles.center}>
+											<RoundedButton
+												text={"Directions and Initial Set"}
+												parameter={false}
+												notClickable={false}
+												callback={() => {
+													document.getElementById(
+														"lMatrixModal"
+													).style.display = "block";
+												}}
+											/>
+											<RoundedButton
+													text={"Templates"}
+													parameter={false}
+													notClickable={false}
+													callback={() => {
+														document.getElementById(
+															"TMatrixModal"
+														).style.display = "block";
+													}}
+												/>
+										</div>
+									</div>
+
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>
+											Reachability
+										</div>
+
+										<div className={styles.center}>
+										{/*selector for iteration of the system*/}
+										{ (this.props.synthesis || this.props.reachability) && 
+										<div className={styles.simplePaddingLeft}>
+											Reachability steps:{" "}
+											<input
+												onChange={this.props.changeNumberOfIterations}
+												value={this.props.numberOfIterations}
+												className={styles.textInput}
+												type="number"
+												name="numberIterations"
+												min="1"
+												step="1"
+											/>
+										</div>
+										}
+
+										{/*selector for maximum vector magnitude*/}
+										{ (this.props.synthesis || this.props.reachability) &&
+										<div className={styles.simplePaddingLeft}>
+											Max bundle magnitude:{" "}
+											<input
+												onChange={this.props.changeMaxBundleMagnitude}
+												value={this.props.maxBundleMagnitude}
+												className={styles.textInput}
+												type="number"
+												min="0"
+												step="0.01"
+											/>
+										</div>
+										}
+										</div>
+									</div>
+									{ this.props.synthesis &&
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>
+											Synthesis
+										</div>
+										<div className={styles.center}>
+											<button
+												className={styles.logicButton}
+												onClick={() => {
+													document.getElementById("logicModal").style.display =
+														"block";
+												}}
+											>
+												<p>Specification</p>
+											</button>
+											<div className={styles.simplePaddingLeft}>
+												Max parameter splits:{" "}
+												<input
+													onChange={this.props.changeMaxParamSplits}
+													value={this.props.maxParamSplits}
+													className={styles.textInput}
+													type="number"
+													min="0"
+													step="1"
+												/>
+											</div>
+										</div>
+
+									</div>
+									}
+								</div>
+							</div>
+
+							{/*footer with buttons*/}
+							{/*<div className={styles.footer}>
+							</div>*/}
 							{/*end footer*/}
 						</div>
 					)}

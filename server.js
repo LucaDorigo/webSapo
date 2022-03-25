@@ -41,7 +41,6 @@ app.post("/websapo", (req, res, next) => {
 		let model = generateI.generateModelFile(
 				vars.variables,
 				vars.parameters,
-				vars.equations,
 				vars.reachability,
 				vars.synthesis,
 				vars.boxesMethod,
@@ -91,7 +90,6 @@ app.post("/saveModel", (req, res, next) => {
 		var result = generateI.generateModelFile(
 			vars.variables,
 			vars.parameters,
-			vars.equations,
 			vars.reachability,
 			vars.synthesis,
 			vars.boxesMethod,
