@@ -16,45 +16,47 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const initState = {
+	executing: false,
+	killed: false,
+	progress: 0,
+	numberOfIterations: 1,
+	maxBundleMagnitude: 0.0,
+	maxParamSplits: 0,
+	variables: [], // array of object
+	parameters: [],
+	equations: [],
+	parametersMatrix: math.zeros(1),
+	tMatrix: math.zeros(1),
+	lMatrix: math.identity(1, 1), // updated in this.handleMethodSelection()
+	logicFormulas: [""],
+	cursorPositionForLogicFormula: {
+		index: 0,
+		startPosition: 0,
+		endPosition: 0
+	},
+	reachability: false, // possible use of enumeration?
+	synthesis: false,
+	boxesMethod: false,
+	polytopesMethod: false,
+	parallelotopesMethod: false,
+	leftButtonActive: true, // for the parameters type
+	rightButtonActive: false, // for the parameters type
+	disabledAddVariable: false,
+	disabledAddParameter: false,
+	// will display a combination of 'reachability/synthesis and methods'
+	nameSelectedMenu: "Analysis method",
+	sapoResults: undefined,
+	projectName: undefined,
+	updateChart: true
+};
+
 export default class HomeContainer extends Component {
 	props;
 
 	constructor(props) {
 		super(props);
-		this.state = {
-			executing: false,
-			killed: false,
-			progress: 0,
-			numberOfIterations: 1,
-			maxBundleMagnitude: 0.0,
-			maxParamSplits: 0,
-			variables: [], // array of object
-			parameters: [],
-			equations: [],
-			parametersMatrix: math.zeros(1),
-			tMatrix: math.zeros(1),
-			lMatrix: math.identity(1, 1), // updated in this.handleMethodSelection()
-			logicFormulas: [""],
-			cursorPositionForLogicFormula: {
-				index: 0,
-				startPosition: 0,
-				endPosition: 0
-			},
-			reachability: false, // possible use of enumeration?
-			synthesis: false,
-			boxesMethod: false,
-			polytopesMethod: false,
-			parallelotopesMethod: false,
-			leftButtonActive: true, // for the parameters type
-			rightButtonActive: false, // for the parameters type
-			disabledAddVariable: false,
-			disabledAddParameter: false,
-			// will display a combination of 'reachability/synthesis and methods'
-			nameSelectedMenu: "Analysis method",
-			sapoResults: undefined,
-			projectName: undefined,
-			updateChart: true
-		};
+		this.state = initState;
 	}
 
 	resetParams = () => {
@@ -917,8 +919,37 @@ export default class HomeContainer extends Component {
 													"none";
 	};
 
-	loadConfiguration = (id) => {
-		let file = document.getElementById(id).files[0];
+	resetConfiguration = () => {
+		this.setState(initState);
+	}
+
+	fetchConfiguration = (configURL) => {
+		const that = this;
+
+		if (configURL) {
+			fetch(configURL)
+			.then(function(response){
+				console.log(response)
+				return response.json();
+			})
+			.then(function(config) {
+				console.log(config);
+				that.setState({
+					...config,
+					lMatrix: math.matrix(config.lMatrix.data),
+					tMatrix: math.matrix(config.tMatrix.data),
+					parametersMatrix: math.matrix(
+						config.parametersMatrix.data
+					),
+					sapoResults: ("sapoResults" in config ? config.sapoResults : undefined),
+					hasResults: ("hasResults" in config ? config.stateFromFile : false),
+					updateChart: true
+				});
+			});
+		}
+	};
+
+	loadConfiguration = (file) => {
 		if (file)
 		{
 			let reader = new FileReader();
@@ -1089,8 +1120,10 @@ export default class HomeContainer extends Component {
 				disabledAddVariable={this.state.disabledAddVariable}
 				disabledAddParameter={this.state.disabledAddParameter}
 				//
+				resetConfiguration={this.resetConfiguration}
 				loadConfiguration={this.loadConfiguration}
 				saveConfiguration={this.saveConfiguration}
+				fetchConfiguration={this.fetchConfiguration}
 				loadResult={this.loadResult}
 				exportSourceFile={this.exportSourceFile}
 				chooseMethod={this.chooseMethod}

@@ -18,10 +18,12 @@ const execSyncWrapper = (command) => {
 const main = () => {
   let gitBranch = execSyncWrapper('git rev-parse --abbrev-ref HEAD');
   let gitCommitHash = execSyncWrapper('git rev-parse --short=7 HEAD');
+  let fullGitCommitHash = execSyncWrapper('git rev-parse HEAD');
 
   const obj = {
     gitBranch,
-    gitCommitHash
+    gitCommitHash,
+    fullGitCommitHash
   };
 
   const filePath = path.resolve('src', 'generatedGitInfo.json');

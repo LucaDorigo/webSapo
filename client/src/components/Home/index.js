@@ -5,6 +5,7 @@ import modalStyles from "./modalStyle.module.css";
 import ProgressBar from "@ramonak/react-progress-bar";
 import RoundedButton from "../RoundedButton/index";
 import DropdownMenu from "../DropdownMenu/index";
+import FileMenu from "../FileMenu/index";
 import VariableRow from "../VariableRow/index";
 import EquationRow from "../EquationRow/index";
 import InlineMenu from "../InlineMenu/index";
@@ -13,9 +14,7 @@ import TemplateDisplayer from "../TemplateDisplayer/index";
 import DirectionVectorDisplayer from "../DirectionVectorDisplayer/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
-import Popover from "react-tiny-popover";
 //import { black } from "ansi-colors";
-import { MdMenu } from "react-icons/md";
 import PulseLoader from "react-spinners/PulseLoader";
 
 import { toast } from 'react-toastify';
@@ -50,7 +49,7 @@ export default class BoxesPage extends Component<Props> {
 							{/*selector for iteration of the system*/}
 							{ (this.props.synthesis || this.props.reachability) && 
 							  <div className={styles.simplePaddingLeft}>
-								Number of iterations:{" "}
+								Reachability steps:{" "}
 								<input
 									onChange={this.props.changeNumberOfIterations}
 									value={this.props.numberOfIterations}
@@ -95,81 +94,23 @@ export default class BoxesPage extends Component<Props> {
 
 						<div className={styles.flexEnd}>
 							{/* The menu on the top right for load and save*/}
-							<Popover
-								isOpen={this.state.isPopoverOpen}
-								position={"bottom"}
-								padding={0}
-								onClickOutside={() => this.setState({ isPopoverOpen: false })} // close popover
-								containerClassName={styles.menuContainer}
-								content={(
-									{ position, nudgedLeft, nudgedTop, targetRect, popoverRect } // you can also provide a render function that injects some useful stuff!
-								) => (
-									<div style={{ padding: 10 }}>
-										<p
-											className={styles.menuElement}
-										>
-											<label
-												className={styles.menuElement}
-												htmlFor="loadConf"
-											>
-												Load project
-											</label>
-										</p>
-										<input id="loadConf" className={styles.file} type="file" accept={"." + this.state.proj_extension} onChange={() => {
-												this.props.loadConfiguration("loadConf");
-												this.setState({ isPopoverOpen: false})}}/>
-										<p
-											className={styles.menuElement}
-											onClick={() => {
-													this.props.saveConfiguration(this.state.proj_extension);
-													this.setState({ isPopoverOpen: false})}
-												}
-										>
-											Save project
-										</p>
-										<p
-											className={styles.menuElement}
-										>
-											<label
-												className={styles.menuElement}
-												htmlFor="loadResult"
-											>
-												Load sapo result
-											</label>
-										</p>
-										<input id="loadResult" className={styles.file} type="file" accept={".json"} onChange={() => {
-												this.props.loadResult("loadResult");
-												this.setState({ isPopoverOpen: false})}}/>
-										<p
-											className={styles.menuElement}
-											onClick={() => {
-													this.props.exportSourceFile();
-													this.setState({ isPopoverOpen: false})}
-												}
-										>
-											Export model file
-										</p>
-										<p
-											className={styles.menuElement}
-											onClick={() => {
-												this.setState({ isPopoverOpen: false});
-												document.getElementById("about").style.display =
-													"block";
-												window.dispatchEvent(new Event('resize'));
-											}}
-										>
-										About webSapo...
-										</p>
-									</div>
-								)}
-							>
-								{/* end of the opening popover tag */}
-								<MdMenu
-									className={styles.icon}
-									size={30}
-									onClick={() => this.setState({ isPopoverOpen: true })}
-								/>
-							</Popover>
+							<FileMenu
+								projExt = {this.state.proj_extension}
+								resetProject={this.props.resetConfiguration}
+								loadProject={this.props.loadConfiguration}
+								saveProject={() => {
+									this.props.saveConfiguration(this.state.proj_extension);
+									this.setState({ isPopoverOpen: false})}}
+								exportSapo={() => {
+									this.props.exportSourceFile();
+									this.setState({ isPopoverOpen: false})}}
+								fetchProject={this.props.fetchConfiguration}
+								about={() => {
+									this.setState({ isPopoverOpen: false});
+									document.getElementById("about").style.display =
+										"block";
+									window.dispatchEvent(new Event('resize'));}}
+							/>
 						</div>
 						{/* end of menu on the top right */}
 					</div>
