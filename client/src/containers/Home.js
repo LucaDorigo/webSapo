@@ -129,7 +129,7 @@ export default class HomeContainer extends Component {
 			reachability: false,
 			synthesis: false,
 			boxesMethod: false,
-			polytopesMethod: false,
+			polytopesMethod: true,
 			parallelotopesMethod: false,
 			sapoResults: undefined
 		});
@@ -141,6 +141,7 @@ export default class HomeContainer extends Component {
 			this.setState({ synthesis: true });
 		}
 
+		/*
 		if (key.includes("boxes")) {
 			let numVar = this.state.variables.length;
 			numVar = numVar === 0 ? 1 : numVar;
@@ -155,6 +156,8 @@ export default class HomeContainer extends Component {
 		} else if (key.includes("parallelotopes")) {
 			this.setState({ parallelotopesMethod: true });
 		}
+		*/
+
 		// write the menu name
 		this.setState({ nameSelectedMenu: key });
 	};

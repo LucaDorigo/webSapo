@@ -1,12 +1,9 @@
 /* eslint no-console:0 */
 import React, { Component } from "react";
-import Menu, { SubMenu, MenuItem, Divider } from "rc-menu";
+import Menu, { SubMenu, MenuItem } from "rc-menu";
 
 const reachability = "reachability";
 const synthesis = "synthesis";
-const boxes = "boxes";
-const polytopes = "polytopes";
-const parallelotopes = "parallelotopes";
 
 export default class SelectorMenu extends Component {
   /*
@@ -26,25 +23,8 @@ export default class SelectorMenu extends Component {
         triggerSubMenuAction={triggerSubMenuAction}
       >
         <SubMenu title={this.props.nameSelectedMenu}>
-          <SubMenu title={reachability} key={reachability}>
-            <MenuItem key={reachability + " " + boxes}>{boxes}</MenuItem>
-
-            <MenuItem key={reachability + " " + parallelotopes}>
-              {parallelotopes}
-            </MenuItem>
-
-            <MenuItem key={reachability + " " + polytopes}>
-              {polytopes}
-            </MenuItem>
-          </SubMenu>
-          <Divider />
-
-          <SubMenu title={synthesis} key={synthesis}>
-            <MenuItem key={synthesis + " " + parallelotopes /*polytopes?*/}>
-              {" "}
-              {parallelotopes}{" "}
-            </MenuItem>
-          </SubMenu>
+          <MenuItem key={reachability}>{reachability}</MenuItem>
+          <MenuItem key={synthesis}>{synthesis}</MenuItem>
         </SubMenu>
       </Menu>
     );
