@@ -106,8 +106,6 @@ exports.generateModelFile = (
 	model += "\n// directions\n";
 
 	directions.forEach((direction, index) => {
-		console.log("QUI");
-		console.log(direction);
 		model += "direction "+ direction;
 		
 		model += " in [" + initialDirBoundaries[index].lowerBound + ", " + 

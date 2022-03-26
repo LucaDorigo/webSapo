@@ -42,7 +42,7 @@ export default class FileMenu extends Component {
     <MenuDivider />
         <SubMenu label="Examples">
             <MenuItem onClick={() => {this.fetchExample('Ebola');}}>Ebola</MenuItem>
-            <MenuItem onClick={() => {this.fetchExample('Influenza-splits');}}>Influenza (with splits)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('COVID-splits');}}>COVID (with splits)</MenuItem>
         </SubMenu>
         <MenuItem onClick={this.props.about}>About webSapo...</MenuItem>
       </Menu>

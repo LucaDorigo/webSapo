@@ -6,11 +6,6 @@ const reachability = "reachability";
 const synthesis = "synthesis";
 
 export default class SelectorMenu extends Component {
-  /*
-  constructor(props) {
-    super(props);
-  }
-  */
 
   // menu without a name
   // key values of the menu item are String
