@@ -64,7 +64,8 @@ export default class BoxesPage extends Component<Props> {
 								 </div>
 								}
 								
-								{this.props.sapoResults !== undefined && <button
+								{this.props.sapoResults !== undefined && 
+								 (this.props.synthesis || this.props.reachability) && <button
 									className={styles.chartButton}
 									onClick={() => {
 										if (this.props.sapoResults.data.length > 0) {
@@ -96,6 +97,9 @@ export default class BoxesPage extends Component<Props> {
 									this.setState({ isPopoverOpen: false})}}
 								exportSapo={() => {
 									this.props.exportSourceFile();
+									this.setState({ isPopoverOpen: false})}}
+								loadResult={(id) => {
+									this.props.loadResult(id);
 									this.setState({ isPopoverOpen: false})}}
 								fetchProject={this.props.fetchConfiguration}
 								about={() => {

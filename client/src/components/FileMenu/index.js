@@ -38,10 +38,15 @@ export default class FileMenu extends Component {
         <MenuItem onClick={this.props.saveProject}>Save Project</MenuItem>
         <MenuItem onClick={this.props.exportSapo}>Export Sapo SIL</MenuItem>
     <MenuDivider />
-        <MenuItem>Plot Sapo Results</MenuItem>
+        <MenuItem><label htmlFor="loadResult">Plot Sapo Results</label></MenuItem>
+        <input id="loadResult" className={styles.file} type="file" accept={".json"}
+            onChange={(e) => {
+												this.props.loadResult("loadResult");
+                        e.target.value = '';}} hidden/>
     <MenuDivider />
         <SubMenu label="Examples">
             <MenuItem onClick={() => {this.fetchExample('Ebola');}}>Ebola</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('COVID-no-splits');}}>COVID</MenuItem>
             <MenuItem onClick={() => {this.fetchExample('COVID-splits');}}>COVID (with splits)</MenuItem>
         </SubMenu>
         <MenuItem onClick={this.props.about}>About webSapo...</MenuItem>
