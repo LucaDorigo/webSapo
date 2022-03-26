@@ -25,7 +25,6 @@ export default class ParameterRows extends Component<Props> {
 
     return (
       <div>
-        {!this.props.lMatrixExtra && (
           <div className={styles.rowVariable}>
           <MdClose
             size={20}
@@ -35,7 +34,7 @@ export default class ParameterRows extends Component<Props> {
             <input
               className={styles.textInput}
               value={this.props.name}
-              onChange={e => this.props.changeName(e, this.props.parameter)}
+              onChange={e => this.props.changeName(e, true)}
               type="text"
               id={this.props.index}
             />
@@ -51,7 +50,7 @@ export default class ParameterRows extends Component<Props> {
                   className={styles.textInput}
                   value={this.props.lowerBound}
                   onChange={e =>
-                    this.props.changeLowerBound(e, this.props.parameter)
+                    this.props.changeLowerBound(e, true)
                   }
                   type="number"
                   id={this.props.index}
@@ -63,7 +62,7 @@ export default class ParameterRows extends Component<Props> {
                   className={styles.textInput}
                   value={this.props.upperBound}
                   onChange={e =>
-                    this.props.changeUpperBound(e, this.props.parameter)
+                    this.props.changeUpperBound(e, true)
                   }
                   type="number"
                   id={this.props.index}
@@ -72,7 +71,6 @@ export default class ParameterRows extends Component<Props> {
                 />
               </div>
           </div>
-        )}
       </div>
     );
   }

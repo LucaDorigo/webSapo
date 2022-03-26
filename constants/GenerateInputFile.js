@@ -3,16 +3,14 @@ exports.generateModelFile = (
   parameters,
   reachability,
   synthesis,
-  boxesMethod,
-  polytopesMethod,
-  parallelotopesMethod,
   leftButtonActive,
   rightButtonActive,
   numberOfIterations,
   maxBundleMagnitude,
   maxParamSplits,
   parametersMatrix,
-  lMatrix,
+  directions,
+  initialDirBoundaries,
   tMatrix,
   logicFormulas
 ) => {
@@ -23,24 +21,6 @@ exports.generateModelFile = (
 		model += "problem: reachability;\n";
 	else
 		model += "problem: synthesis;\n";
-
-	/*	var mode is deprecated
-	// var mode
-	if (boxesMethod)
-		model += "variable_mode: boxes;\n";
-	else if (parallelotopesMethod)
-		model += "variable_mode: parallelotopes;\n";
-	else
-		model += "variable_mode: polytopes;\n";
-	*/
-	
-	/* param mode is deprecated
-	// param mode
-	if (leftButtonActive)
-		model += "parameter_mode: boxes;\n";
-	else
-		model += "parameter_mode: parallelotopes;\n";
-	*/
 	
 	// iterations
 	model += "iterations: " + numberOfIterations + ";\n";
@@ -57,16 +37,7 @@ exports.generateModelFile = (
 	// variables
 	model += "\n// variables\n";
 	variables.forEach(v => {
-		if (!v.lMatrixExtra)
-		{
-			model += "var " + v.name;
-			
-			// if needed, add interval
-			if (boxesMethod)
-				model += " in [" + v.lowerBound + ", " + v.upperBound + "]";
-			
-			model += ";\n";
-		}
+		model += "var " + v.name + ";\n";
 	});
 	
 	// constants
@@ -102,10 +73,7 @@ exports.generateModelFile = (
 	model += "\n// dynamics\n"
 	// dynamics
 	variables.forEach(v => {
-		if (!v.lMatrixExtra)
-		{
-			model += "dynamic(" + v.name + ") = " + v.dynamics + ";\n";
-		}
+		model += "dynamic(" + v.name + ") = " + v.dynamics + ";\n";
 	});
 	
 	// spec
@@ -135,27 +103,20 @@ exports.generateModelFile = (
 
 
 	// directions
-	model += "\n// directions\n"
-	if (!boxesMethod)
-	{
-		lMatrix.data.forEach((l, i) => {
-			if (i < variables.length) {
-				model += "direction ";
-				
-				l.forEach((e, j) => {
-					if (e != 0) {
-						model += " " + (e > 0 ? "+" : "-") + Math.abs(e) + "*" + variables[j].name;
-					}
-				});
-				
-				model += " in [" + variables[i].lowerBound + ", " + variables[i].upperBound + "];\n"
-			}
-		});
-		model += "\n";
-	}
+	model += "\n// directions\n";
+
+	directions.forEach((direction, index) => {
+		console.log("QUI");
+		console.log(direction);
+		model += "direction "+ direction;
+		
+		model += " in [" + initialDirBoundaries[index].lowerBound + ", " + 
+						   initialDirBoundaries[index].upperBound + "];\n"
+	});
+	model += "\n";
 
 	// template
-	if (polytopesMethod && tMatrix.size[0]>0)
+	if (tMatrix.size[0]>0)
 	{
 		model += "template = {\n";
 		tMatrix.data.forEach((row, i) => {

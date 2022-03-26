@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import LogicRow from "../LogicRow/index";
 import LogicButtons from "../LogicButtons/index";
+import RoundedButton from "../RoundedButton/index";
 import styles from "./style.module.css";
 
 type Props = {};
@@ -12,7 +13,7 @@ export default class LogicDisplayer extends Component<Props> {
     return (
       <div className={styles.grid_container}>
         <div className={styles.grid_item}>
-          <div className={styles.titleBox}>FORMULA DECLARATION</div>
+          <div className={styles.titleBox}>Specification</div>
 
           <div className={styles.grid_container2}>
             <div className={styles.grid_item2}>
@@ -51,12 +52,12 @@ export default class LogicDisplayer extends Component<Props> {
           </div>
 
           <div className={styles.buttonBox}>
-            <button
-              className={styles.button}
-              onClick={this.props.addLogicFormulaCallback}
-            >
-              <p>ADD FORMULA</p>
-            </button>
+            <RoundedButton
+              text={"Add Formula"}
+              parameter={false}
+              callback={this.props.addLogicFormulaCallback}
+              notClickable={this.props.disabledAddFormula}
+            />
           </div>
           <p className={styles.textNote}>Atom syntax admits the following symbols: +, *, &gt;&#61;, &lt;&#61;, &#61;</p>
           <p className={styles.textNote}>
@@ -70,15 +71,11 @@ export default class LogicDisplayer extends Component<Props> {
         <div className={styles.grid_item}>
           <div className={styles.titleBox}>VARIABLES</div>
           {this.props.variables.map((item, index) => {
-            if (item.lMatrixExtra === false) {
-              // hide the variables added for lMatrixExtra
-              return (
-                <p key={index} className={styles.text}>
-                  {item.name}
-                </p>
-              );
-            }
-            return "";
+            return (
+              <p key={index} className={styles.text}>
+                {item.name}
+              </p>
+            );
           })}
         </div>
         {/*end grid item for variables */}

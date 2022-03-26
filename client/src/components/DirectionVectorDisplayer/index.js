@@ -1,16 +1,79 @@
 // @flow
 import React, { Component } from "react";
 import styles from "./style.module.css";
-import * as math from "mathjs";
+import homestyles from "../Home/style.module.css";
+import { MdClose } from "react-icons/md";
 
 type Props = {};
 
 /**
- * @param matrix: matrix to display
- * @param updateMatrixElement: callback to modify the value of a specific matrix element
- * @param list: list containing all the info about the parameters/variables to display
- * @param parametersModal: boolean used to understand what info tho show or hide
- * @param tmatrix: boolean to establish whether a tmatrix should be represented 
+ * @param direction: direction equation
+ * @param initialDirBoundaries: initial boundaries
+ * @param index: index of the direction
+ * @param deleteDirection: callback to delete the direction
+ * @param changeDirection: callback to change the direction
+ * @param	changeLowerBound change lower direction boundary function
+ * @param	changeUpperBound change upper direction boundary function
+ */
+
+export class DirectionRows extends Component<Props> {
+  props: Props;
+
+  render() {
+    let dirBoundaries = this.props.dirBoundaries[this.props.index];
+    return (
+          <div className={styles.rowDirection}>
+            <MdClose
+              size={20}
+              className={styles.icon}
+              onClick={(e) => {
+                this.props.deleteDirection(this.props.index);}}
+            />
+            <p className={homestyles.smallFont}>{this.props.index+1}:&nbsp;</p>
+            <input className={styles.direction} 
+              type="text"
+              value={this.props.direction}
+              onChange={(e) => this.props.changeDirection(e, this.props.index)}
+              />
+            <p className={homestyles.smallFont}>in</p>
+            <input
+              className={homestyles.textInput}
+              value={dirBoundaries.lowerBound}
+              onChange={e =>
+                this.props.changeLowerBound(e, false)
+              }
+              type="number"
+              id={this.props.index}
+              pattern="(-)?[0-9]+([\.,][0-9]+)?"
+              step="0.0001"
+            />
+            <p> - </p>
+            <input
+              className={homestyles.textInput}
+              value={dirBoundaries.upperBound}
+              onChange={e =>
+                this.props.changeUpperBound(e, false)
+              }
+              type="number"
+              id={this.props.index}
+              pattern="(-)?[0-9]+([\.,][0-9]+)?"
+              step="0.0001"
+            />
+        </div>
+    );
+  }
+}
+
+/**
+ * @param variables the variable list
+ * @param directions the directions vector
+ * @param deleteDirection: callback to delete the direction
+ * @param changeDirection: callback to change the direction
+ * @param	initialDirBoundaries the initial direction boundaries
+ * @param	changeLowerBound change lower direction boundary function
+ * @param	changeUpperBound change upper direction boundary function
+ * @param	changeDirection change direction function
+ * @param	deleteDirection delete direction function
  */
 
 export default class DirectionVectorDisplayer extends Component<Props> {
@@ -18,70 +81,19 @@ export default class DirectionVectorDisplayer extends Component<Props> {
 
   render() {
     return (
-      <div className={styles.rowVariable}>
-        {this.props.matrix._data.map((itemRow, indexRow) => {
+      <div className={styles.dirContainer}>
+        {this.props.directions.map((direction, index) => {
           return (
-            <div key={indexRow}>
-              {Array.isArray(itemRow) && (
-                <div className={styles.flexRow}>
-                  {itemRow.map((itemColumn, indexColumn) => {
-                    return (
-                      <div key={indexColumn}>
-                        {indexRow === 0 && this.props.parametersModal && (
-                          <div>
-                            {this.props.list[indexColumn] !== undefined && (
-                              <p>{this.props.list[indexColumn].name}</p>
-                            )}
-                            {this.props.list[indexColumn] === undefined && (
-                              <p>Boundaries</p>
-                            )}
-                          </div>
-                        )}
-                        {indexRow === 0 && !this.props.tmatrix && !this.props.parametersModal && (
-                          <p>{this.props.list[indexColumn].name}</p>
-                        )}
-                        <input
-                          key={indexColumn}
-                          onChange={e =>
-                            this.props.updateMatrixElement(
-                              e,
-                              indexRow,
-                              indexColumn,
-                              indexColumn === itemRow.length - 1,
-                              this.props.parametersModal
-                            )
-                          }
-                          value={
-                            indexColumn !== itemRow.length - 1 ||
-                            indexRow >= this.props.list.length * 2 ||
-                            !this.props.parametersModal
-                              ? itemColumn
-                              : indexRow % 2 === 0
-                              ? this.props.list[math.floor(indexRow / 2)]
-                                  .lowerBound
-                              : this.props.list[math.floor(indexRow / 2)]
-                                  .upperBound
-                          }
-                          disabled={
-                            indexColumn !== itemRow.length - 1 &&
-                            indexRow < this.props.list.length * 2 &&
-                            this.props.parametersModal
-                              ? true
-                              : false
-                          }
-                          className={styles.matrixElement}
-                          type="number"
-                          pattern="(-)?[0-9]+([\.,][0-9]+)?"
-                          step="0.0001"
-                          name="matrixElement"
-                          id={indexColumn}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/*!Array.isArray(itemRow) && <p>No parameters inserted</p>*/}
+            <div key={index} className={styles.rowContainer}>
+              <DirectionRows
+                direction={direction}
+                dirBoundaries={this.props.initialDirBoundaries}
+                index={index}
+                deleteDirection={this.props.deleteDirection}
+                changeDirection={this.props.changeDirection}
+                changeUpperBound={this.props.changeUpperBound}
+                changeLowerBound={this.props.changeLowerBound}
+              />
             </div>
           );
         })}

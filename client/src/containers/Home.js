@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { deepCopy, downloadFile } from "../constants/global";
+import { downloadFile } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
@@ -27,8 +27,9 @@ const initState = {
 	parameters: [],
 	parametersMatrix: math.zeros(1),
 	tMatrix: math.zeros(1),
-	lMatrix: math.identity(1, 1), // updated in this.handleMethodSelection()
-	logicFormulas: [""],
+	directions: [], // array of directions
+	initialDirBoundaries: [],
+	logicFormulas: [],
 	cursorPositionForLogicFormula: {
 		index: 0,
 		startPosition: 0,
@@ -36,13 +37,11 @@ const initState = {
 	},
 	reachability: false, // possible use of enumeration?
 	synthesis: false,
-	boxesMethod: false,
-	polytopesMethod: false,
-	parallelotopesMethod: false,
 	leftButtonActive: true, // for the parameters type
 	rightButtonActive: false, // for the parameters type
 	disabledAddVariable: false,
 	disabledAddParameter: false,
+	disabledAddFormula: false,
 	// will display a combination of 'reachability/synthesis and methods'
 	nameSelectedMenu: "Analysis method",
 	sapoResults: undefined,
@@ -127,9 +126,6 @@ export default class HomeContainer extends Component {
 		this.setState({
 			reachability: false,
 			synthesis: false,
-			boxesMethod: false,
-			polytopesMethod: true,
-			parallelotopesMethod: false,
 			sapoResults: undefined
 		});
 
@@ -139,23 +135,6 @@ export default class HomeContainer extends Component {
 		} else {
 			this.setState({ synthesis: true });
 		}
-
-		/*
-		if (key.includes("boxes")) {
-			let numVar = this.state.variables.length;
-			numVar = numVar === 0 ? 1 : numVar;
-			console.log("numVar " + numVar);
-
-			this.setState({
-				lMatrix: math.identity(numVar, numVar),
-				boxesMethod: true
-			});
-		} else if (key.includes("polytopes")) {
-			this.setState({ polytopesMethod: true });
-		} else if (key.includes("parallelotopes")) {
-			this.setState({ parallelotopesMethod: true });
-		}
-		*/
 
 		// write the menu name
 		this.setState({ nameSelectedMenu: key });
@@ -194,10 +173,6 @@ export default class HomeContainer extends Component {
 			}	
 		}
 
-		console.log(i);
-		console.log(targetArray.length);
-		console.log(i===targetArray.length);
-
 		if (parameter) {
 			this.setState({
 				disabledAddParameter: i!==targetArray.length
@@ -209,13 +184,40 @@ export default class HomeContainer extends Component {
 		}
 	};
 
+	checkFormulas = () => {
+		let i = 0;
+		let logicFormulas = this.state.logicFormulas;
+		while (i < logicFormulas.length && 
+			logicFormulas[i] !== "") {
+			i += 1;
+		}
+
+		this.setState({
+			disabledAddFormula: i!==logicFormulas.length
+		});
+	}
+
 	// ------------- VARIABLE STUFF ----------------------
 
 	changeName = (e, parameter) => {
 		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		let obj = targetArray[e.target.id];
+		let index = e.target.id
+		let obj = targetArray[index];
+		var old_name = obj.name;
 		obj.name = e.target.value;
+
+		if (!parameter) {
+			let directions = this.state.directions;
+
+			if (directions[directions.length-1] === old_name) {
+				this.changeDirection(e, directions.length-1);
+			}
+
+			if (obj.dynamics===old_name) {
+				this.changeDynamics(e);
+			}
+		}
 
 		this.checkAllDefined(targetArray, parameter);
 
@@ -233,7 +235,7 @@ export default class HomeContainer extends Component {
 	}
 
 	changeLowerBound = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.variables;
+		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
 
 		let obj = targetArray[e.target.id]
 		obj.lowerBound = parseFloat(e.target.value);
@@ -243,35 +245,48 @@ export default class HomeContainer extends Component {
 		}
 		*/
 
-		this.saveChanges(targetArray, parameter);
+		if (parameter) {
+			this.setState({
+				parameters: targetArray,
+				sapoResults: undefined
+			});
+		} else {
+			this.setState({
+				initialDirBoundaries: targetArray,
+				sapoResults: undefined
+			});
+		}
 	};
 
 	changeUpperBound = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.variables;
+		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
 
 		let obj = targetArray[e.target.id];
 		obj.upperBound = parseFloat(e.target.value);
-		/* boundaries consistency temporary unabled 
-		if (obj.lowerBound>obj.upperBound) {
-			obj.lowerBound = obj.upperBound;
-		}
-		*/
 
-		this.saveChanges(targetArray, parameter);
+		if (parameter) {
+			this.setState({
+				parameters: targetArray,
+				sapoResults: undefined
+			});
+		} else {
+			this.setState({
+				initialDirBoundaries: targetArray,
+				sapoResults: undefined
+			});
+		}
 	};
 
 	// callback to add a variable or a parameter, modifying the rispective matrix
 	addCallback = parameter => {
 		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		targetArray.push({
-			name: "",
-			lowerBound: 0,
-			upperBound: 0,
-			lMatrixExtra: false
-		});
-
 		if (parameter) {
+			targetArray.push({
+				name: "",
+				lowerBound: 0,
+				upperBound: 0
+			});
 			const indexFirstMatrixEl = (targetArray.length - 1) * 2;
 			const indexSecondMatrixEl = indexFirstMatrixEl + 1;
 
@@ -296,19 +311,19 @@ export default class HomeContainer extends Component {
 				disabledAddParameter: true
 			});
 		} else {
-			let newLMatrix = this.state.lMatrix;
-			let newTMatrix = this.state.tMatrix;
+			targetArray.push({
+				name: "",
+				dynamics: ""
+			});
 
-			let numberOfVar = targetArray.filter(element => {
-				return !element.lMatrixExtra;
-			}).length;
+			let directions = this.state.directions
+			if (directions.length < targetArray.length) {
+				this.addDirection();
+			}
 
-			newLMatrix = math.identity(targetArray.length, numberOfVar);
-			newTMatrix = this.state.tMatrix.resize([0, numberOfVar]);
-			targetArray[targetArray.length-1].dynamics = "";
+			let newTMatrix = this.state.tMatrix.resize([0, targetArray.length]);
 
 			this.setState({
-				lMatrix: newLMatrix,
 				tMatrix: newTMatrix,
 				disabledAddVariable: true
 			});
@@ -320,9 +335,6 @@ export default class HomeContainer extends Component {
 	deleteCallback = (idx, parameter) => {
 		let targetArray = parameter ? this.state.parameters : this.state.variables;
 
-		console.log(idx);
-		console.log(targetArray);
-
 		var parsed = parseInt(idx);
 		if (!isNaN(parsed)) {
 
@@ -331,26 +343,15 @@ export default class HomeContainer extends Component {
 			this.checkAllDefined(targetArray, parameter);
 
 			if (!parameter) {
-				let numberOfVar = targetArray.filter(element => {
-					return !element.lMatrixExtra;
-				}).length;
-
-				let newLMatrix;
 				let newTMatrix;
 
-				if (numberOfVar !== 0) {
-					newLMatrix = this.state.lMatrix.resize([
-						targetArray.length,
-						numberOfVar
-					]);
-					newTMatrix = this.state.tMatrix.resize([1, numberOfVar]);
+				if (targetArray.length !== 0) {
+					newTMatrix = this.state.tMatrix.resize([1, targetArray.length]);
 				} else {
-					newLMatrix = math.identity(1, 1);
 					newTMatrix = math.zeros(1);
 				}
 
 				this.setState({
-					lMatrix: newLMatrix,
 					tMatrix: newTMatrix
 				});
 			} else {
@@ -372,48 +373,6 @@ export default class HomeContainer extends Component {
 	};
 
 	// ------------- MATRIX STUFF ----------------------
-
-	updateMatrixElement = (
-		e,
-		indexRow,
-		indexColumn,
-		updateParams,
-		parametersModal
-	) => {
-		if (parametersModal) {
-			let newMatrix = math.subset(
-				this.state.parametersMatrix,
-				math.index(indexRow, indexColumn),
-				parseFloat(e.target.value)
-			);
-
-			let parameters = this.state.parameters;
-
-			if (updateParams && indexRow < this.state.parameters.length * 2) {
-				if (indexRow % 2 === 0) {
-					parameters[math.floor(indexRow / 2)].lowerBound = e.target.value;
-				} else {
-					parameters[math.floor(indexRow / 2)].upperBound = e.target.value;
-				}
-			}
-
-			this.setState({
-				parameters: parameters,
-				parametersMatrix: newMatrix
-			});
-		} else {
-			let newMatrix = math.subset(
-				this.state.lMatrix,
-				math.index(indexRow, indexColumn),
-				parseFloat(e.target.value)
-			);
-
-			this.setState({
-				lMatrix: newMatrix,
-				sapoResults: undefined
-			});
-		}
-	};
 
 	addRowParameterMatrix = () => {
 		let newMatrix = this.state.parametersMatrix;
@@ -446,56 +405,60 @@ export default class HomeContainer extends Component {
 		}
 	};
 
-	addRowLMatrix = () => {
-		let newMatrix = this.state.lMatrix;
-		let matrixDimensions = newMatrix.size();
-		let numberOfRows = matrixDimensions[0];
-		matrixDimensions[0] = numberOfRows + 1;
-		newMatrix.resize(matrixDimensions);
+	// ------------ Direction Stuff ---------------------
 
-		let copiedArray = deepCopy(this.state.variables);
-		copiedArray.push({
-			name: copiedArray.length + 1,
+	deleteDirection = (index) => {
+		let directions = this.state.directions;
+		let initialDirBoundaries = this.state.initialDirBoundaries;
+
+		if (index < directions.length) {
+			directions.splice(index, 1);
+			initialDirBoundaries.splice(index, 1);
+
+			/* tMatrix UPDATE TO BE DONE */
+
+			this.setState({
+				directions: directions,
+				initialDirBoundaries: initialDirBoundaries,
+				sapoResults: undefined
+			});
+		}
+	};
+
+	changeDirection = (e, index) => {
+		const value = e.target.value;
+
+		let directions = this.state.directions;
+
+		if (index < directions.length) {
+			directions[index] = value;
+
+			this.setState({
+				directions: directions,
+				sapoResults: undefined
+			});
+		}
+	};
+
+	addDirection = () => {
+		let directions = this.state.directions;
+		let initialDirBoundaries = this.state.initialDirBoundaries;
+
+		directions.push("");
+		initialDirBoundaries.push({
 			lowerBound: 0,
-			upperBound: 0,
-			lMatrixExtra: true
-		});
+			upperBound: 0
+		})
 
 		this.setState({
-			variables: copiedArray,
-			lMatrix: newMatrix,
+			directions: directions,
+			initialDirBoundaries: initialDirBoundaries,
 			sapoResults: undefined
 		});
 	};
 
-	deleteRowLMatrix = () => {
-		let newMatrix = this.state.lMatrix;
-		let matrixDimensions = newMatrix.size();
-		let numberOfRows = matrixDimensions[0];
-
-		let numberOfVar = this.state.variables.filter(element => {
-			return !element.lMatrixExtra;
-		}).length;
-
-		if (numberOfRows > numberOfVar) {
-			matrixDimensions[0] = numberOfRows - 1;
-			newMatrix.resize(matrixDimensions);
-			let copiedArray = deepCopy(this.state.variables);
-			copiedArray.splice(copiedArray.length - 1, 1);
-
-			this.setState({
-				variables: copiedArray,
-				lMatrix: newMatrix,
-				sapoResults: undefined
-			});
-		} else {
-			
-			toast.error("The rows must be at least as many as the variables");
-		}
-	};
-
 	updateTMatrixElement = (e, indexRow, indexColumn) => {
-		if (e.target.value < this.state.lMatrix.size()[0]) {
+		if (e.target.value < this.state.variables) {
 			let newMatrix = math.subset(
 				this.state.tMatrix,
 				math.index(indexRow, indexColumn),
@@ -557,6 +520,7 @@ export default class HomeContainer extends Component {
 		new_logicFormulas.push("");
 		this.setState({
 			logicFormulas: new_logicFormulas,
+			disabledAddFormula: true,
 			sapoResults: undefined
 		});
 	};
@@ -570,11 +534,11 @@ export default class HomeContainer extends Component {
 				" " +
 				e.target.selectionEnd
 		);
-		let new_logicFormulas = this.state.logicFormulas;
-		new_logicFormulas[index] = e.target.value;
+		let logicFormulas = this.state.logicFormulas;
+		logicFormulas[index] = e.target.value;
 
 		this.setState({
-			logicFormulas: new_logicFormulas,
+			logicFormulas: logicFormulas,
 			cursorPositionForLogicFormula: {
 				index: index,
 				startPosition: e.target.selectionStart,
@@ -582,6 +546,8 @@ export default class HomeContainer extends Component {
 			},
 			sapoResults: undefined
 		});
+
+		this.checkFormulas();
 	};
 
 	deleteLogicFormulaCallback = id => {
@@ -592,6 +558,8 @@ export default class HomeContainer extends Component {
 			logicFormulas: new_logicFormulas,
 			sapoResults: undefined
 		});
+
+		this.checkFormulas();
 	};
 
 	setCursorPositionForLogicFormula = (index, e) => {
@@ -733,16 +701,18 @@ export default class HomeContainer extends Component {
 			this.state.variables,
 			this.state.parameters
 		);
-		this.setState({ progress: 0});
-		document.getElementById("progress_msg").innerHTML =
-													"Analyzing the problem...";
 
 		if (resultChecks.error) {
+			document.getElementById("progress").style.display =
+			"none";
 			toast.error(resultChecks.errorMessagge);
 		} else {
 			if (this.state.executing) {
 				toast.error("The process is already running");
 			} else {
+				this.setState({ progress: 0});
+				document.getElementById("progress_msg").innerHTML =
+															"Analyzing the problem...";
 				this.setState(
 					{ executing: true, progress: 0, killed: false },
 					() => {
@@ -808,7 +778,6 @@ export default class HomeContainer extends Component {
 									} catch (e) {}
 
 									if (msg_data.stderr === "") {
-										console.log(result);
 										this.setState({ progress: 100 });
 										document.getElementById("progress_msg").innerHTML =
 													"Setting-up plots...";
@@ -818,22 +787,32 @@ export default class HomeContainer extends Component {
 										}, 1500);
 
 										sleep(1000).then(() => {
-											if (result.data[0].flowpipe[0].length === 0) {
-												toast.info("The initial set was empty.");
+											if (result.data.length === 0) {
 												this.setState({
 													hasResults: false,
 													executing: false
 												});
-											} else {
-												this.setState({
-													sapoResults: result,
-													hasResults: true,
-													updateChart: true
-												});
 
-												downloadFile(JSON.stringify(this.state),
-														(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-														"result.webSapo", "text/plain");
+												toast.info("The synthesized set is empty.");
+											} else {
+												if (result.data[0].flowpipe.length !== 0 &&
+													result.data[0].flowpipe[0].length === 0) {
+													toast.info("The initial set was empty.");
+													this.setState({
+														hasResults: false,
+														executing: false
+													});
+												} else {
+													this.setState({
+														sapoResults: result,
+														hasResults: true,
+														updateChart: true
+													});
+
+													downloadFile(JSON.stringify(this.state),
+															(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+															"result.webSapo", "text/plain");
+												}
 											}
 											sleep(500).then(() => {
 												this.setState({
@@ -901,7 +880,6 @@ export default class HomeContainer extends Component {
 			.then(function(config) {
 				that.setState({
 					...config,
-					lMatrix: math.matrix(config.lMatrix.data),
 					tMatrix: math.matrix(config.tMatrix.data),
 					parametersMatrix: math.matrix(
 						config.parametersMatrix.data
@@ -926,7 +904,6 @@ export default class HomeContainer extends Component {
 					this.setState(
 						{
 							...stateFromFile,
-							lMatrix: math.matrix(stateFromFile.lMatrix.data),
 							tMatrix: math.matrix(stateFromFile.tMatrix.data),
 							parametersMatrix: math.matrix(
 								stateFromFile.parametersMatrix.data
@@ -1050,21 +1027,21 @@ export default class HomeContainer extends Component {
 				//
 				reachability={this.state.reachability}
 				synthesis={this.state.synthesis}
-				boxesMethod={this.state.boxesMethod}
-				polytopesMethod={this.state.polytopesMethod}
-				parallelotopesMethod={this.state.parallelotopesMethod}
 				variables={this.state.variables}
+				directions={this.state.directions}
+				initialDirBoundaries={this.state.initialDirBoundaries}
 				parameters={this.state.parameters}
 				//
 				addCallback={this.addCallback}
 				deleteCallback={this.deleteCallback}
 				changeName={this.changeName}
 				changeDynamics={this.changeDynamics}
+				addDirection={this.addDirection}
+				changeDirection={this.changeDirection}
+				deleteDirection={this.deleteDirection}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
-				updateEquation={this.updateEquation}
 				parametersMatrix={this.state.parametersMatrix}
-				updateMatrixElement={this.updateMatrixElement}
 				//
 				logicFormulas={this.state.logicFormulas}
 				addLogicFormulaCallback={this.addLogicFormulaCallback}
@@ -1084,6 +1061,7 @@ export default class HomeContainer extends Component {
 				setRightButtonActive={this.setRightButtonActive}
 				disabledAddVariable={this.state.disabledAddVariable}
 				disabledAddParameter={this.state.disabledAddParameter}
+				disabledAddFormula={this.state.disabledAddFormula}
 				//
 				resetConfiguration={this.resetConfiguration}
 				loadConfiguration={this.loadConfiguration}
@@ -1095,9 +1073,6 @@ export default class HomeContainer extends Component {
 				//
 				addRowParameterMatrix={this.addRowParameterMatrix}
 				deleteRowParameterMatrix={this.deleteRowParameterMatrix}
-				lMatrix={this.state.lMatrix}
-				addRowLMatrix={this.addRowLMatrix}
-				deleteRowLMatrix={this.deleteRowLMatrix}
 				//
 				printSettings={this.state.printSettings}
 				updatePrintSwSettings={this.updatePrintSwSettings}

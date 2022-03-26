@@ -31,9 +31,10 @@ export default class FileMenu extends Component {
         <MenuItem onClick={this.props.resetProject}>Reset Project</MenuItem>
         <MenuItem><label htmlFor="loadConf">Load Project</label></MenuItem>
         <input id="loadConf" type="file" accept={"."+ this.props.projExt} 
-            onChange={() => {
-												let file = document.getElementById("loadConf").files[0];
-												this.props.loadProject(file);}} hidden/>
+            onInput={(e) => {
+												let file = e.target.files[0];
+												this.props.loadProject(file);
+                        e.target.value = '';}} hidden/>
         <MenuItem onClick={this.props.saveProject}>Save Project</MenuItem>
         <MenuItem onClick={this.props.exportSapo}>Export Sapo SIL</MenuItem>
     <MenuDivider />

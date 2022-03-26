@@ -7,7 +7,7 @@ type Props = {};
 /**
  * @param tMatrix: the template matrix to display
  * @param updateMatrixElement: callback to modify the value of a specific matrix element
- * @param dVector: the direction vector
+ * @param directions: the direction vector
  */
 
 export default class TemplateDisplayer extends Component<Props> {
@@ -16,8 +16,8 @@ export default class TemplateDisplayer extends Component<Props> {
   render() {
     var options = [];
 
-    for (var i=0; i<this.props.dVector.size()[0]; i++) {
-      options.push({label: "direction n. "+(i+1), value: i})
+    for (var i=0; i<this.props.directions.length; i++) {
+      options.push({label: (i+1), value: i})
     }
 
     return (

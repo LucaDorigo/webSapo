@@ -7,19 +7,11 @@ type Props = {};
 
 /**
  * @param name: name of the variable/parameter
- * @param changeName: callback to change the variable/parameter name
- * @param lowerBound: lower bound of the variable/parameter
- * @param changeLowerBound: callback to change the lower bound of the variable/parameter
- * @param upperBound: upper bound of the variable/parameter
- * @param changeUpperBound: callback to change the upper bound of the variable/parameter
+ * @param dynamics: variable dynamics
+ * @param changeName: callback to change the variable name
+ * @param changeDynamics: callback to change the variable dynamics
  * @param index: index of the variable/parameter in the JSON array
- * @param polytopes: true|false value used in the parameters box to decide method
- * @param parameter: true|false value to distinguish between variables and parameters
- * @param deleteCallback: callback to delete variable/parameter
- * @param boxesMethod:  true|false value used to distinguish method
- * @param polytopesMethod: true|false value used to distinguish method
- * @param parallelotopesMethod: true|false value used to distinguish method
- * @param lMatrixExtra: true|false value to identify variables that are extra added from the lMatrix modal
+ * @param deleteCallback: callback to delete variable
  */
 
 export default class VariableRows extends Component<Props> {
@@ -28,7 +20,6 @@ export default class VariableRows extends Component<Props> {
   render() {
     return (
       <div>
-        {!this.props.lMatrixExtra && (
           <div className={styles.rowVariable}>
             <MdClose
               size={20}
@@ -50,7 +41,6 @@ export default class VariableRows extends Component<Props> {
               id={this.props.index}
               />
           </div>
-        )}
       </div>
     );
   }

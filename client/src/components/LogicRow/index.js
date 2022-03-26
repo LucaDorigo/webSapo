@@ -10,6 +10,14 @@ export default class LogicRow extends Component<Props> {
   render() {
     return (
       <div className={styles.rowVariable}>
+        <MdClose
+          size={20}
+          className={styles.icon}
+          id={this.props.index}
+          onClick={() => {
+            this.props.deleteLogicFormulaCallback(this.props.index);
+          }}
+        />
         <input
           className={styles.textInput}
           value={this.props.value}
@@ -22,15 +30,6 @@ export default class LogicRow extends Component<Props> {
           onSelect={e => {
             console.log("select");
             this.props.setCursorPositionForLogicFormula(this.props.index, e);
-          }}
-        />
-
-        <MdClose
-          size={20}
-          className={styles.icon}
-          id={this.props.index}
-          onClick={() => {
-            this.props.deleteLogicFormulaCallback(this.props.index);
           }}
         />
       </div>

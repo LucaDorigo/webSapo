@@ -15,7 +15,6 @@ import DirectionVectorDisplayer from "../DirectionVectorDisplayer/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
 //import { black } from "ansi-colors";
-import PulseLoader from "react-spinners/PulseLoader";
 
 import { toast } from 'react-toastify';
 
@@ -41,6 +40,7 @@ export default class BoxesPage extends Component<Props> {
 					<div className={styles.header}>
 						<div className={styles.marginLeft}>
 							{/*menu of selection*/}
+
 							<DropdownMenu
 								handleMethodSelection={this.props.handleMethodSelection}
 								nameSelectedMenu={this.props.nameSelectedMenu}
@@ -49,27 +49,20 @@ export default class BoxesPage extends Component<Props> {
 						<div className={styles.headerCenter}>
 								{this.props.sapoResults === undefined && 
 								 (this.props.synthesis || this.props.reachability) &&
-								 !this.props.disabledAddVariable &&
-								 !this.props.disabledAddParameter &&  
-								<button
-									onClick={() => {
-										document.getElementById("progress").style.display =
-													"block";
-										this.props.startExecuting();
-									}}
-									disabled={this.props.executing}
-									className={styles.startButton}
-								>
-									{!this.props.executing && <p>Analyze</p>}
-									{this.props.executing && (
-										<PulseLoader
-											sizeUnit={"px"}
-											size={5}
-											color={"#fff"}
-											loading={this.props.executing}
-										/>
-									)}
-								</button>}
+								 <div className={styles.buttonBox}>
+								 <RoundedButton
+								 text={(this.props.synthesis?"Synthesis":"Reachability")+ " Analysis"}
+								 parameter={false}
+								 callback={() => {
+									 document.getElementById("progress").style.display =
+												 "block";
+									 this.props.startExecuting();
+								 }}
+								 notClickable={this.props.executing||this.props.disabledAddVariable||
+									this.props.disabledAddParameter||this.props.disabledAddFormula}
+								 />
+								 </div>
+								}
 								
 								{this.props.sapoResults !== undefined && <button
 									className={styles.chartButton}
@@ -138,14 +131,10 @@ export default class BoxesPage extends Component<Props> {
 															index={index}
 															name={item.name}
 															dynamics={item.dynamics}
-															lMatrixExtra={item.lMatrixExtra}
 															changeName={this.props.changeName}
 															changeDynamics={this.props.changeDynamics}
 															deleteCallback={this.props.deleteCallback}
 														/>
-														{/*!item.lMatrixExtra && (
-															<hr className={styles.separator} />
-														)*/}
 													</div>
 												);
 											})}
@@ -230,7 +219,7 @@ export default class BoxesPage extends Component<Props> {
 												notClickable={false}
 												callback={() => {
 													document.getElementById(
-														"lMatrixModal"
+														"DirectionsModal"
 													).style.display = "block";
 												}}
 											/>
@@ -376,12 +365,12 @@ export default class BoxesPage extends Component<Props> {
 				{/*end of the modal matrix*/}
 
 				{/*modal for showing the L matrix*/}
-				<div id="lMatrixModal" className={modalStyles.modal}>
+				<div id="DirectionsModal" className={modalStyles.modal}>
 					<div className={modalStyles.modal_content}>
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("lMatrixModal").style.display =
+									document.getElementById("DirectionsModal").style.display =
 										"none";
 								}}
 								className={modalStyles.close}
@@ -389,71 +378,30 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>Direction Matrix</h2>
+								<h2>Directions and Initial Set</h2>
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
 							{this.props.variables.length === 0 && <p>No variables inserted</p>}
 							{this.props.variables.length > 0 && (
-								<div className={styles.flexRow}>
 									<DirectionVectorDisplayer
-										updateMatrixElement={this.props.updateMatrixElement}
-										matrix={this.props.lMatrix}
-										list={this.props.variables}
-										parametersModal={false}
-										tmatrix={false}
+										directions={this.props.directions}
+										initialDirBoundaries={this.props.initialDirBoundaries}
+										changeLowerBound={this.props.changeLowerBound}
+										changeUpperBound={this.props.changeUpperBound}
+										variables={this.props.variables}
+										changeDirection={this.props.changeDirection}
+										deleteDirection={this.props.deleteDirection}
 									/>
-									{(this.props.polytopesMethod ||
-										this.props.parallelotopesMethod) && (
-										<div>
-											<p>Initial Direction Boundaries</p>
-											{this.props.variables.map((item, index) => {
-												return (
-													<div key={index} className={styles.flexRowDomain}>
-														<input
-															className={styles.textInput}
-															value={item.lowerBound}
-															onChange={e =>
-																this.props.changeLowerBound(e, false)
-															}
-															type="number"
-															id={index}
-															pattern="(-)?[0-9]+([\.,][0-9]+)?"
-															step="0.0001"
-														/>
-														<p> - </p>
-														<input
-															className={styles.textInput}
-															value={item.upperBound}
-															onChange={e =>
-																this.props.changeUpperBound(e, false)
-															}
-															type="number"
-															id={index}
-															pattern="(-)?[0-9]+([\.,][0-9]+)?"
-															step="0.0001"
-														/>
-													</div>
-												);
-											})}
-										</div>
-									)}
-								</div>
 							)}
 
-							{this.props.variables.length !== 0 && this.props.polytopesMethod && (
+							{this.props.variables.length !== 0 && (
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton
-											text={"ADD ROW TO MATRIX"}
+											text={"New Direction"}
 											parameter={false}
-											callback={this.props.addRowLMatrix}
-											notClickable={false}
-										/>
-										<RoundedButton
-											text={"REMOVE LAST ROW FROM MATRIX"}
-											parameter={false}
-											callback={this.props.deleteRowLMatrix}
+											callback={this.props.addDirection}
 											notClickable={false}
 										/>
 									</div>
@@ -485,7 +433,7 @@ export default class BoxesPage extends Component<Props> {
 							<TemplateDisplayer
 								updateMatrixElement={this.props.updateTMatrixElement}
 								tMatrix={this.props.tMatrix}
-								dVector={this.props.lMatrix}
+								directions={this.props.directions}
 							/>
 							{this.props.variables.length !== 0 && (
 								<div>
@@ -516,7 +464,9 @@ export default class BoxesPage extends Component<Props> {
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("logicModal").style.display = "none";
+									if (!this.props.disabledAddFormula) {
+										document.getElementById("logicModal").style.display = "none";
+									}
 								}}
 								className={modalStyles.close}
 							>
@@ -542,6 +492,7 @@ export default class BoxesPage extends Component<Props> {
 								}
 								injectTextInLogicFormula={this.props.injectTextInLogicFormula}
 								variables={this.props.variables}
+								disabledAddFormula={this.props.disabledAddFormula}
 							/>
 						</div>
 					</div>
