@@ -58,8 +58,8 @@ export default class Chart extends Component<Props> {
 		this.state = {
 			reachData: [],                // Overall reachability data: one flow pipe per parameter set
 			paramData: [],                // Overall parameter set data: a list of parameter set
-			reachPlottable: [],           // reachability polygons filtered by pset_selection
-			paramPlottable: [],           // parameter polygons filtered by pset_selection
+			reachPlottable: [],           // reachability polytopes filtered by pset_selection
+			paramPlottable: [],           // parameter polytopes filtered by pset_selection
 			animFrames: [],               // frames for reachability animation
 			current_frame: 0,			  // index of the current frame
 			animBBox: [],			      // the bounding box of the reachability procedure
@@ -601,10 +601,12 @@ export default class Chart extends Component<Props> {
 		var subspace = this.getProjSubspace(variables);
 
 		var time = 0;
-		flowpipe.forEach((convex_polihedra_union) => {
+		flowpipe.forEach((polytopes_union) => {
 			var intervals = [];
-			convex_polihedra_union.forEach((convex_polihedron) => {
-				var vertices = computeConvexPolyhedronVertices(convex_polihedron);
+			polytopes_union.forEach((polytope) => {
+				/* The following call is quite expensive for 
+				   large dimensional polytopes */
+				var vertices = computePolytopeVertices(polytope);
 				if (vertices.length !== 0)  // some valid vertices found in
 				{
 					intervals.push(findMinMaxItvl(vertices, subspace[1]));
@@ -630,7 +632,7 @@ export default class Chart extends Component<Props> {
 		return polygons;
 	}
 
-	getPolytopes(convex_polihedra_union, variables, param_set_idx=undefined)
+	getPolytopes(polytopes_union, variables, param_set_idx=undefined)
 	{
 		const polytope_gen = function (vertices, state, color, name) {
 			if (state.chartType === "2D") {
@@ -643,8 +645,8 @@ export default class Chart extends Component<Props> {
 		var polytopes = [];
 		var subspace = this.getProjSubspace(variables);
 
-		convex_polihedra_union.forEach((convex_polihedron) => {
-			var vertices = computeConvexPolyhedronVertices(convex_polihedron);
+		polytopes_union.forEach((polytope) => {
+			var vertices = computePolytopeVertices(polytope);
 			if (vertices.length !== 0)  // some valid vertices found in
 			{
 				// vertices projected in the subspace
@@ -683,10 +685,10 @@ export default class Chart extends Component<Props> {
 		var subspace = this.getProjSubspace(variables);
 
 		var time = 0;
-		flowpipe.forEach((convex_polihedra_union) => {
+		flowpipe.forEach((polytopes_union) => {
 			polytopes[time] = [];
-			convex_polihedra_union.forEach((convex_polihedron) => {
-				var vertices = computeConvexPolyhedronVertices(convex_polihedron);
+			polytopes_union.forEach((polytope) => {
+				var vertices = computePolytopeVertices(polytope);
 				if (vertices.length !== 0)  // some valid vertices found in
 				{
 					// vertices projected in the subspace
@@ -1014,12 +1016,12 @@ function compare(p1, p2, c)
 	}
 }
 
-function isValidVertex(vertex, convex_polihedron, tol)
+function isValidVertex(vertex, polytope, tol)
 {
-	for (var i = 0; i < convex_polihedron.A.length; i++)
+	for (var i = 0; i < polytope.A.length; i++)
 	{
-		var dir = math.dot(convex_polihedron.A[i], vertex);
-		if (dir > convex_polihedron.b[i] + tol) {
+		var dir = math.dot(polytope.A[i], vertex);
+		if (dir > polytope.b[i] + tol) {
 			return false;
 		}
 	}
@@ -1027,12 +1029,13 @@ function isValidVertex(vertex, convex_polihedron, tol)
 	return true;
 }
 
-function computeConvexPolyhedronVertices(convex_polihedron, tol = 0.00000001)
+/* This function is exponential in the number of polytope dimentions */
+function computePolytopeVertices(polytope, tol = 0.00000001)
 {
 	var vertices = [];
 				
-	let directions = convex_polihedron.A;
-	let offsets = convex_polihedron.b;
+	let directions = polytope.A;
+	let offsets = polytope.b;
 
 	if (directions.length === 0) {
 		return vertices;
@@ -1049,7 +1052,7 @@ function computeConvexPolyhedronVertices(convex_polihedron, tol = 0.00000001)
 			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
 			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
 
-			if (isValidVertex(vertex, convex_polihedron, tol)) {
+			if (isValidVertex(vertex, polytope, tol)) {
 				vertices.push(vertex);
 			}
 		}
