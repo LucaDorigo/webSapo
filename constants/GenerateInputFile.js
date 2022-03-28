@@ -114,7 +114,7 @@ exports.generateModelFile = (
 	model += "\n";
 
 	// template
-	if (tMatrix.size[0]>0)
+	if (tMatrix.size[1]>0 && tMatrix.size[0]>0)
 	{
 		model += "template = {\n";
 		tMatrix.data.forEach((row, i) => {
