@@ -1,10 +1,10 @@
 
-.dirContainer {
+.polytopeContainer {
   width: 80%;
   padding-bottom: 20px;
 }
 
-.rowDirection {
+.constraint {
   display: flex;
   flex-direction: row;
   width: 100%;
@@ -13,7 +13,7 @@
   margin-top: 10px;
 }
 
-.rowContainer {
+.constrContainer {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -23,11 +23,11 @@
   width: 100%;
 }
 
-.rowDirection > p {
+.constraint > p {
   font-size: 15px;
 }
 
-.rowDirection > input {
+.constraint > input {
   border: 1px solid #ff8f00;
   border-radius: 10px;
   height: 20px;

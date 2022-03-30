@@ -11,7 +11,7 @@ import ParameterRows from "../ParameterRows/index";
 //import InlineMenu from "../InlineMenu/index";
 import MatrixDisplayer from "../MatrixDisplayer/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
-import DirectionVectorDisplayer from "../DirectionVectorDisplayer/index";
+import PolytopeSpecifier from "../PolytopeSpecifier/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
 //import { black } from "ansi-colors";
@@ -388,15 +388,14 @@ export default class BoxesPage extends Component<Props> {
 						<div className={modalStyles.modal_body}>
 							{this.props.variables.length === 0 && <p>No variables inserted</p>}
 							{this.props.variables.length > 0 && (
-									<DirectionVectorDisplayer
-										directions={this.props.directions}
-										initialDirBoundaries={this.props.initialDirBoundaries}
+									<PolytopeSpecifier
+										expressions={this.props.directions}
+										expressionBoundaries={this.props.initialDirBoundaries}
 										changeRelation={this.props.changeRelation}
+										changeExpression={this.props.changeDirection}
+										deleteConstraint={this.props.deleteDirection}
 										changeLowerBound={this.props.changeLowerBound}
 										changeUpperBound={this.props.changeUpperBound}
-										variables={this.props.variables}
-										changeDirection={this.props.changeDirection}
-										deleteDirection={this.props.deleteDirection}
 									/>
 							)}
 
