@@ -21,11 +21,6 @@
 }
 
 .rowVariable > input {
-  width: 50px;
-  margin-left: 10px;
-  margin-right: 10px;
-}
-.textInput {
   border: 1px solid #ff8f00;
   border-radius: 10px;
   height: 20px;

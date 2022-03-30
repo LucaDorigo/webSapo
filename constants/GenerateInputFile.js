@@ -107,9 +107,22 @@ exports.generateModelFile = (
 
 	directions.forEach((direction, index) => {
 		model += "direction "+ direction;
-		
-		model += " in [" + initialDirBoundaries[index].lowerBound + ", " + 
-						   initialDirBoundaries[index].upperBound + "];\n"
+
+		let bounds = initialDirBoundaries[index]
+		let relation = bounds.relation;
+		switch (relation) {
+			case "=":
+			case ">=":
+				model += " " + relation + " " + bounds.lowerBound + ";\n"
+				break;
+			case "<=":
+				model += " <= " + bounds.upperBound + ";\n"
+				break;
+			default:
+			case "in":
+				model += " in [" + bounds.lowerBound + ", " + 
+								   bounds.upperBound + "];\n"		
+		}
 	});
 	model += "\n";
 

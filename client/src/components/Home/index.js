@@ -391,6 +391,7 @@ export default class BoxesPage extends Component<Props> {
 									<DirectionVectorDisplayer
 										directions={this.props.directions}
 										initialDirBoundaries={this.props.initialDirBoundaries}
+										changeRelation={this.props.changeRelation}
 										changeLowerBound={this.props.changeLowerBound}
 										changeUpperBound={this.props.changeUpperBound}
 										variables={this.props.variables}

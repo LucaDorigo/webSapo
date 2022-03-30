@@ -41,10 +41,3 @@
   justify-content: center;
   display: flex;
 }
-
-.direction {
-  flex: 1;
-  margin-left: 0px;
-  margin-right: 0px;
-  width: 100%;
-}

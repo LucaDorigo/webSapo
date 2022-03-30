@@ -224,6 +224,26 @@ export default class HomeContainer extends Component {
 		this.saveChanges(targetArray, parameter);
 	};
 
+	getVariableNames = () => {
+		return new Set(this.state.variables.map(x => x.name));	
+	}
+
+	getParameterNames = () => {
+		var params = new Set([]);
+		var var_names = this.getVariableNames();	
+	
+		this.state.variables.forEach(x => {
+			var dyn_names = x.dynamics.match(/[a-zA-Z]\w*/g);
+			dyn_names.forEach(dyn_name => {
+				if (!var_names.has(dyn_name)) {
+					params.add(dyn_name);
+				}
+			})
+		})
+
+		return params;
+	}
+
 	changeDynamics = (e) => {
 
 		let obj = this.state.variables[e.target.id];
@@ -232,6 +252,18 @@ export default class HomeContainer extends Component {
 		this.checkAllDefined(this.state.variables, false);
 
 		this.saveChanges(this.state.variables, false);
+	}
+
+	changeRelation = (e, index) => {
+		let targetArray = this.state.initialDirBoundaries;
+
+		let obj = targetArray[index];
+		obj.relation = e.target.value;
+
+		this.setState({
+			initialDirBoundaries: targetArray,
+			sapoResults: undefined
+		});
 	}
 
 	changeLowerBound = (e, parameter) => {
@@ -446,6 +478,7 @@ export default class HomeContainer extends Component {
 
 		directions.push("");
 		initialDirBoundaries.push({
+			relation: "in",
 			lowerBound: 0,
 			upperBound: 0
 		})
@@ -1039,6 +1072,7 @@ export default class HomeContainer extends Component {
 				addDirection={this.addDirection}
 				changeDirection={this.changeDirection}
 				deleteDirection={this.deleteDirection}
+				changeRelation={this.changeRelation}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
 				parametersMatrix={this.state.parametersMatrix}

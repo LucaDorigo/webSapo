@@ -1,6 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import styles from "./style.module.css";
+import homestyles from "../Home/style.module.css";
 //import { Link } from "react-router-dom";
 import { MdClose } from "react-icons/md";
 
@@ -32,7 +33,7 @@ export default class ParameterRows extends Component<Props> {
             onClick={e => this.props.deleteCallback(this.props.index, true)}
           />
             <input
-              className={styles.textInput}
+              className={homestyles.equation}
               value={this.props.name}
               onChange={e => this.props.changeName(e, true)}
               type="text"
@@ -47,7 +48,7 @@ export default class ParameterRows extends Component<Props> {
 
               <div className={styles.rowContainer}>
                 <input
-                  className={styles.textInput}
+                  className={homestyles.boundaryInput}
                   value={this.props.lowerBound}
                   onChange={e =>
                     this.props.changeLowerBound(e, true)
@@ -59,7 +60,7 @@ export default class ParameterRows extends Component<Props> {
                 />
                 <p> - </p>
                 <input
-                  className={styles.textInput}
+                  className={homestyles.boundaryInput}
                   value={this.props.upperBound}
                   onChange={e =>
                     this.props.changeUpperBound(e, true)
