@@ -16,6 +16,8 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let partial_value = /^(-)?([0-9]*|[0-9]+((\.|,)[0-9]*)?)$/;
+
 const initState = {
 	executing: false,
 	killed: false,
@@ -155,6 +157,21 @@ export default class HomeContainer extends Component {
 		}
 	}
 
+	// save the array at every changes, array contains variables or parameters of the system
+	saveBoundaries(targetArray, parameter) {
+		if (parameter) {
+			this.setState({
+				parameters: targetArray,
+				sapoResults: undefined
+			});
+		} else {
+			this.setState({
+				initialDirBoundaries: targetArray,
+				sapoResults: undefined
+			});
+		}
+	}
+
 	// prevent the insertion of variables or paramenters if the previous ones aren't defined
 	checkAllDefined = (targetArray, parameter) => {
 		let i = 0;
@@ -266,46 +283,57 @@ export default class HomeContainer extends Component {
 		});
 	}
 
-	changeLowerBound = (e, parameter) => {
+	checkLowerBoundAndUpdateConcistency = (e, parameter) => {
 		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
 
 		let obj = targetArray[e.target.id]
 		obj.lowerBound = parseFloat(e.target.value);
-		/* boundaries consistency temporary unabled 
-		if (obj.lowerBound>obj.upperBound) {
-			obj.upperBound = obj.lowerBound;
-		}
-		*/
+		obj.lb_error = isNaN(obj.lowerBound);
 
-		if (parameter) {
-			this.setState({
-				parameters: targetArray,
-				sapoResults: undefined
-			});
-		} else {
-			this.setState({
-				initialDirBoundaries: targetArray,
-				sapoResults: undefined
-			});
+		if (!obj.lb_error) {
+			if (obj.lowerBound>obj.upperBound) {
+				obj.upperBound = obj.lowerBound;
+			}
+		}
+
+		this.saveBoundaries(targetArray, parameter);
+	}
+
+	checkUpperBoundAndUpdateConcistency = (e, parameter) => {
+		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+
+		let obj = targetArray[e.target.id]
+		obj.upperBound = parseFloat(e.target.value);
+		obj.ub_error = isNaN(obj.upperBound);
+
+		if (!obj.ub_error) {
+			if (obj.lowerBound>obj.upperBound) {
+				obj.lowerBound = obj.upperBound;
+			}
+		}
+
+		this.saveBoundaries(targetArray, parameter);
+	}
+
+	changeLowerBound = (e, parameter) => {
+		if (partial_value.test(e.target.value)) {
+			let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+			let obj = targetArray[e.target.id];
+
+			obj.lowerBound = e.target.value;
+
+			this.saveBoundaries(targetArray, parameter);
 		}
 	};
 
 	changeUpperBound = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+		if (partial_value.test(e.target.value)) {
+			let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+			let obj = targetArray[e.target.id];
 
-		let obj = targetArray[e.target.id];
-		obj.upperBound = parseFloat(e.target.value);
+			obj.upperBound = e.target.value;
 
-		if (parameter) {
-			this.setState({
-				parameters: targetArray,
-				sapoResults: undefined
-			});
-		} else {
-			this.setState({
-				initialDirBoundaries: targetArray,
-				sapoResults: undefined
-			});
+			this.saveBoundaries(targetArray, parameter);
 		}
 	};
 
@@ -317,7 +345,9 @@ export default class HomeContainer extends Component {
 			targetArray.push({
 				name: "",
 				lowerBound: 0,
-				upperBound: 0
+				upperBound: 0,
+				lb_error : false,
+				ub_error : false,
 			});
 			const indexFirstMatrixEl = (targetArray.length - 1) * 2;
 			const indexSecondMatrixEl = indexFirstMatrixEl + 1;
@@ -480,7 +510,9 @@ export default class HomeContainer extends Component {
 		initialDirBoundaries.push({
 			relation: "in",
 			lowerBound: 0,
-			upperBound: 0
+			upperBound: 0,
+			lb_error: false,
+			ub_error: false
 		})
 
 		this.setState({
@@ -1075,6 +1107,8 @@ export default class HomeContainer extends Component {
 				changeRelation={this.changeRelation}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
+				changedLowerBound={this.checkLowerBoundAndUpdateConcistency}
+				changedUpperBound={this.checkUpperBoundAndUpdateConcistency}
 				parametersMatrix={this.state.parametersMatrix}
 				//
 				logicFormulas={this.state.logicFormulas}

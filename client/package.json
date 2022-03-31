@@ -10,6 +10,7 @@
     "redux-logger": "^3.0.6"
   },
   "dependencies": {
+    "classnames": "",
     "@ramonak/react-progress-bar": "",
     "@szhsin/react-menu": "^3.0.0",
     "history": "^4.10.1",

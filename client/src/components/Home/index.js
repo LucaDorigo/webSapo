@@ -175,13 +175,13 @@ export default class BoxesPage extends Component<Props> {
 													<div key={index}>
 														<ParameterRows
 															index={index}
-															name={item.name}
+															parameter={item}
 															polytopes={this.props.rightButtonActive}
-															lowerBound={item.lowerBound}
-															upperBound={item.upperBound}
 															changeName={this.props.changeName}
 															changeLowerBound={this.props.changeLowerBound}
 															changeUpperBound={this.props.changeUpperBound}
+															changedLowerBound={this.props.changedLowerBound}
+															changedUpperBound={this.props.changedUpperBound}
 															deleteCallback={this.props.deleteCallback}
 														/>
 													</div>
@@ -396,6 +396,8 @@ export default class BoxesPage extends Component<Props> {
 										deleteConstraint={this.props.deleteDirection}
 										changeLowerBound={this.props.changeLowerBound}
 										changeUpperBound={this.props.changeUpperBound}
+										changedLowerBound={this.props.changedLowerBound}
+										changedUpperBound={this.props.changedUpperBound}
 									/>
 							)}
 

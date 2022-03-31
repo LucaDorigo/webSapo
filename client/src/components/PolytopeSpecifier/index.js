@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import styles from "./style.module.css";
 import homestyles from "../Home/style.module.css";
 import { MdClose } from "react-icons/md";
+import classNames from 'classnames/bind';
 
 type Props = {};
 
@@ -11,6 +12,9 @@ const options = [{value: "=", label: "="},
                  {value: "in", label: "in"},
                  {value: ">=", label: ">="},
                  {value: "<=", label: "<="}];
+
+
+let hstyles = classNames.bind(homestyles);
 
 /**
  * @param expression: constraint expression
@@ -21,6 +25,8 @@ const options = [{value: "=", label: "="},
  * @param	changeRelation change constraint relation
  * @param	changeLowerBound change lower constraint boundary
  * @param	changeUpperBound change upper constraint boundary
+ * @param	changedLowerBound check lower bound and update upper bound if needed
+ * @param	changedUpperBound check upper bound and update lower bound if needed
  */
 export class Constraints extends Component<Props> {
   props: Props;
@@ -52,30 +58,36 @@ export class Constraints extends Component<Props> {
             {(exprBoundaries.relation==="in" || exprBoundaries.relation===">=" || 
               exprBoundaries.relation==="=") &&
             <input
-              className={homestyles.boundaryInput}
+              className={hstyles('boundaryInput', {
+                error: exprBoundaries.lb_error
+              })}
               value={exprBoundaries.lowerBound}
+              onBlur={e => 
+                this.props.changedLowerBound(e, false)
+              }
               onChange={e =>
                 this.props.changeLowerBound(e, false)
               }
-              type="number"
+              type="text"
               id={this.props.index}
-              pattern="(-)?[0-9]+([\.,][0-9]+)?"
-              step="0.0001"
             />}
             {(exprBoundaries.relation==="in") &&
             <p> - </p>
             }
             {(exprBoundaries.relation==="in" || exprBoundaries.relation==="<=") &&
             <input
-              className={homestyles.boundaryInput}
+              className={hstyles('boundaryInput', {
+                error: exprBoundaries.ub_error
+              })}
               value={exprBoundaries.upperBound}
+              onBlur={e => 
+                this.props.changedUpperBound(e, false)
+              }
               onChange={e =>
                 this.props.changeUpperBound(e, false)
               }
-              type="number"
+              type="text"
               id={this.props.index}
-              pattern="(-)?[0-9]+([\.,][0-9]+)?"
-              step="0.0001"
             />
             }
         </div>
@@ -91,6 +103,8 @@ export class Constraints extends Component<Props> {
  * @param	changeRelation change constraint relation
  * @param	changeLowerBound change lower constraint boundary
  * @param	changeUpperBound change upper constraint boundary
+ * @param	changedLowerBound check lower bound and update upper bound if needed
+ * @param	changedUpperBound check upper bound and update lower bound if needed
  */
 export default class PolytopeSpecifier extends Component<Props> {
   props: Props;
@@ -110,6 +124,8 @@ export default class PolytopeSpecifier extends Component<Props> {
                 changeRelation={this.props.changeRelation}
                 changeUpperBound={this.props.changeUpperBound}
                 changeLowerBound={this.props.changeLowerBound}
+                changedLowerBound={this.props.changedLowerBound}
+                changedUpperBound={this.props.changedUpperBound}
               />
             </div>
           );

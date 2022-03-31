@@ -4,21 +4,24 @@ import styles from "./style.module.css";
 import homestyles from "../Home/style.module.css";
 //import { Link } from "react-router-dom";
 import { MdClose } from "react-icons/md";
+import classNames from 'classnames/bind';
 
 type Props = {};
 
+
+let hstyles = classNames.bind(homestyles);
+
 /**
- * @param name: name of the parameter
+ * @param parameter: parameter
  * @param changeName: callback to change the parameter name
- * @param lowerBound: lower bound of the parameter
  * @param changeLowerBound: callback to change the lower bound of the parameter
- * @param upperBound: upper bound of the parameter
  * @param changeUpperBound: callback to change the upper bound of the parameter
+ * @param	changedLowerBound check lower bound and update upper bound if needed
+ * @param	changedUpperBound check upper bound and update lower bound if needed
  * @param index: index of the parameter in the JSON array
  * @param polytopes: true|false value used in the parameters box to decide method
  * @param deleteCallback: callback to delete parameter
  */
-
 export default class ParameterRows extends Component<Props> {
   props: Props;
 
@@ -34,7 +37,7 @@ export default class ParameterRows extends Component<Props> {
           />
             <input
               className={homestyles.equation}
-              value={this.props.name}
+              value={this.props.parameter.name}
               onChange={e => this.props.changeName(e, true)}
               type="text"
               id={this.props.index}
@@ -48,27 +51,33 @@ export default class ParameterRows extends Component<Props> {
 
               <div className={styles.rowContainer}>
                 <input
-                  className={homestyles.boundaryInput}
-                  value={this.props.lowerBound}
-                  onChange={e =>
+                  className={hstyles('boundaryInput', {
+                    error: this.props.parameter.lb_error
+                  })}
+                  value={this.props.parameter.lowerBound}
+                  onBlur={e => 
+                    this.props.changedLowerBound(e, true)
+                  }
+                  onChange={e => 
                     this.props.changeLowerBound(e, true)
                   }
-                  type="number"
+                  type="text"
                   id={this.props.index}
-                  pattern="[0-9]+([\.,][0-9]+)?"
-                  step="0.0001"
                 />
                 <p> - </p>
                 <input
-                  className={homestyles.boundaryInput}
-                  value={this.props.upperBound}
+                  className={hstyles('boundaryInput', {
+                    error: this.props.parameter.ub_error
+                  })}
+                  value={this.props.parameter.upperBound}
+                  onBlur={e => 
+                    this.props.changedUpperBound(e, true)
+                  }
                   onChange={e =>
                     this.props.changeUpperBound(e, true)
                   }
-                  type="number"
+                  type="text"
                   id={this.props.index}
-                  pattern="[0-9]+([\.,][0-9]+)?"
-                  step="0.0001"
                 />
               </div>
           </div>

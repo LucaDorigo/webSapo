@@ -313,3 +313,7 @@
   padding: 5px;
   width: 85px;
 }
+
+.error {
+  border: 4px solid #ff0000;
+}
