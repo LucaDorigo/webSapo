@@ -378,10 +378,11 @@ export default class HomeContainer extends Component {
 				dynamics: ""
 			});
 
+			/*
 			let directions = this.state.directions
 			if (directions.length < targetArray.length) {
 				this.addDirection();
-			}
+			}*/
 
 			let newTMatrix = this.state.tMatrix.resize([0, targetArray.length]);
 
@@ -408,9 +409,10 @@ export default class HomeContainer extends Component {
 				let newTMatrix;
 
 				if (targetArray.length !== 0) {
-					newTMatrix = this.state.tMatrix.resize([1, targetArray.length]);
+					let row_num = this.state.tMatrix.size()[0];
+					newTMatrix = this.state.tMatrix.resize([row_num, targetArray.length]);
 				} else {
-					newTMatrix = math.zeros(1);
+					newTMatrix = this.state.tMatrix.resize([0, targetArray.length]);
 				}
 
 				this.setState({
