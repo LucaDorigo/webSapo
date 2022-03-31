@@ -47,27 +47,28 @@ export default class BoxesPage extends Component<Props> {
 							/>
 						</div>
 						<div className={styles.headerCenter}>
+							<div className={styles.buttonBox}>
 								{this.props.sapoResults === undefined && 
 								 (this.props.synthesis || this.props.reachability) &&
-								 <div className={styles.buttonBox}>
 								 <RoundedButton
-								 text={(this.props.synthesis?"Synthesis":"Reachability")+ " Analysis"}
-								 parameter={false}
-								 callback={() => {
-									 document.getElementById("progress").style.display =
-												 "block";
-									 this.props.startExecuting();
-								 }}
-								 notClickable={this.props.executing||this.props.disabledAddVariable||
-									this.props.disabledAddParameter||this.props.disabledAddFormula}
+									text={(this.props.synthesis?"Synthesis":"Reachability")+ " Analysis"}
+									parameter={false}
+									callback={() => {
+										document.getElementById("progress").style.display =
+													"block";
+										this.props.startExecuting();
+									}}
+									notClickable={this.props.executing||this.props.disabledAddVariable||
+										this.props.disabledAddParameter||this.props.disabledAddFormula}
 								 />
-								 </div>
 								}
 								
 								{this.props.sapoResults !== undefined && 
-								 (this.props.synthesis || this.props.reachability) && <button
-									className={styles.chartButton}
-									onClick={() => {
+								 (this.props.synthesis || this.props.reachability) && 
+								<RoundedButton
+									text={"Plot"}
+									className={styles.plotButton}
+									callback={() => {
 										if (this.props.sapoResults.data.length > 0) {
 											document.getElementById("chart").style.display = "block";
 											window.dispatchEvent(new Event('resize'));
@@ -80,9 +81,9 @@ export default class BoxesPage extends Component<Props> {
 											}
 										}
 									}}
-								>
-									<p>Plot</p>
-								</button>}
+								/> 
+								}
+								 </div>
 								
 							</div>
 						<div className={styles.marginRight}>
@@ -284,15 +285,16 @@ export default class BoxesPage extends Component<Props> {
 											Synthesis
 										</div>
 										<div className={styles.center}>
-											<button
-												className={styles.logicButton}
-												onClick={() => {
-													document.getElementById("logicModal").style.display =
-														"block";
-												}}
-											>
-												<p>Specification</p>
-											</button>
+												<RoundedButton
+													text={"Specification"}
+													parameter={false}
+													callback={() => {
+														document.getElementById("logicModal").style.display =
+															"block";
+														}
+													}
+												/>
+															
 											<div className={styles.simplePaddingLeft}>
 												Max parameter splits:{" "}
 												<input

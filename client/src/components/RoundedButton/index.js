@@ -19,7 +19,7 @@ export default class RoundedButton extends Component<Props> {
     return (
       <button
         onClick={() => this.props?.callback?.(this.props?.parameter)}
-        className={styles.button}
+        className={(this.props.className===undefined ? styles.button: this.props.className)}
         disabled={this.props.notClickable}
       >
         <p>{this.props.text}</p>
