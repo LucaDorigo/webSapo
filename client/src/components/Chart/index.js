@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import * as math from "mathjs";
 import styles from "./style.module.css";
 import { deepCopy } from "../../constants/global";
+import GLPK from "glpk.js"
 
 import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
@@ -638,7 +639,7 @@ export default class Chart extends Component<Props> {
 			if (state.chartType === "2D") {
 				return get2DPolygon(vertices, color, name);
 			} else {
-				return get3DPolylitope(vertices, color, name);
+				return get3DPolytope(vertices, color, name);
 			}
 		};
 	
@@ -670,7 +671,7 @@ export default class Chart extends Component<Props> {
 				if (state.chartType === "2D") {
 					return get2DPolygon(vertices, color, name);
 				} else {
-					return get3DPolylitope(vertices, color, name);
+					return get3DPolytope(vertices, color, name);
 				}
 			} else {
 				if (state.chartType === "2D") {
@@ -766,22 +767,19 @@ export default class Chart extends Component<Props> {
 	
 	calcParamData()
 	{
-		var polytopes = [];
-		this.props.sapoResults.data.forEach((elem, i) => {
-			this.getPolytopes(elem[ 'parameter set' ], this.props.sapoResults.parameters, 
-										  (this.hasParamData() && this.props.sapoResults.data.length > 1 ? i : undefined)).forEach((polytope) => {
-				polytopes.push(polytope);
+		getFullParameterSet(this.state, this.props.sapoResults.data, 
+							this.props.sapoResults.parameters)
+			.then(polytopes => {
+				if (polytopes.length === 0) {
+					toast.info("The set of parameters is empty");
+				}
+
+				var plottable = polytopes.filter((e,i) => this.state.pset_selection[i]);
+				this.setState({ paramData: polytopes,
+								paramPlottable: plottable});
 			});
-		});
 
-		if (polytopes.length === 0) {
-			toast.info("The set of parameters is empty");
-		}
-
-		var plottable = polytopes.filter((e,i) => this.state.pset_selection[i]);
-		this.setState({ paramData: polytopes,
-		                paramPlottable: plottable,
-						changed: false });
+		this.setState({ changed: false });
 
 		return this.state.paramPlottable;
 	}
@@ -1029,6 +1027,449 @@ function isValidVertex(vertex, polytope, tol)
 	return true;
 }
 
+function constrainWithNewPlan(lpsolver, constraints, plan)
+{
+	let coeffs = [];
+	plan.coeffs.forEach((coeff_value, coeff_index) => {
+		coeffs.push({
+			name: "x"+coeff_index,
+			coef: coeff_value
+		});
+	});
+
+	constraints.push({
+		name: 'constr'+constraints.length,
+		vars: coeffs,
+		bnds: { type: lpsolver.GLP_LO, lb: plan.const }
+	});
+}
+
+function getLPConstraintsFromPolytope(lpsolver, polytope)
+{
+	let constraints = [];
+	
+	polytope.A.forEach((constraint, index) => {
+
+		let coeffs = [];
+		constraint.forEach((coeff_value, coeff_index) => {
+			coeffs.push({
+				name: "x"+coeff_index,
+				coef: coeff_value
+			});
+		});
+
+		constraints.push({
+			name: 'constr'+index,
+			vars: coeffs,
+			bnds: { type: lpsolver.GLP_UP, ub: polytope.b[index] }
+		});
+	});
+
+	return constraints;
+}
+
+function buildNullCoeffVector(proj_axes)
+{
+	let coeffs = [];
+	proj_axes.forEach((axis) => {
+		coeffs.push({
+			name: "x"+axis,
+			coef: 0
+		});
+	});
+
+	return coeffs;
+}
+
+function getVertex(lp_solution, objective)
+{
+	let vertex = [];
+	
+	//let objective = lp.objective;
+	let result = lp_solution.result;
+
+	objective.vars.forEach((item) => {
+		vertex.push(result.vars[item.name]);
+	});
+
+	return vertex;
+}
+
+function getComplementary(obj_funct)
+{
+	let new_obj_funct = deepCopy(obj_funct);
+
+	new_obj_funct.forEach((item) => {
+		item.coef = -item.coef;
+	});
+
+	return new_obj_funct;
+}
+
+async function getMax(glpk, constraints, obj_funct)
+{
+	let lp = {
+		name: 'LP',
+		objective: {
+			direction: await glpk.GLP_MAX,
+			name: 'obj',
+			vars: obj_funct
+		},
+		subjectTo: constraints
+	};
+
+	let res = await glpk.solve(lp);
+	return getVertex(res, lp.objective);
+}
+
+async function getMinMaxOn(glpk, constraints, obj_function)
+{
+	let vertices = [];
+	vertices.push(await getMax(glpk, constraints, obj_function));
+
+	let vertex = await getMax(glpk, constraints, getComplementary(obj_function));
+
+	if (!same_point(vertices[0], vertex)) {
+		vertices.push(vertex);
+	}
+
+	return vertices;
+}
+
+function same_point(point_a, point_b)
+{
+	for (let i=0; i<point_a.length; i++) {
+		if (point_a[i]!==point_b[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function setObjCoeff(obj_funct, coeffs)
+{
+	coeffs.forEach((value, index) => {
+		obj_funct[index].coef = value;
+	});
+}
+
+function computeLine2D(point_a, point_b)
+{
+	return {
+		coeffs: [
+			point_a[1]-point_b[1],
+			point_b[0]-point_a[0]
+		],
+		const: point_b[0]*point_a[1] - point_b[1]*point_a[0]
+	};
+}
+
+async function refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertex_a, vertex_b)
+{
+	let line = await computeLine2D(vertex_a, vertex_b);
+
+	setObjCoeff(obj_funct, line.coeffs);
+	let new_vertex = await getMax(glpk, constraints, obj_funct);
+
+	if (same_point(vertex_a, new_vertex) || same_point(vertex_b, new_vertex)) {
+		return;
+	}
+
+	vertices.push(new_vertex);
+
+	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertex_a, new_vertex);
+	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, new_vertex, vertex_b);
+}
+
+/**
+ * Compute the vertices of the 2D projection of a n-dimensional polytope 
+ * 
+ * @param polytope is a polytope defined as a linear system {A, b}
+ * @param proj_axes is the list of indices of the projection axes 
+ */
+async function compute2DProjVertices(polytope, proj_axes)
+{
+	const glpk = await GLPK();
+
+	let constraints = await getLPConstraintsFromPolytope(glpk, polytope);
+	let obj_funct = buildNullCoeffVector(proj_axes.slice(0,2));
+
+	setObjCoeff(obj_funct, [1,0]);
+	let vertices = await getMinMaxOn(glpk, constraints, obj_funct);
+
+	if (vertices.length===1) {
+		setObjCoeff(obj_funct, [0,1]);
+		return await getMinMaxOn(glpk, constraints, obj_funct);
+	}
+
+	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertices[0], vertices[1])
+	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertices[1], vertices[0])
+
+	return vertices
+}
+
+function MCD(a, b)
+{
+	while (b!==0) {
+		[a,b] = [b, a%b];
+	}
+
+	return a;
+}
+
+function getAVectorOrthogonalTo(vector)
+{
+    for (let i=0; i<vector.length; i++) {
+        if (vector[i]!==0) {
+			let next = (i+1)%vector.length;
+			let res = [];
+
+			vector.forEach(value => {
+				res.push(0);
+			});
+            res[i]=vector[next];
+			res[next]=-vector[i];
+
+            return res;
+        }
+    }
+
+    throw new Error('The parameter vector is null');
+}
+
+function get3DPlan(p1, p2, p3)
+{
+	let normal = math.cross(math.subtract(p2,p1),
+							math.subtract(p3,p1));
+	return {
+		coeffs: normal,
+		const: math.dot(normal, p1)
+	};
+}
+
+function vertex_already_in(vertex, vertex_array)
+{
+	for (let i=0; i<vertex_array.length; i++) {
+		if (same_point(vertex_array[i], vertex)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function unite_to(A,B)
+{
+	A.forEach(vertex => {
+		if (!vertex_already_in(vertex, B)) {
+			B.push(vertex);
+		}
+	});
+}
+
+async function getInitial3DSimplex(glpk, constraints, obj_funct)
+{
+	let res = {
+		singular: false,
+		plans: [],
+		vertices: []
+	};
+	
+	let vertices;
+	let plans = res.plans;
+
+	// select a random axis
+	plans.push([1,0,0]);
+
+	// set the objective function and get the minimum 
+	// and the maximum on the function
+	setObjCoeff(obj_funct, plans[0]);
+	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
+
+	// if there exists only one vertex 
+	if (vertices.length===1) {
+		// the projection is singular
+		res.singular = true;
+		return res;
+	}
+	
+	// save the vertices on the boundaries
+	unite_to(vertices, res.vertices);
+
+	// take the vector connecting the two vectices
+	let vector = math.subtract(vertices[1], vertices[0]);
+
+	// select an orthogonal vector (any one is ok)
+	// a normal of a new plan. Because of these 
+	// choise for the new plan, either the
+	// projection is singular or at least one of
+	// the vertices that will be discovered has 
+	// not been discovered yet
+	plans.push(getAVectorOrthogonalTo(vector));
+	
+	// set the objective function and get the
+	// the minimum and the maximum on the plan
+	setObjCoeff(obj_funct, plans[1]);
+	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
+
+	// if they are the same vertex
+	if (vertices.length===1) {
+		// the projection is singular
+		res.singular = true;
+		return res;
+	}
+
+	// save the vertices on the boundaries
+	unite_to(vertices, res.vertices);
+
+	// select a vector orthogonal to both 
+	// plan[0] and plan[1]. As in the previous
+	// case, either the projection is singular
+	// or at least one of the vertices that
+	// will be discovered has not been
+	// discovered yet
+	plans.push(math.cross(plans[0], plans[1]));	
+
+	// set the objective function and get the
+	// the minimum and the maximum on the plan
+	setObjCoeff(obj_funct, plans[2]);
+	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
+
+	// if they are the same vertex
+	if (vertices.length===1) {
+		// the projection is singular
+		res.singular = true;
+	}
+
+	// save the vertices on the boundaries
+	unite_to(vertices, res.vertices);
+
+	res.vertices = res.vertices.splice(0,4);
+
+	return res;
+}
+
+async function refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertex_a, vertex_b)
+{
+	let new_plan = math.cross(plan.coeffs, math.subtract(vertex_a, vertex_b));
+
+	setObjCoeff(obj_funct, new_plan);
+	let new_vertex = await getMax(glpk, constraints, obj_funct);
+
+	if (same_point(vertex_a, new_vertex) || same_point(vertex_b, new_vertex)) {
+		return;
+	}
+
+	vertices.push(new_vertex);
+
+	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertex_a, new_vertex);
+	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, new_vertex, vertex_b);
+}
+
+/**
+ * Compute the vertices of the 3D projection of a n-dimensional singular polytope 
+ * 
+ * @param constraints is the constraint set for the original polytope
+ * @param obj_funct template objective function
+ * @param plan is the singularity plan 
+ */
+async function compute3DProjSingularOn(glpk, constraints, obj_funct, plan)
+{
+	let new_normal = getAVectorOrthogonalTo(plan.coeffs);
+
+	// set the objective function and get the
+	// the minimum and the maximum on the plan
+	setObjCoeff(obj_funct, new_normal);
+	let vertices = await getMinMaxOn(glpk, constraints, obj_funct);
+
+	if (vertices.length===1) {
+		setObjCoeff(obj_funct, math.cross(plan.coeffs, new_normal));
+		return await getMinMaxOn(glpk, constraints, obj_funct);
+	}
+
+	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertices[0], vertices[1])
+	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertices[1], vertices[0])
+
+	return vertices
+}
+
+async function refine_3Dproj_on(glpk, constraints, obj_funct, vertices, v0, v1, v2)
+{
+	let plan = get3DPlan(v0, v1, v2);
+
+	// add the new plan to the constrains
+	constrainWithNewPlan(glpk, constraints, plan);
+
+	setObjCoeff(obj_funct, plan.coeffs);
+	let new_vertex = await getMax(glpk, constraints, obj_funct);
+
+	// if new_vertex is above the plan
+	if (math.dot(new_vertex, plan.coeffs)>plan.const) { 
+		vertices.push(new_vertex);
+
+		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+							   v0, v1, new_vertex);
+
+		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+							   v1, v2, new_vertex);
+
+		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+							   v2, v0, new_vertex);
+	}
+
+	// remove the added plan from the constraints
+	constraints.pop();
+}
+
+/**
+ * Compute the vertices of the 3D projection of a n-dimensional polytope 
+ * 
+ * @param polytope is a polytope defined as a linear system {A, b}
+ * @param proj_axes is the list of indices of the projection axes 
+ */
+async function compute3DProjVertices(polytope, proj_axes)
+{
+	const glpk = await GLPK();
+
+	let constraints = await getLPConstraintsFromPolytope(glpk, polytope);
+	let obj_funct = buildNullCoeffVector(proj_axes.slice(0,3));
+
+	let simplex = await getInitial3DSimplex(glpk, constraints, obj_funct);
+
+	if (simplex.singular) {
+		return await compute3DProjSingularOn(glpk, constraints, obj_funct, simplex.plans[-1]);
+	}
+
+	let s_vertices = simplex.vertices;
+
+	let plan = get3DPlan(s_vertices[0], s_vertices[1], s_vertices[2])
+
+	// if the fourth vertex is above this plan, then
+	// the three vertices clockwise sorted and must be 
+	// resorted in counter clockwise order. 
+	if (math.dot(plan.coeffs, s_vertices[3])>plan.const) {
+		[s_vertices[1], s_vertices[2]] = [s_vertices[2], s_vertices[1]];
+	}
+
+	let vertices = [...s_vertices];
+
+	// add new vertices by using the plans of the simplex faces
+	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+						   s_vertices[0], s_vertices[1], s_vertices[2]);
+
+	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+						   s_vertices[1], s_vertices[0], s_vertices[3]);
+
+	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+					       s_vertices[2], s_vertices[1], s_vertices[3]);
+
+	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
+						   s_vertices[0], s_vertices[2], s_vertices[3]);
+
+	return [...new Set(vertices)]
+}
+
 /* This function is exponential in the number of polytope dimentions */
 function computePolytopeVertices(polytope, tol = 0.00000001)
 {
@@ -1232,6 +1673,83 @@ function getDistinctColors(num_colors)
 	}
 
 	return colors;
+}
+
+
+function getProjSubspace(state, variables)
+{
+	var subspace;
+	if (state.chartType === "2D")
+		subspace = [-1,-1];
+	else
+		subspace = [-1,-1,-1];
+	
+	variables.forEach((v, i) => {
+		switch(v) {
+			case state.axes.x:
+				subspace[0] = i;
+				break;
+			case state.axes.y:
+				subspace[1] = i;
+				break;
+			case state.axes.z:
+				subspace[2] = i;
+				break;
+			default:
+				break;
+		}
+	});
+
+	return subspace;
+}
+
+async function getFullParameterSet(state, data, parameters)
+{
+	var polytopes = [];
+	let hasParamData =  data.length > 1 && 'parameter set' in data[0];
+	for (let i=0; i<data.length; i++) {
+		let result = await getPolytopes(state, data[i][ 'parameter set' ], parameters, 
+					 					(hasParamData ? i : undefined));
+					 
+		result.forEach(polytope => polytopes.push(polytope));
+	}
+
+	return polytopes;
+}
+
+async function getPolytopes(state, polytopes_union, variables, param_set_idx=undefined)
+{
+	var polytopes = [];
+	var subspace = getProjSubspace(state, variables);
+	let polytope_gen;
+	if (state.chartType === "2D") {
+		polytope_gen = get2DPolygon;
+	} else {
+		polytope_gen = get3DPolytope;
+	}
+
+	for (let i=0; i<polytopes_union.length; i++) {
+		let polytope = polytopes_union[i]
+		let vertices;
+		if (polytope.A[0].length===2) { // QUI
+			vertices = await compute2DProjVertices(polytope, subspace);
+		} else {
+			vertices = await compute3DProjVertices(polytope, subspace);
+		}
+
+		console.log(vertices);
+
+		let new_poly;
+		if (param_set_idx !== undefined) {
+			new_poly = polytope_gen(vertices, state, state.colors[param_set_idx], 
+									'pSet #'+param_set_idx);
+		} else {
+			new_poly = polytope_gen(vertices, state, state.colors[0], undefined);
+		}
+		polytopes.push(new_poly);
+	}
+
+	return polytopes;
 }
 
 function get2DConvexHullVertices(vertices)
@@ -1466,7 +1984,7 @@ function getColinearVerticesBBoxBoundaries(vertices)
 	return [min_vert, max_vert];
 }
 
-function get3DPolylitope(vertices, color = '#ff8f00', name = undefined)
+function get3DPolytope(vertices, color = '#ff8f00', name = undefined)
 {
 	if (vertices.length === 1) {
 		return getSinglePoint(vertices);
