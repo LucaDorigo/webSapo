@@ -126,7 +126,7 @@ export default class BoxesPage extends Component<Props> {
 							<div className={styles.main}>
 								<div className={styles.grid_container}>
 									<div className={styles.grid_item}>
-										<div className={styles.titleBox}>Variables and Dynamics Laws</div>
+										<div className={styles.titleBox}>Variables & Dynamics Laws</div>
 
 										<div className={styles.listBox}>
 											{this.props.variables.map((item, index) => {
@@ -157,7 +157,7 @@ export default class BoxesPage extends Component<Props> {
 									
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
-											Parameters
+											Parameters & Constants
 										</div>
 										{/*inline menu selector of the type of parameters*/}
 										{/*
@@ -215,7 +215,7 @@ export default class BoxesPage extends Component<Props> {
 								<div className={`${this.props.synthesis?styles.grid_container3:styles.grid_container2}`}>
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
-											Bundle Space and Initial Set
+											Directions & Initial Set
 										</div>
 										<div className={styles.center}>
 											<RoundedButton
