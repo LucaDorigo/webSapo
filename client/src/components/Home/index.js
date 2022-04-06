@@ -9,7 +9,6 @@ import FileMenu from "../FileMenu/index";
 import VariableRows from "../VariableRows/index";
 import ParameterRows from "../ParameterRows/index";
 //import InlineMenu from "../InlineMenu/index";
-import MatrixDisplayer from "../MatrixDisplayer/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
 import PolytopeSpecifier from "../PolytopeSpecifier/index";
 import LogicDisplayer from "../LogicDisplayer/index";
