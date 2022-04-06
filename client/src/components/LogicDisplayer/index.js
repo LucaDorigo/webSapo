@@ -13,7 +13,6 @@ export default class LogicDisplayer extends Component<Props> {
     return (
       <div className={styles.grid_container}>
         <div className={styles.grid_item}>
-          <div className={styles.titleBox}>Specification</div>
 
           <div className={styles.grid_container2}>
             <div className={styles.grid_item2}>
@@ -35,7 +34,6 @@ export default class LogicDisplayer extends Component<Props> {
                         }
                         value={item}
                       />
-                      <hr className={styles.separator} />
                     </div>
                   );
                 })}
@@ -69,7 +67,7 @@ export default class LogicDisplayer extends Component<Props> {
 
         {/*display variables*/}
         <div className={styles.grid_item}>
-          <div className={styles.titleBox}>VARIABLES</div>
+          <div className={styles.titleBox}>Variables</div>
           {this.props.variables.map((item, index) => {
             return (
               <p key={index} className={styles.text}>

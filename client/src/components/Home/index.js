@@ -319,56 +319,7 @@ export default class BoxesPage extends Component<Props> {
 							{/*end footer*/}
 						</div>
 					)}
-				</div>
-
-				{/*modal for showing the parameters matrix*/}
-				<div id="parameterMatrixModal" className={modalStyles.modal}>
-					<div className={modalStyles.modal_content}>
-						<div className={modalStyles.modal_header}>
-							<span
-								onClick={() => {
-									document.getElementById(
-										"parameterMatrixModal"
-									).style.display = "none";
-								}}
-								className={modalStyles.close}
-							>
-								&times; {/*X in HTML*/}
-							</span>
-							<div className={modalStyles.flexRow}>
-								<h2>PARAMETER MATRIX</h2>
-							</div>
-						</div>
-						<div className={modalStyles.modal_body}>
-							<MatrixDisplayer
-								updateMatrixElement={this.props.updateMatrixElement}
-								matrix={this.props.parametersMatrix}
-								list={this.props.parameters}
-								parametersModal={true}
-								tmatrix={false}
-							/>
-							{this.props.parameters.length !== 0 && (
-								<div>
-									<div className={styles.footer}>
-										<RoundedButton
-											text={"ADD ROW TO MATRIX"}
-											parameter={false}
-											callback={this.props.addRowParameterMatrix}
-											notClickable={false}
-										/>
-										<RoundedButton
-											text={"REMOVE LAST ROW FROM MATRIX"}
-											parameter={false}
-											callback={this.props.deleteRowParameterMatrix}
-											notClickable={false}
-										/>
-									</div>
-								</div>
-							)}
-						</div>
-					</div>
-				</div>
-				{/*end of the modal matrix*/}
+				</div> 
 
 				{/*modal for showing the L matrix*/}
 				<div id="DirectionsModal" className={modalStyles.modal}>
@@ -447,13 +398,13 @@ export default class BoxesPage extends Component<Props> {
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton
-											text={"ADD ROW TO MATRIX"}
+											text={"Add Template"}
 											parameter={false}
 											callback={this.props.addRowTMatrix}
 											notClickable={false}
 										/>
 										<RoundedButton
-											text={"REMOVE LAST ROW FROM MATRIX"}
+											text={"Remove Last Template"}
 											parameter={false}
 											callback={this.props.deleteRowTMatrix}
 											notClickable={false}
@@ -481,7 +432,7 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>LOGICS</h2>
+								<h2>Specification</h2>
 							</div>
 						</div>
 
