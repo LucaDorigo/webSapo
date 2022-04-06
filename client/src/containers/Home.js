@@ -37,7 +37,7 @@ const initState = {
 		startPosition: 0,
 		endPosition: 0
 	},
-	reachability: false, // possible use of enumeration?
+	reachability: true, // possible use of enumeration?
 	synthesis: false,
 	leftButtonActive: true, // for the parameters type
 	rightButtonActive: false, // for the parameters type
@@ -45,7 +45,7 @@ const initState = {
 	disabledAddParameter: false,
 	disabledAddFormula: false,
 	// will display a combination of 'reachability/synthesis and methods'
-	nameSelectedMenu: "Analysis method",
+	nameSelectedMenu: "reachability",
 	sapoResults: undefined,
 	projectName: undefined,
 	updateChart: true
