@@ -1,4 +1,6 @@
-webSapo is a web user interface for [Sapo](https://github.com/dreossi/sapo) supporting users in:
+# webSapo
+
+**webSapo** is a web user interface for [Sapo](https://github.com/dreossi/sapo) supporting users in:
  - defining discrete-time parametric systems having polynomial dynamics
  - specifying an initial set and a set of parameters by means of polytopes
  - performing a bounded step reachability analysis of the system
