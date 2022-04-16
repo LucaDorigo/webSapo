@@ -58,7 +58,9 @@ export default class BoxesPage extends Component<Props> {
 										this.props.startExecuting();
 									}}
 									notClickable={this.props.executing||this.props.disabledAddVariable||
-										this.props.disabledAddParameter||this.props.disabledAddFormula}
+										this.props.disabledAddParameter||this.props.disabledAddFormula||
+										(this.props.variables.length==0)||(this.props.directions.length==0)||
+										(this.props.synthesis && this.props.logicFormulas.length==0)}
 								 />
 								}
 								
