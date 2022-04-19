@@ -2,11 +2,11 @@
 #include <vector>
 #include <set>
 #include <iterator>
-
-#include <glpk.h>
+#include <exception>
 #include <limits>
 #include <cmath>
 
+#include <glpk.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -79,6 +79,10 @@ public:
 
     LinearSystem<T> &push_back(const std::vector<T>& direction, const T &upper_bound)
     {
+        if (direction.size() != num_of_columns()) {
+            throw std::domain_error("The new constraint differs in dimension from the system.");
+        }
+
         directions.push_back(direction);
         upper_bounds.push_back(upper_bound);
 
@@ -128,7 +132,7 @@ OptimizationResult optimize(const LinearSystem<double> &constraints,
   int *ia, *ja;
   double *ar;
 
-  ia = (int *)calloc(size_lp + 1, sizeof(int));
+  ia = (int *)malloc((size_lp + 1)*sizeof(int));
   ja = (int *)calloc(size_lp + 1, sizeof(int));
   ar = (double *)calloc(size_lp + 1, sizeof(double));
 
@@ -166,8 +170,8 @@ OptimizationResult optimize(const LinearSystem<double> &constraints,
   }
 
   glp_load_matrix(lp, size_lp, ia, ja, ar);
-  glp_exact(lp, &lp_param);
-  //	glp_simplex(lp, &lp_param);
+  //glp_exact(lp, &lp_param);
+  glp_simplex(lp, &lp_param);
 
   OptimizationResult res{std::vector<double>(num_cols), glp_get_status(lp)};
   for (unsigned int i=0; i<num_cols; ++i) {
@@ -183,7 +187,7 @@ OptimizationResult optimize(const LinearSystem<double> &constraints,
   return res;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 bool operator==(const std::vector<T> &v1, const std::vector<T> &v2)
 {
     if (v1.size() != v2.size()) {
@@ -191,20 +195,20 @@ bool operator==(const std::vector<T> &v1, const std::vector<T> &v2)
     }
 
     for (unsigned int i=0; i<v1.size(); ++i) {
-        if (abs(v1[i]-v2[i])>std::numeric_limits<double>::min()) {
+        if (v1[i]!=v2[i]) {
             return false;
         }
     }
     return true;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 inline bool operator!=(const std::vector<T> &v1, const std::vector<T> &v2)
 {
     return !(v1==v2);
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<T> operator-(const std::vector<T> &v1, const std::vector<T> &v2)
 {
     if (v1.size() != v2.size()) {
@@ -220,7 +224,7 @@ std::vector<T> operator-(const std::vector<T> &v1, const std::vector<T> &v2)
     return res;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 T operator*(const std::vector<T> &v1, const std::vector<T> &v2)
 {
     if (v1.size() != v2.size()) {
@@ -248,7 +252,7 @@ T norm1(const std::vector<T> &v)
 }
 
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<T> operator-(const std::vector<T> &v)
 {
     std::vector<T> ng(v);
@@ -258,10 +262,10 @@ std::vector<T> operator-(const std::vector<T> &v)
     return ng;
 }
 
-template <typename T>
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 using Point = std::vector<T>;
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 Point<T> project(const Point<T>& p, const std::vector<unsigned int> &axis_vector)
 {
     Point<T> pp;
@@ -275,7 +279,7 @@ Point<T> project(const Point<T>& p, const std::vector<unsigned int> &axis_vector
 }
 
 template<typename T>
-Point<T> extend(const Point<T>& p, const std::vector<unsigned int> &axis_vector,
+std::vector<T> extend(const std::vector<T>& p, const std::vector<unsigned int> &axis_vector,
                 const unsigned int extended_size)
 {
     if (p.size()!= axis_vector.size()) {
@@ -292,16 +296,17 @@ Point<T> extend(const Point<T>& p, const std::vector<unsigned int> &axis_vector,
 
 inline 
 OptimizationResult optimize(const LinearSystem<double> &constraints, 
-                             const std::vector<double> &direction,
+                             std::vector<double> direction,
                              const std::vector<unsigned int> &axis_vector,
                              const int opt_type)
 {
+    direction = extend(direction, axis_vector, constraints.num_of_columns());
     OptimizationResult res = optimize(constraints, direction, opt_type);
     res.optimizer = project(res.optimizer, axis_vector);
     return res;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<Point<T>> find_min_max_points(const LinearSystem<T> &constraints, 
                                           const std::vector<T> &direction,
                                           const std::vector<unsigned int> &axis_vector)
@@ -315,7 +320,7 @@ std::vector<Point<T>> find_min_max_points(const LinearSystem<T> &constraints,
     }
     res = optimize(constraints, direction, axis_vector, GLP_MIN);
 
-    if (res.status==GLP_OPT && res.optimizer != points[0]) {
+    if (res.status==GLP_OPT && (points.size()==0 || res.optimizer != points[0])) {
         points.push_back(res.optimizer);
     }
 
@@ -325,11 +330,9 @@ std::vector<Point<T>> find_min_max_points(const LinearSystem<T> &constraints,
 template<typename T>
 std::vector<T> get_an_orthogonal(const std::vector<T>& v)
 {
-    std::cout<< "get_an_orthogonal "  << v << std::endl << std::flush;
     for (unsigned int i=0; i<v.size(); ++i) {
         if (v[i]!=0) {
 			unsigned int next_idx = (i+1)%v.size();
-            std::cout<< "vvvvv "  << v << " " << next_idx << std::endl << std::flush;
             std::vector<T> orth(v);
             
 
@@ -346,7 +349,7 @@ std::vector<T> get_an_orthogonal(const std::vector<T>& v)
 namespace Space3D
 {
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<T> cross(const std::vector<T> &v1, const std::vector<T> &v2)
 {
     if (v1.size() != v2.size()) {
@@ -394,7 +397,7 @@ public:
     }
 };
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 class Simplex
 {
     std::vector<std::vector<T>> _directions;
@@ -447,27 +450,28 @@ public:
 
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 Space3D::Simplex<T> get_initial_3D_simplex(const LinearSystem<T>& constraints,
                                            const std::vector<unsigned int> &axis_vector)
 {
     using namespace Space3D;
 
     std::vector<std::vector<T>> directions;
-    std::vector<T> direction(constraints.num_of_columns());
+    std::vector<T> direction(axis_vector.size());
     std::set<Point<T>> vertices;
 
 	// select a random axis
     direction[0] = 1;
 
+	directions.push_back(direction);
+
 	// set the objective function and get the minimum 
 	// and the maximum on the function
     std::vector<Point<T>> dir_vertices = find_min_max_points(constraints, direction, axis_vector);
-    if (vertices.size()==0) {
+    if (dir_vertices.size()==0) {
         return Simplex<T>(std::move(directions), std::move(dir_vertices), true);
     }
 
-	directions.push_back(direction);
 	// if there exists only one vertex 
 	if (dir_vertices.size()==1) {
 		// the projection is singular
@@ -485,8 +489,7 @@ Space3D::Simplex<T> get_initial_3D_simplex(const LinearSystem<T>& constraints,
 	// projection is singular or at least one of
 	// the vertices that will be discovered has 
 	// not been discovered yet
-	directions.push_back(extend(get_an_orthogonal(vector), axis_vector, 
-                                constraints.num_of_columns()));
+	directions.push_back(get_an_orthogonal(vector));
 
 	// set the objective function and get the
 	// the minimum and the maximum on the plan
@@ -530,7 +533,7 @@ Space3D::Simplex<T> get_initial_3D_simplex(const LinearSystem<T>& constraints,
 	return Simplex<T>(std::move(directions), std::move(vertices), false);
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void
 refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
                            const std::vector<unsigned int> &axis_vector,
@@ -538,8 +541,7 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
                            std::vector<Point<T>> &vertices,
                            const Point<T> &v1, const Point<T> &v2)
 {
-    std::vector<T> direction = extend(Space3D::cross(plan, v1-v2), axis_vector, 
-                                      constraints.num_of_columns());
+    std::vector<T> direction = Space3D::cross(plan, v1-v2);
 
     auto new_vertex = optimize(constraints, direction, axis_vector, GLP_MAX).optimizer;
 
@@ -553,35 +555,32 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
 	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, new_vertex, v2);
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<Point<T>>
 compute_3D_proj_vertices_on_singular(const LinearSystem<T> &constraints,
                                      const std::vector<unsigned int> &axis_vector,
                                      const std::vector<T> &plan)
 {
-std::cout << "compute_3D_proj_vertices_on_singular " << plan << std::flush;
-    
 	auto direction = get_an_orthogonal(plan);
 
-    std::cout << "QUA1 " << std::endl << std::flush;
 	// set the objective function and get the
 	// the minimum and the maximum on the plan
-	std::vector<Point<T>> vertices = find_min_max_points(constraints, direction, axis_vector);
+	std::vector<Point<T>> dir_vertices = find_min_max_points(constraints, direction, axis_vector);
 
-	if (vertices.size()==1) {
+	if (dir_vertices.size()==1) {
 		return find_min_max_points(constraints, Space3D::cross(plan, direction), axis_vector);
 	}
 
-    std::cout << "QUA " << vertices << std::endl << std::flush;
+    std::vector<Point<T>> vertices(dir_vertices);
 
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, vertices[0], vertices[1]);
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, vertices[1], vertices[0]);
+	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[0], dir_vertices[1]);
+	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[1], dir_vertices[0]);
 
 	return vertices;
 }
 
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void
 refine_3D_proj_on(LinearSystem<T> &constraints,
                     const std::vector<unsigned int> &axis_vector,
@@ -591,9 +590,10 @@ refine_3D_proj_on(LinearSystem<T> &constraints,
     using namespace Space3D;
 
 	Plan<T> plan = Plan<T>(v1, v2, v3);
+    std::vector<T> plan_direction = extend(plan.get_coeffs(), axis_vector, constraints.num_of_columns());
 
 	// add the new plan to the constrains
-	constraints.push_back(-plan.get_coeffs(), -plan.get_const());
+	constraints.push_back(-plan_direction, -plan.get_const());
 
     auto new_vertex = optimize(constraints, plan.get_coeffs(), axis_vector, GLP_MAX).optimizer;
 
@@ -610,7 +610,7 @@ refine_3D_proj_on(LinearSystem<T> &constraints,
 	constraints.pop_back();
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<Point<T>> 
 compute_3D_proj_vertices(LinearSystem<T> constraints,
                          const std::vector<unsigned int> &axis_vector)
@@ -619,11 +619,7 @@ compute_3D_proj_vertices(LinearSystem<T> constraints,
 
 	Simplex<T> simplex = get_initial_3D_simplex(constraints, axis_vector);
 
-    std::cout << "QUI " << simplex.is_singular() << std::endl << std::flush;
-
 	if (simplex.is_singular()) {
-        std::cout << "BOH " << simplex.is_singular() << std::endl << std::flush;
-
 		return compute_3D_proj_vertices_on_singular(constraints, axis_vector, 
                                                     simplex.get_last_direction());
 	}
@@ -664,7 +660,7 @@ compute_3D_proj_vertices(LinearSystem<T> constraints,
 namespace Space2D
 {
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 class Line 
 {
     std::vector<T> _coeffs;
@@ -687,17 +683,16 @@ public:
 };
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 void refine_2D_proj_on(const LinearSystem<T> &constraints,
                       const std::vector<unsigned int> &axis_vector, 
                       std::vector<Point<T>> &vertices,
-                      Point<T> v1, const Point<T> v2)
+                      Point<T> v1, const Point<T> &v2)
 {
     using namespace Space2D;
 
     while (true) {
-        std::vector<T> direction = extend(Line<T>(v1, v2).get_coeffs(), axis_vector, 
-                                          constraints.num_of_columns());
+        std::vector<T> direction = Line<T>(v1, v2).get_coeffs();
 
         OptimizationResult res = optimize(constraints, direction, axis_vector, GLP_MAX);
 
@@ -716,45 +711,46 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
     }
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<Point<T>> compute_2D_proj_vertices(LinearSystem<T> constraints,
                                                const std::vector<unsigned int> &axis_vector)
 {
     using namespace Space2D;
 
-    std::vector<T> dir_vector(constraints.num_of_columns(), 0);
-    dir_vector[axis_vector[0]] = 1;
+    std::vector<T> direction(axis_vector.size(), 0);
+    direction[0] = 1;
 
-	std::vector<Point<T>> vertices = find_min_max_points(constraints, dir_vector, axis_vector);
+	std::vector<Point<T>> dir_vertices = find_min_max_points(constraints, direction, axis_vector);
 
-    if (vertices.size()==0) {
-        return vertices;
+    if (dir_vertices.size()==0) {
+        return dir_vertices;
     }
 
-    if (vertices.size() == 1) {
-        dir_vector[axis_vector[0]] = 0;
-        dir_vector[axis_vector[1]] = 1;
+    if (dir_vertices.size() == 1) {
+        direction[0] = 0;
+        direction[1] = 1;
 
-        return find_min_max_points(constraints, dir_vector, axis_vector);
+        return find_min_max_points(constraints, direction, axis_vector);
 	}
+    std::vector<Point<T>> vertices(dir_vertices);
 
-	refine_2D_proj_on(constraints, axis_vector, vertices, vertices[0], vertices[1]);
-	refine_2D_proj_on(constraints, axis_vector, vertices, vertices[1], vertices[0]);
+	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[0], dir_vertices[1]);
+	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[1], dir_vertices[0]);
 
 	return vertices;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::vector<Point<T>> compute_1D_proj_vertices(LinearSystem<T> constraints,
                                                const std::vector<unsigned int> &axis_vector)
 {
-    std::vector<T> dir_vector(constraints.num_of_columns(), 0);
-    dir_vector[axis_vector[0]] = 1;
+    std::vector<T> dir_vector(axis_vector.size(), 0);
+    dir_vector[0] = 1;
 
     return find_min_max_points(constraints, dir_vector, axis_vector);
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 json
 compute_polytopes_union_proj(const json &json_input,
                              const std::vector<unsigned int> &axis_vector)
@@ -762,7 +758,7 @@ compute_polytopes_union_proj(const json &json_input,
     json output;
 
     std::vector<Point<T>> (*compute_proj_vertices)(LinearSystem<T>, 
-                                                   const std::vector<unsigned int> &);
+                                                   const std::vector<unsigned int> &axis_vector);
 
     switch (axis_vector.size()) {
         case 1:
@@ -775,13 +771,18 @@ compute_polytopes_union_proj(const json &json_input,
             compute_proj_vertices = compute_3D_proj_vertices;
             break;
         default:
-            throw std::domain_error("Unsupported projection dimension");
+            throw std::domain_error("Unsupported number of selected dimensions");
     }
 
+
+    unsigned int max_axis = *std::max_element(std::begin(axis_vector), std::end(axis_vector));
     unsigned int i=0;
     for (auto us_it = std::begin(json_input); us_it != std::end(json_input); ++us_it) {
         LinearSystem<double> constraints(us_it.value()["A"], us_it.value()["b"]);
 
+        if (max_axis >= constraints.num_of_columns()) {
+            throw std::domain_error("One of the selected dimensions is above the set dimentions");
+        }
         output[i++] = compute_proj_vertices(constraints, axis_vector);
     }
 
@@ -789,7 +790,7 @@ compute_polytopes_union_proj(const json &json_input,
 }
 
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 json
 compute_flowpipe_proj(const json &json_input,
                       const std::vector<unsigned int> &axis_vector)
@@ -804,7 +805,7 @@ compute_flowpipe_proj(const json &json_input,
     return output;
 }
 
-template<typename T>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 json
 compute_input_proj(const json &json_input,
                     const std::vector<unsigned int> &axis_vector,
@@ -831,19 +832,24 @@ int main()
 {
     json json_input;
     std::cin >> json_input; 
-    
+
     json output;
     bool flowpipe = json_input["what"]=="flowpipe";
 
-    unsigned int i=0;
-    for (auto data_it = std::begin(json_input["data"]); 
-         data_it != std::end(json_input["data"]); ++data_it) {
+    try {
+        unsigned int i=0;
+        for (auto data_it = std::begin(json_input["data"]); 
+            data_it != std::end(json_input["data"]); ++data_it) {
 
-        output[i++] = compute_input_proj<double>(data_it.value(), json_input["axes"],
-                                                 flowpipe);
+            output[i++] = compute_input_proj<double>(data_it.value(), json_input["axes"],
+                                                    flowpipe);
+        }
+        std::cout << output << std::endl;
+    } catch (std::exception &e) {
+        std::cerr << e.what() << std::endl;
+
+        exit(EXIT_FAILURE);
     }
 
-    std::cout << output << std::endl;
-
-    return 0;
+    exit(EXIT_SUCCESS);
 }
