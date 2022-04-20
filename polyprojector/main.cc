@@ -816,12 +816,12 @@ compute_input_proj(const json &json_input,
     if (flowpipe) {
         auto fp_it = json_input.find("flowpipe");
         if (fp_it != std::end(json_input)) {
-            output["flowpipe"] = compute_flowpipe_proj<T>(fp_it.value(), axis_vector);
+            output = compute_flowpipe_proj<T>(fp_it.value(), axis_vector);
         }
     } else {
         auto ps_it = json_input.find("parameter set");
         if (ps_it != std::end(json_input)) {
-            output["parameter set"] = compute_polytopes_union_proj<T>(ps_it.value(), axis_vector);
+            output = compute_polytopes_union_proj<T>(ps_it.value(), axis_vector);
         }
     }
     return output;
