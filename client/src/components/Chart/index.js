@@ -2,11 +2,14 @@ import React, { Component } from "react";
 import * as math from "mathjs";
 import styles from "./style.module.css";
 import { deepCopy } from "../../constants/global";
-import GLPK from "glpk.js"
 
 import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
 import { toast } from 'react-toastify';
+
+const TimeAxisValue = "!webSapo_Time";
+
+var http = require("http");
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -57,10 +60,8 @@ export default class Chart extends Component<Props> {
 		super(props);
 
 		this.state = {
-			reachData: [],                // Overall reachability data: one flow pipe per parameter set
-			paramData: [],                // Overall parameter set data: a list of parameter set
-			reachPlottable: [],           // reachability polytopes filtered by pset_selection
-			paramPlottable: [],           // parameter polytopes filtered by pset_selection
+			plottable: [],            	  // plottable polytopes
+			selected: [],             	  // polytopes filtered by pset_selection
 			animFrames: [],               // frames for reachability animation
 			current_frame: 0,			  // index of the current frame
 			animBBox: [],			      // the bounding box of the reachability procedure
@@ -68,9 +69,9 @@ export default class Chart extends Component<Props> {
 			camera:	getInitialCamera(),   // camera object for 3D plots (see Plotly.scene.camera)			   		   
 			animate: true,                // a Boolean flag for reachability animation
 			selection_text: "",           // the text describing the parameter set selection
-			pset_selection: [],           // a Boolean filter for reachData and paramData
+			pset_selection: [],           // a Boolean filter for plottable
 			pset_selection_error: false,  // a Boolean flag signaling an error on the last selection
-			colors: [],                   // colors for reachData and paramData
+			colors: [],                   // colors for plottable
 			pset_distinction: false,      // a Boolean flag for distinguishing parameter set data
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
@@ -96,7 +97,7 @@ export default class Chart extends Component<Props> {
 							autosize: true,
 							showlegend: false,
 							xaxis: { 
-								title: { text: this.state.axes.x },
+								title: { text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x)},
 								autorange: !this.plottingAnimation(),
 								range: this.state.animBBox.x
 							 },
@@ -108,7 +109,7 @@ export default class Chart extends Component<Props> {
 							scene: {
 								xaxis: { 
 									title: {
-										text: this.state.axes.x,
+										text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x),
 										/*font: {
 											family: 'Computer Modern Roman',
 											size: 20,
@@ -248,23 +249,23 @@ export default class Chart extends Component<Props> {
 				<div className={styles.right_controls}>
 					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
+							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType" disabled={this.state.changed}/> Reachability
 						</div>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType"/> Parameters
+							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions"/> 2D
+							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions" disabled={this.state.changed}/> 2D
 						</div>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions"/> 3D
+							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions" disabled={this.state.changed}/> 3D
 						</div>
 					</div> {/*closing radio group*/}
 					{ this.plottingReachability() && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
+							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)} disabled={this.state.changed}/> Flowpipe animation
 						</div>
 					</div>} {/*closing checkbox group*/}
 					{ hasManyPSets(this.props.sapoResults) && <div className={styles.radio_group}>
@@ -285,8 +286,8 @@ export default class Chart extends Component<Props> {
 					<div className={styles.selects}>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
-							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select}>
-								{this.plottingReachability() && <option value="Time">Time</option> }
+							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select} disabled={this.state.changed}>
+								{this.plottingReachability() && <option value={TimeAxisValue}>Time</option> }
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('x', item, index===0);
 								})}
@@ -297,7 +298,7 @@ export default class Chart extends Component<Props> {
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
-							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select}>
+							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select} disabled={this.state.changed}>
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('y', item, index===1);
 								})}
@@ -309,7 +310,7 @@ export default class Chart extends Component<Props> {
 						{this.state.chartType === "3D" && 
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
-							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select}>
+							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select} disabled={this.state.changed}>
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('z', item, index===2);
 								})}
@@ -324,6 +325,73 @@ export default class Chart extends Component<Props> {
 		);
 	}
 
+	updateDataVertices(data_vertices)
+	{
+		if (data_vertices.length === 0) {
+			toast.info("The set of parameters is empty");
+		}
+
+		console.log("updateDataVertices")
+
+		if (this.plottingParameters()) {
+			let polytopes = this.getParameterSet(data_vertices);
+			this.setParamPlot(polytopes);
+
+			return;
+		}
+
+		let polytopes = this.getReachSet(data_vertices);
+		if (this.state.animate) {
+			this.setAnimPlot(polytopes);
+		} else {
+			this.setReachPlot(polytopes);
+		}
+	}
+
+	updatePlot()
+	{
+		let query = {data: this.props.sapoResults.data};
+		if (this.plottingReachability()) {
+			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
+			query["what"] = "flowpipe";
+		} else {
+			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
+			query["what"] = "parameters set";
+		}
+
+		let data = JSON.stringify(query);
+		const options = {
+			hostname: window.location.hostname,
+			port: process.env.REACT_APP_SERVER_PORT,
+			path: '/polyproject',
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': data.length
+			}
+		}
+
+		const req = http.request(options, (res) => {
+			let msg = '';
+			res.on('data', (dmsg) => {
+				msg += dmsg
+			});
+
+			res.on('end', () => {
+				let data_vertices =  JSON.parse(JSON.parse(msg).stdout);
+				this.updateDataVertices(data_vertices);
+				console.log(data_vertices);
+			});
+		}).on('error', (error) => {
+			console.error(error);
+			this.setState({
+				changed: false
+			});
+		});
+		req.write(data);
+		req.end();
+	}
+
 	changeAxis(axis_name, value)
 	{
 		var axes = this.state.axes;
@@ -331,6 +399,8 @@ export default class Chart extends Component<Props> {
 		this.setState({ 
 			axes: axes,
 			changed: true
+		}, ()=>{
+			this.updatePlot();
 		});
 	}
 
@@ -385,17 +455,38 @@ export default class Chart extends Component<Props> {
 	changeDataType(e)
 	{
 		this.setState({axes: this.getAxisNames(e.target.value),
-					   dataType: e.target.value, changed: true });
+					   dataType: e.target.value,
+					   changed: true }, 
+					   ()=>{
+						 this.updatePlot();
+					   });
 	}
 	
 	changeCharType(e)
 	{
-		this.setState({ chartType: e.target.value, changed: true});
+		this.setState({ chartType: e.target.value, changed: true}, 
+			()=>{
+			  this.updatePlot();
+			});
 	}
 
 	changeAnimation(e)
 	{
-		this.setState({ animate: e.currentTarget.checked });
+		if (this.plottingReachability()) {
+			this.setState({ animate: e.currentTarget.checked, changed: true },
+				() => {
+					if (this.plottingAnimation()) {
+						this.setAnimPlot(this.state.plottable);
+					} else {
+						this.setReachPlot(this.state.plottable);
+					}
+				});
+		} else {
+			this.setState({ animate: e.currentTarget.checked, changed: true },
+				() => {
+					this.updatePlot();
+				});
+		}
 	}
 
 	createColors(distinct)
@@ -471,30 +562,13 @@ export default class Chart extends Component<Props> {
 
 	updateSelected()
 	{
-		if (this.props.sapoResults !== undefined) {
-			var selection = this.parseSelected(this.state.selection_text);
-
-			if (selection !== undefined) {
-
-				if (this.plottingAnimation()) {
-					var frames = getFramesForSelectedFlowpipes(this.state.reachData, selection);
-
-					/* the following line bypasses a reactjs-plotly bug.
-					   See https://github.com/plotly/plotly.js/issues/1839 */
-					var plottable = deepCopy(frames[0].data);
-					this.setState({ reachPlottable: plottable,
-									animFrames: frames });
-				} else {
-					this.setState({ reachPlottable: getSelectedFlowpipesPolytopes(this.state.reachData, selection) });
-				}
-
-				this.setState({ pset_selection: selection, 
-								pset_selection_error: false, 
-								paramPlottable: this.state.paramData.filter( (e, i) => selection[i]) 
-							});
+		if (this.plottingAnimation()) {
+			this.setAnimPlot(this.state.plottable);
+		} else {
+			if (this.plottingReachability()) {
+				this.setReachPlot(this.state.plottable);
 			} else {
-				toast.error("Wrong selection");
-				this.setState({ pset_selection_error: true }); 
+				this.setParamPlot(this.state.plottable);
 			}
 		}
 	}
@@ -509,12 +583,28 @@ export default class Chart extends Component<Props> {
 		this.setState({
 			selection_text: e.currentTarget.value,
 			typingTimeout: setTimeout(function () { // Things may be changed in 1.5 seconds
-				this.updateSelected();
+				var selection = this.parseSelected(this.state.selection_text);
+
+				if (selection !== undefined) {
+					this.setState({changed: true},
+						() => {
+							this.updateSelected();
+							this.setState({ 
+								pset_selection: selection, 
+								pset_selection_error: false
+							});
+						});
+				} else {
+					toast.error("Wrong selection");
+					this.setState({ 
+						pset_selection_error: true 
+					}); 
+				}
 			}, 1500)
 		});
 	}
 
-	updatePlot()
+	resetPlot()
 	{
 		if (this.props.sapoResults !== undefined) {
 			let selection = [];
@@ -529,71 +619,42 @@ export default class Chart extends Component<Props> {
 				colors: this.createColors(dist),
 				selection_text: "",
 				pset_selection: selection,
+				current_frame: 0,
 				changed: true
+			}, () => {
+				this.updatePlot();
 			});
 		}
-		this.props.setUpdated();
 	}
 
-	setUnplottable(is_parameter)
+	setUnplottable()
 	{
-		let new_state = {
+		this.setState({
+			plottable: [],
+			selected: [],
 			axes: { 
 				x: undefined, 
 				y: undefined, 
 				z: undefined
 			},
 			changed: false
-		};
-
-		if (is_parameter) {
-			new_state.paramData = [];
-			new_state.paramPlottable = [];
-
-		} else {
-			new_state.reachData = [];
-			new_state.reachPlottable = [];
-		}
-
-		this.setState(new_state);
+		});
 	}
 
 	plotData()
 	{
-		if (this.props.sapoResults === undefined || 
-			this.props.sapoResults.data[0].flowpipe[0].length === 0) {
-			return [];
+		if (!this.state.changed) {
+			if (this.props.sapoResults !== undefined && this.state.plottable.length===0) {
+				this.resetPlot();
+			}
+
+			if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
+				this.setUnplottable();
+			}
 		}
+		console.log("plotData")
 
-		if ((this.plottingReachability() && !this.hasReachData()) ||
-				(this.plottingParameters() && !this.hasParamData()))
-		{
-			this.setUnplottable(this.plottingParameters());
-
-			return [];
-		}
-
-		if (this.props.updateChart)
-		{
-			this.updatePlot();
-			this.updateData();
-		} else {
-
-			if (this.state.changed) {
-				console.log("Updating")
-				this.updateData();
-			} 
-		}
-
-		if (this.plottingReachability()) {
-			return this.state.reachPlottable;
-		}
-		
-		if (this.plottingParameters()) {
-			return this.state.paramPlottable;
-		} 
-
-		return [];
+		return this.state.selected;
 	}
 
 	getProjSubspace(variables)
@@ -609,139 +670,215 @@ export default class Chart extends Component<Props> {
 				subspace[0] = i;
 			if (v === this.state.axes.y)
 				subspace[1] = i;
-			if (v === this.state.axes.z)
+			if (subspace.length === 3 && v === this.state.axes.z)
 				subspace[2] = i;
 		});
+
+		if (this.state.axes.x === TimeAxisValue) {
+			subspace.splice(0,1);
+		}
 
 		return subspace;
 	}
 
 	setReachPlot(polytopes)
 	{
-		return { 
-			reachPlottable: getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection),
-			reachData: polytopes,
+		console.log("setReachPlot AAAA")
+		this.setState({ 
+			selected: getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection),
+			plottable: polytopes,
 			animFrames: [],
 			animBBox: [],
-			slider_steps: []
-		};
+			slider_steps: [],
+			changed: false
+		});
 	}
 
 	setAnimPlot(polytopes)
 	{
+		console.log("setAnimPlot")
+		console.log(polytopes)
+		console.log(this.state.pset_selection)
+
 		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
 
 		if (frames.length > 0) {
 			/* the following line bypasses a reactjs-plotly bug.
 			   See https://github.com/plotly/plotly.js/issues/1839 */
-			var plottable = deepCopy(frames[0].data);
-			return { 
-				reachPlottable: plottable,
-				reachData: polytopes,
+			var selectedFrame = deepCopy(frames[this.state.current_frame].data);
+			this.setState({ 
+				selected: selectedFrame,
+				plottable: polytopes,
 				animFrames: frames,
 				animBBox: getFramesBBox(frames),
-				slider_steps: build_slider_steps(frames.length)
-			};
+				slider_steps: build_slider_steps(frames.length),
+				changed: false
+			});
 		}
 	}
 
 	setParamPlot(polytopes) 
 	{
-		let plottable = [];
+		let selectedData = [];
 		for (let i=0; i<polytopes.length; i++) {
 			if (this.state.pset_selection[i]) {
-				plottable.push(polytopes[i]);
+				selectedData.push(polytopes[i]);
 			}
 		}
 
-		return {
-			paramPlottable: plottable,
-			paramData: polytopes
-		};
+		console.log("setParamPlot")
+		console.log(selectedData);
+
+		this.setState({
+			selected: selectedData,
+			plottable: polytopes,
+			animFrames: [],
+			animBBox: [],
+			slider_steps: [],
+			changed: false
+		}, () => {
+			console.log("this.state.selected");
+			console.log(this.state.selected);
+		});
 	}
 
-	setPolytopes(polytopes, is_parameter=undefined)
+	getParameterSet(data_vertices)
 	{
-		if (is_parameter === undefined) {
-			is_parameter = this.plottingParameters();
-		}
-
-		if (polytopes.length === 0) {
-			toast.info("The set of parameters is empty");
-		}
-
-		let new_state;
-		if (is_parameter) {
-			new_state = this.setParamPlot(polytopes);
+		let polytope_gen = [];
+		if (this.state.chartType === "2D") {
+			polytope_gen = get2DPolygon;
 		} else {
-			if (this.state.animate) {
-				new_state = this.setAnimPlot(polytopes);
+			polytope_gen = get3DPolytope;
+		}
+	
+		var polytopes = [];
+		for (let i=0; i<data_vertices.length; i++) {
+			let polys = this.getPolytopes(polytope_gen, data_vertices[i],
+					(this.state.pset_distinction ? i : undefined));
+	
+			polys.forEach(polytope => polytopes.push(polytope));
+		}
+	
+		return polytopes;
+	}
+
+	getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx = undefined)
+	{
+		var polygons = [];
+		console.log("getFlowpipe2DTimePolygons")
+		for (let time=0; time<flowpipe_vertices.length; time++) {
+			let intervals = compute1DProjIntervals(flowpipe_vertices[time])
+	
+			polygons[time] = [];
+			// join overlapping intervals
+			intervals.forEach((itvl) => {
+				// create the two vertices
+				var itvl_vertices = [[time, itvl.min], [time, itvl.max]];
+	
+				let color = this.state.colors[0];
+				let name = undefined;
+				// add the polytope to the dataset
+				if (param_set_idx !== undefined) {
+					color = this.state.colors[param_set_idx];
+					name = 'pSet #'+param_set_idx;
+				}
+				polygons[time].push(get2DTimePolygon(itvl_vertices, time, color, name));
+			});
+		}
+	
+		return polygons;
+	}
+
+
+	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined)
+	{
+		var polytopes = [];
+	
+		for (let i=0; i<polyunion_vertices.length; i++) {
+			let vertices = polyunion_vertices[i];
+	
+			let new_poly;
+			if (param_set_idx !== undefined) {
+				new_poly = polytope_gen(vertices, this.state.colors[param_set_idx], 
+										'pSet #'+param_set_idx);
 			} else {
-				new_state = this.setReachPlot(polytopes);
+				new_poly = polytope_gen(vertices, this.state.colors[0], undefined);
+			}
+			polytopes.push(new_poly);
+		}
+	
+		return polytopes;
+	}
+
+	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined)
+	{
+		console.log("getFlowpipePolytopes");
+		let timeplot;
+		let poly_gen;
+		if (this.state.axes.x === TimeAxisValue) {
+			if (this.state.chartType === "2D") {
+				timeplot = get2DTimePolygon;
+			} else {
+				timeplot = get3DTimePolylitope;
+			}
+		} else {
+			if (this.state.chartType === "2D") {
+				poly_gen = get2DPolygon;
+			} else {
+				poly_gen = get3DPolytope;
 			}
 		}
-		
-		return new_state;
-	}
 
-	updateReachData()
-	{
-		this.setState({changed: false});
-		if (this.props.sapoResults !== undefined) {
-			getReachSet(this.state, this.props.sapoResults.data, 
-								this.props.sapoResults.variables)
-				.then(polytopes => {
-					this.setState(this.setPolytopes(polytopes, false));
-					this.props.setExecuting(false);
-				});
-		}
-	}
+		var f_polytopes = [];
 
-	updateParamData()
-	{
-		this.setState({changed: false});
-		if (this.props.sapoResults !== undefined && "parameters" in this.props.sapoResults) {
-			getParameterSet(this.state, this.props.sapoResults.data, 
-								this.props.sapoResults.parameters)
-				.then(polytopes => {
-					this.setState(this.setPolytopes(polytopes, true));
-					this.props.setExecuting(false);
-				});
-		}
-	}
-
-	updateData()
-	{
-		this.setState({changed: false});
-		if (this.props.sapoResults !== undefined) {
-			if ("parameters" in this.props.sapoResults) { 
-				getParameterSet(this.state, this.props.sapoResults.data, 
-									this.props.sapoResults.parameters)
-					.then(param_polys => {
-						console.log("Parameter plot computed")
-						let param_state = this.setPolytopes(param_polys, true);
-						console.log("Parameter plot set")
-
-						getReachSet(this.state, this.props.sapoResults.data, 
-									this.props.sapoResults.variables)
-							.then(var_polys => {
-								console.log("Reach plot computed")
-								let var_state =this.setPolytopes(var_polys, false);
-								console.log("Reach plot set")
-								this.setState(Object.assign(param_state, var_state));
-
-								this.props.setExecuting(false);
-							});
-					});
-			} else {
-				getReachSet(this.state, this.props.sapoResults.data, 
-							this.props.sapoResults.variables)
-					.then(var_polys => {
-						this.setState(this.setPolytopes(var_polys, false));
-						this.props.setExecuting(false);
-					});
+		for (let time=0; time<flowpipe_vertices.length; time++) {
+			if (this.state.axes.x === TimeAxisValue) {
+				poly_gen = (vertices, color, name) => {
+					return timeplot(vertices, time, color, name);
+				};
 			}
+			let polytopes = this.getPolytopes(poly_gen, flowpipe_vertices[time], 
+												param_set_idx);
+			f_polytopes.push(polytopes);
 		}
+
+		console.log("getFlowpipePolytopes end");
+		console.log(f_polytopes)
+
+		return f_polytopes;		
+	}
+
+	getReachSet(data_vertices)
+	{
+		var polytopes = [];
+
+		var poly_gen;
+
+		console.log("getReachSet")
+		console.log(this.state.axes.x)
+		console.log(this.state.chartType)
+
+		if (this.state.axes.x === TimeAxisValue && this.state.chartType === "2D") {
+
+			// this is just to exploit 2D time series properties and speed-up 
+			// their plotting with respect to getPolytopes-based plotting
+			poly_gen = (flowpipe_vertices, param_set_idx) => {
+				return this.getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx);
+			};
+		} else {
+			poly_gen = (flowpipe_vertices, param_set_idx) => {
+				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx);
+			};
+		}
+
+		for (let i=0; i<data_vertices.length; i++) {
+			polytopes.push(poly_gen(data_vertices[i], (this.state.pset_distinction ? i : undefined)));
+		}
+
+		console.log("getReachSet end")
+		console.log(polytopes)
+
+		return polytopes;
 	}
 }	// end Chart
 
@@ -801,6 +938,10 @@ function build_slider_steps(num_of_frames, time_step = 1)
 
 function getSelectedFlowpipesPolytopes(flowpipes, selection)
 {
+	console.log("getSelectedFlowpipesPolytopes BBB")
+
+	console.log("selection")
+	console.log(selection)
 	var result = [];
 	flowpipes.forEach((flowpipe, i) => {
 		if (selection[i]) {
@@ -915,19 +1056,6 @@ function compareItvls(a, b)
 	return 0;
 }
 
-function compareArray(v1, v2)
-{
-	if (v1.length < v2.length) return -1;
-	if (v1.length > v2.length) return 1;
-	
-	for (var i = 0; i < v1.length; i++)
-	{
-		if (v1[i] < v2[i]) return -1;
-		if (v1[i] > v2[i]) return 1;
-	}
-	return 0;
-}
-
 // given a 2D point and an origin, retunrs the quadrant in which the point lies
 function findQuadrant(p, c)
 {
@@ -974,540 +1102,6 @@ function compare(p1, p2, c)
 	}
 }
 
-function isValidVertex(vertex, polytope, tol)
-{
-	for (var i = 0; i < polytope.A.length; i++)
-	{
-		var dir = math.dot(polytope.A[i], vertex);
-		if (dir > polytope.b[i] + tol) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-function constrainWithNewPlan(lpsolver, constraints, plan)
-{
-	let coeffs = [];
-	plan.coeffs.forEach((coeff_value, coeff_index) => {
-		coeffs.push({
-			name: "x"+coeff_index,
-			coef: coeff_value
-		});
-	});
-
-	constraints.push({
-		name: 'constr'+constraints.length,
-		vars: coeffs,
-		bnds: { type: lpsolver.GLP_LO, lb: plan.const }
-	});
-}
-
-function getLPConstraintsFromPolytope(lpsolver, polytope)
-{
-	let constraints = [];
-	
-	polytope.A.forEach((constraint, index) => {
-
-		let coeffs = [];
-		constraint.forEach((coeff_value, coeff_index) => {
-			coeffs.push({
-				name: "x"+coeff_index,
-				coef: coeff_value
-			});
-		});
-
-		constraints.push({
-			name: 'constr'+index,
-			vars: coeffs,
-			bnds: { type: lpsolver.GLP_UP, ub: polytope.b[index] }
-		});
-	});
-
-	return constraints;
-}
-
-function buildNullCoeffVector(proj_axes)
-{
-	let coeffs = [];
-	proj_axes.forEach((axis) => {
-		coeffs.push({
-			name: "x"+axis,
-			coef: 0
-		});
-	});
-
-	return coeffs;
-}
-
-function getVertex(lp_solution, objective)
-{
-	let vertex = [];
-	
-	//let objective = lp.objective;
-	let result = lp_solution.result;
-
-	objective.vars.forEach((item) => {
-		vertex.push(result.vars[item.name]);
-	});
-
-	return vertex;
-}
-
-function getComplementary(obj_funct)
-{
-	let new_obj_funct = deepCopy(obj_funct);
-
-	new_obj_funct.forEach((item) => {
-		item.coef = -item.coef;
-	});
-
-	return new_obj_funct;
-}
-
-async function getMax(glpk, constraints, obj_funct)
-{
-	let lp = {
-		name: 'LP',
-		objective: {
-			direction: await glpk.GLP_MAX,
-			name: 'obj',
-			vars: obj_funct
-		},
-		subjectTo: constraints
-	};
-
-	let res = await glpk.solve(lp);
-	return getVertex(res, lp.objective);
-}
-
-async function getMinMaxOn(glpk, constraints, obj_function)
-{
-	let vertices = [];
-	vertices.push(await getMax(glpk, constraints, obj_function));
-
-	let vertex = await getMax(glpk, constraints, getComplementary(obj_function));
-
-	if (!same_point(vertices[0], vertex)) {
-		vertices.push(vertex);
-	}
-
-	return vertices;
-}
-
-function same_point(point_a, point_b)
-{
-	for (let i=0; i<point_a.length; i++) {
-		if (point_a[i]!==point_b[i]) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-function setObjCoeff(obj_funct, coeffs)
-{
-	coeffs.forEach((value, index) => {
-		obj_funct[index].coef = value;
-	});
-}
-
-function computeLine2D(point_a, point_b)
-{
-	return {
-		coeffs: [
-			point_a[1]-point_b[1],
-			point_b[0]-point_a[0]
-		],
-		const: point_b[0]*point_a[1] - point_b[1]*point_a[0]
-	};
-}
-
-async function refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertex_a, vertex_b)
-{
-	let line = await computeLine2D(vertex_a, vertex_b);
-
-	setObjCoeff(obj_funct, line.coeffs);
-	let new_vertex = await getMax(glpk, constraints, obj_funct);
-
-	if (same_point(vertex_a, new_vertex) || same_point(vertex_b, new_vertex)) {
-		return;
-	}
-
-	vertices.push(new_vertex);
-
-	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertex_a, new_vertex);
-	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, new_vertex, vertex_b);
-}
-
-/**
- * Compute the vertices of the 1D projection of a n-dimensional polytope 
- * 
- * @param polytope is a polytope defined as a linear system {A, b}
- * @param proj_axis is the projection axis 
- */
- async function compute1DProjVertices(polytope, proj_axis)
- {
-	 const glpk = await GLPK();
- 
-	 let constraints = await getLPConstraintsFromPolytope(glpk, polytope);
-	 let obj_funct = buildNullCoeffVector([proj_axis]);
- 
-	 setObjCoeff(obj_funct, [1]);
-	 return await getMinMaxOn(glpk, constraints, obj_funct);
- }
-
-/**
- * Compute the vertices of the 2D projection of a n-dimensional polytope 
- * 
- * @param polytope is a polytope defined as a linear system {A, b}
- * @param proj_axes is the list of indices of the projection axes 
- */
-async function compute2DProjVertices(polytope, proj_axes)
-{
-	const glpk = await GLPK();
-
-	let constraints = await getLPConstraintsFromPolytope(glpk, polytope);
-	let obj_funct = buildNullCoeffVector(proj_axes.slice(0,2));
-
-	setObjCoeff(obj_funct, [1,0]);
-	let vertices = await getMinMaxOn(glpk, constraints, obj_funct);
-
-	if (vertices.length===1) {
-		setObjCoeff(obj_funct, [0,1]);
-		return await getMinMaxOn(glpk, constraints, obj_funct);
-	}
-
-	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertices[0], vertices[1])
-	await refine_2Dproj_on(glpk, constraints, obj_funct, vertices, vertices[1], vertices[0])
-
-	return vertices
-}
-
-function MCD(a, b)
-{
-	while (b!==0) {
-		[a,b] = [b, a%b];
-	}
-
-	return a;
-}
-
-function getAVectorOrthogonalTo(vector)
-{
-    for (let i=0; i<vector.length; i++) {
-        if (vector[i]!==0) {
-			let next = (i+1)%vector.length;
-			let res = [];
-
-			vector.forEach(value => {
-				res.push(0);
-			});
-            res[i]=vector[next];
-			res[next]=-vector[i];
-
-            return res;
-        }
-    }
-
-    throw new Error('The parameter vector is null');
-}
-
-function get3DPlan(p1, p2, p3)
-{
-	let normal = math.cross(math.subtract(p2,p1),
-							math.subtract(p3,p1));
-	return {
-		coeffs: normal,
-		const: math.dot(normal, p1)
-	};
-}
-
-function vertex_already_in(vertex, vertex_array)
-{
-	for (let i=0; i<vertex_array.length; i++) {
-		if (same_point(vertex_array[i], vertex)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function unite_to(A,B)
-{
-	A.forEach(vertex => {
-		if (!vertex_already_in(vertex, B)) {
-			B.push(vertex);
-		}
-	});
-}
-
-async function getInitial3DSimplex(glpk, constraints, obj_funct)
-{
-	let res = {
-		singular: false,
-		plans: [],
-		vertices: []
-	};
-	
-	let vertices;
-	let plans = res.plans;
-
-	// select a random axis
-	plans.push([1,0,0]);
-
-	// set the objective function and get the minimum 
-	// and the maximum on the function
-	setObjCoeff(obj_funct, plans[0]);
-	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
-
-	// if there exists only one vertex 
-	if (vertices.length===1) {
-		// the projection is singular
-		res.singular = true;
-		return res;
-	}
-	
-	// save the vertices on the boundaries
-	unite_to(vertices, res.vertices);
-
-	// take the vector connecting the two vectices
-	let vector = math.subtract(vertices[1], vertices[0]);
-
-	// select an orthogonal vector (any one is ok)
-	// a normal of a new plan. Because of these 
-	// choise for the new plan, either the
-	// projection is singular or at least one of
-	// the vertices that will be discovered has 
-	// not been discovered yet
-	plans.push(getAVectorOrthogonalTo(vector));
-
-	// set the objective function and get the
-	// the minimum and the maximum on the plan
-	setObjCoeff(obj_funct, plans[1]);
-	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
-
-	// if they are the same vertex
-	if (vertices.length===1) {
-		// the projection is singular
-		res.singular = true;
-		return res;
-	}
-
-	// save the vertices on the boundaries
-	unite_to(vertices, res.vertices);
-
-	// select a vector orthogonal to both 
-	// plan[0] and plan[1]. As in the previous
-	// case, either the projection is singular
-	// or at least one of the vertices that
-	// will be discovered has not been
-	// discovered yet
-	plans.push(math.cross(plans[0], plans[1]));
-
-	// set the objective function and get the
-	// the minimum and the maximum on the plan
-	setObjCoeff(obj_funct, plans[2]);
-	vertices = await getMinMaxOn(glpk, constraints, obj_funct);
-
-	// if they are the same vertex
-	if (vertices.length===1) {
-		// the projection is singular
-		res.singular = true;
-	}
-
-	// save the vertices on the boundaries
-	unite_to(vertices, res.vertices);
-
-	res.vertices = res.vertices.splice(0,4);
-
-	return res;
-}
-
-async function refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertex_a, vertex_b)
-{
-	let new_plan = math.cross(plan, math.subtract(vertex_a, vertex_b));
-
-	setObjCoeff(obj_funct, new_plan);
-	let new_vertex = await getMax(glpk, constraints, obj_funct);
-
-	if (same_point(vertex_a, new_vertex) || same_point(vertex_b, new_vertex)) {
-		return;
-	}
-
-	vertices.push(new_vertex);
-
-	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertex_a, new_vertex);
-	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, new_vertex, vertex_b);
-}
-
-/**
- * Compute the vertices of the 3D projection of a n-dimensional singular polytope 
- * 
- * @param constraints is the constraint set for the original polytope
- * @param obj_funct template objective function
- * @param plan is the singularity plan 
- */
-async function compute3DProjSingularOn(glpk, constraints, obj_funct, plan)
-{
-	let new_normal = getAVectorOrthogonalTo(plan);
-
-	// set the objective function and get the
-	// the minimum and the maximum on the plan
-	setObjCoeff(obj_funct, new_normal);
-	let vertices = await getMinMaxOn(glpk, constraints, obj_funct);
-
-	if (vertices.length===1) {
-		setObjCoeff(obj_funct, math.cross(plan, new_normal));
-		return await getMinMaxOn(glpk, constraints, obj_funct);
-	}
-
-	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertices[0], vertices[1])
-	await refine_3Dproj_singular_on(glpk, constraints, obj_funct, plan, vertices, vertices[1], vertices[0])
-
-	return vertices
-}
-
-async function refine_3Dproj_on(glpk, constraints, obj_funct, vertices, v0, v1, v2)
-{
-	let plan = get3DPlan(v0, v1, v2);
-
-	// add the new plan to the constrains
-	constrainWithNewPlan(glpk, constraints, plan);
-
-	setObjCoeff(obj_funct, plan.coeffs);
-	let new_vertex = await getMax(glpk, constraints, obj_funct);
-
-	// if new_vertex is above the plan
-	if (math.dot(new_vertex, plan.coeffs)>plan.const) { 
-		vertices.push(new_vertex);
-
-		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-							   v0, v1, new_vertex);
-
-		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-							   v1, v2, new_vertex);
-
-		await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-							   v2, v0, new_vertex);
-	}
-
-	// remove the added plan from the constraints
-	constraints.pop();
-}
-
-/**
- * Compute the vertices of the 3D projection of a n-dimensional polytope 
- * 
- * @param polytope is a polytope defined as a linear system {A, b}
- * @param proj_axes is the list of indices of the projection axes 
- */
-async function compute3DProjVertices(polytope, proj_axes)
-{
-	const glpk = await GLPK();
-
-	let constraints = await getLPConstraintsFromPolytope(glpk, polytope);
-	let obj_funct = buildNullCoeffVector(proj_axes.slice(0,3));
-
-	let simplex = await getInitial3DSimplex(glpk, constraints, obj_funct);
-
-	if (simplex.singular) {
-		return await compute3DProjSingularOn(glpk, constraints, obj_funct, 
-											 simplex.plans[simplex.plans.length-1]);
-	}
-
-	let s_vertices = simplex.vertices;
-
-	let plan = get3DPlan(s_vertices[0], s_vertices[1], s_vertices[2])
-
-	// if the fourth vertex is above this plan, then
-	// the three vertices clockwise sorted and must be 
-	// resorted in counter clockwise order. 
-	if (math.dot(plan.coeffs, s_vertices[3])>plan.const) {
-		[s_vertices[1], s_vertices[2]] = [s_vertices[2], s_vertices[1]];
-	}
-
-	let vertices = [...s_vertices];
-
-	// add new vertices by using the plans of the simplex faces
-	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-						   s_vertices[0], s_vertices[1], s_vertices[2]);
-
-	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-						   s_vertices[1], s_vertices[0], s_vertices[3]);
-
-	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-					       s_vertices[2], s_vertices[1], s_vertices[3]);
-
-	await refine_3Dproj_on(glpk, constraints, obj_funct, vertices, 
-						   s_vertices[0], s_vertices[2], s_vertices[3]);
-
-	return [...new Set(vertices)]
-}
-
-/* This function is exponential in the number of polytope dimentions */
-function computePolytopeVertices(polytope, tol = 0.00000001)
-{
-	var vertices = [];
-				
-	let directions = polytope.A;
-	let offsets = polytope.b;
-
-	if (directions.length === 0) {
-		return vertices;
-	}
-
-	var A_comb = getFirstCombination(directions[0].length, directions.length);
-	var hasNext = true;
-
-	/* find possible vertices */
-	while (hasNext)
-	{
-		var mat = directions.filter((item, pos) => A_comb[pos] === 1);
-		if (math.det(mat) !== 0) {
-			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
-			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
-
-			if (isValidVertex(vertex, polytope, tol)) {
-				vertices.push(vertex);
-			}
-		}
-		
-		// find next combination
-		hasNext = findNextCombination(A_comb);
-	}
-
-	return vertices
-}
-
-function filterDuplicateVertices(vertices)
-{
-	vertices.sort();
-	var j = 0;
-	while (j+1 < vertices.length)
-	{
-		if (compareArray(vertices[j], vertices[j+1]) === 0)
-			vertices.splice(j+1, 1);
-		else
-			j++;
-	}
-
-	return vertices;
-}
-
-function getVerticesProjection(vertices, subspace)
-{
-	// vertices projected in the subspace
-	var proj = vertices.map(e => subspace.map(i => {
-		if (i !== -1) return e[i]; else return -1;
-	}));
-
-	return filterDuplicateVertices(proj);
-}
-
 // vertices are sorted counterclockwise
 function removeInnerVertices(vertices)
 {
@@ -1550,73 +1144,6 @@ function removeInnerVertices(vertices)
 	return vertices;
 }
 
-function getFirstCombination(k, n)
-{
-	// initial combination
-	return Array.from({length: n}, 
-						(_, i) => {
-							if (i<k) {
-								return 1;
-							} else {
-								return 0;
-							}
-						});
-}
-
-function findNextCombination(combination)
-{
-	var l = combination.length - 1;
-	
-	if (combination[l] === 0)
-	{
-		var i = 1;
-		while (combination[l-i] === 0)
-			i++;
-		
-		// combination[l-i]===1 and 
-		// combination[l-i+1]===0
-		combination[l-i] = 0;
-		combination[l-i+1] = 1;
-	}
-	else
-	{
-		// search for the last 0 in the combination
-		var j = 1;
-		while (j <= l && combination[l-j] === 1)
-			j++;
-
-		var k = j;
-
-		// search for the successive last 1
-		while (j <= l && combination[l-j] === 0)
-			j++;
-		
-		// if there is no successive 1
-		if (j > l) {
-			// all the 1s are at the end of the 
-			// array and there is no successive 
-			// combination
-			return false;
-		}
-		
-		// otherwise, combination[l-j]===1 and
-		// combination[l-j+1]===0
-		combination[l-j] = 0;
-		var pos = l-j+1;
-		while (pos <= l-j+1+k)
-		{
-			combination[pos] = 1;
-			pos++;
-		}
-		while (pos <= l)
-		{
-			combination[pos] = 0;
-			pos++;
-		}
-	}
-	return true;
-}
-
 function getSinglePoint(vertices, color = '#ff8f00', name = undefined, marker_size = 7)
 {
 	var plot_param =  {
@@ -1651,35 +1178,13 @@ function getDistinctColors(num_colors)
 	}
 
 	return colors;
-}
+}		
 
-function getProjSubspace(state, variables)
-{
-	var subspace;
-	if (state.chartType === "2D")
-		subspace = [0,1];
-	else
-		subspace = [0,1,2];
-
-	variables.forEach((v, i) => {
-		if (v === state.axes.x)
-			subspace[0] = i;
-		if (v === state.axes.y)
-			subspace[1] = i;
-		if (v === state.axes.z)
-			subspace[2] = i;
-	});
-
-	return subspace;
-}
-
-async function compute1DProjIntervals(polytopes_union, axis)
+function compute1DProjIntervals(polyunion_vertices)
 {
 	let intervals = [];
-	for (let j=0; j<polytopes_union.length; j++) {
-		/* The following call is quite expensive for 
-		   large dimensional polytopes */
-		let vertices = await compute1DProjVertices(polytopes_union[j], axis);
+	for (let j=0; j<polyunion_vertices.length; j++) {
+		let vertices = polyunion_vertices[j];
 		if (vertices.length !== 0)  // some valid vertices found in
 		{
 			intervals.push(findMinMaxItvl(vertices));
@@ -1689,141 +1194,6 @@ async function compute1DProjIntervals(polytopes_union, axis)
 	return joinOverlappingItvls(intervals);
 }
 
-async function getFlowpipe2DTimePolygons(state, flowpipe, variables, param_set_idx = undefined)
-{
-	var polygons = [];
-	var axis = this.getProjSubspace(state, variables)[1];
-
-	for (let time=0; time<flowpipe.length; time++) {
-		let intervals = await compute1DProjIntervals(flowpipe[time], axis)
-
-		polygons[time] = [];
-		// join overlapping intervals
-		intervals.forEach((itvl) => {
-			// create the two vertices
-			var vertices = [[time, itvl.min], [time, itvl.max]];
-
-			let color = this.state.colors[0];
-			let name = undefined;
-			// add the polytope to the dataset
-			if (param_set_idx !== undefined) {
-				color = state.colors[param_set_idx];
-				name = 'pSet #'+param_set_idx;
-			}
-			polygons[time].push(get2DTimePolygon(vertices, time, color, name));
-		});
-	}
-
-	return polygons;
-}
-
-async function getFlowpipePolytopes(state, flowpipe, variables, param_set_idx=undefined)
-{
-	let timeplot;
-	let poly_gen;
-	if (state.axes.x === "Time") {
-		if (state.chartType === "2D") {
-			timeplot = get2DTimePolygon;
-		} else {
-			timeplot = get3DTimePolylitope;
-		}
-	} else {
-		if (state.chartType === "2D") {
-			poly_gen = get2DPolygon;
-		} else {
-			poly_gen = get3DPolytope;
-		}
-	}
-
-	var f_polytopes = [];
-
-	console.log("BURRO")
-	console.log(state)
-	for (let time=0; time<flowpipe.length; time++) {
-		if (state.axes.x === "Time") {
-			poly_gen = (vertices, color, name) => {
-				return timeplot(vertices, time, color, name);
-			};
-		}
-		let polytopes = await getPolytopes(state, poly_gen, flowpipe[time],
-							  				variables, param_set_idx);
-		f_polytopes.push(polytopes);
-	}
-
-	return f_polytopes;		
-}
-
-async function getReachSet(state, data, variables)
-{
-	var polytopes = [];
-
-	let hasParamData =  data.length > 1 && 'parameter set' in data[0];
-	if (state.axes.x === "Time" && state.chartType === "2D") {
-		// this is just to exploit 2D time series properties and speed-up 
-		// their plotting with respect to getPolytopes-based plotting
-		for (let i=0; i<data.length; i++) {
-			polytopes.push(await getFlowpipe2DTimePolygons(state, data[i][ 'flowpipe' ], variables, 
-									(hasParamData > 1 ? i : undefined)));
-		}
-	} else {
-		for (let i=0; i<data.length; i++) {
-			polytopes.push(await getFlowpipePolytopes(state, data[i][ 'flowpipe' ], variables, 
-													  (hasParamData > 1 ? i : undefined)));
-		}
-	}
-
-	return polytopes;
-}
-
-async function getParameterSet(state, data, parameters)
-{
-	let polytope_gen = [];
-	if (state.chartType === "2D") {
-		polytope_gen = get2DPolygon;
-	} else {
-		polytope_gen = get3DPolytope;
-	}
-
-	var polytopes = [];
-	let hasParamData =  data.length > 1 && 'parameter set' in data[0];
-	console.log("BUR")
-	console.log(state)
-	for (let i=0; i<data.length; i++) {
-		let polys = await getPolytopes(state, polytope_gen, data[i][ 'parameter set' ],
-										parameters, (hasParamData ? i : undefined));
-
-		polys.forEach(polytope => polytopes.push(polytope));
-	}
-
-	return polytopes;
-}
-
-async function getPolytopes(state, polytope_gen, polytopes_union, variables, param_set_idx=undefined)
-{
-	var polytopes = [];
-	var subspace = getProjSubspace(state, variables);
-
-	for (let i=0; i<polytopes_union.length; i++) {
-		let polytope = polytopes_union[i]
-		let vertices;
-		if (polytope.A[0].length===2 || state.chartType === "2D") {
-			vertices = await compute2DProjVertices(polytope, subspace);
-		} else {
-			vertices = await compute3DProjVertices(polytope, subspace);
-		}
-
-		let new_poly;
-		if (param_set_idx !== undefined) {
-			new_poly = polytope_gen(vertices, state.colors[param_set_idx], 
-									'pSet #'+param_set_idx);
-		} else {
-			new_poly = polytope_gen(vertices, state.colors[0], undefined);
-		}
-		polytopes.push(new_poly);
-	}
-
-	return polytopes;
-}
 
 function get2DConvexHullVertices(vertices)
 {  // TODO: implement a real 2D convex hull
@@ -1842,6 +1212,8 @@ function get2DConvexHullVertices(vertices)
 
 function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 {
+	console.log("get2DPolygon")
+
 	if (vertices.length === 1) {
 		return getSinglePoint(vertices, color, name);
 	}
@@ -1869,10 +1241,11 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 
 function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, thickness = 0.4)
 {
+	console.log("get2DTimePolygon")
 	var chull = get2DConvexHullVertices(vertices);
 
 	var times = []
-	var y = chull.map(e => e[1]);
+	var y = chull.map(e => e[0]);
 
 	for (var j = 0; j < y.length; j++)
 		times.push(time-thickness/2);
