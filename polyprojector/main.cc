@@ -231,10 +231,33 @@ T operator*(const std::vector<T> &v1, const std::vector<T> &v2)
         throw std::domain_error("The two vectors must have the same size");
     }
 
-    T res = 1;
+    T res = 0;
 
     for (unsigned int i=0; i<v1.size(); ++i) {
-        res *= v1[i]*v2[i];
+        res += v1[i]*v2[i];
+    }
+    return res;
+}
+
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+std::vector<T> operator*(const T &mult, const std::vector<T> &v)
+{
+    std::vector<T> res(v);
+
+    for (auto res_it = std::begin(res); res_it != std::end(res); ++res_it) {
+        *res_it *= mult;
+    }
+    return res;
+}
+
+
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+std::vector<T> operator/(const std::vector<T> &v, const T &div)
+{
+    std::vector<T> res(v);
+
+    for (auto res_it = std::begin(res); res_it != std::end(res); ++res_it) {
+        *res_it /= div;
     }
     return res;
 }
@@ -242,10 +265,11 @@ T operator*(const std::vector<T> &v1, const std::vector<T> &v2)
 template<typename T>
 T norm1(const std::vector<T> &v)
 {
-    T max_value = std::numeric_limits<T>::lowest();
-    for (unsigned int i=0; i<v.size(); ++i) {
-        if (abs(v)>max_value) {
-            max_value = abs(v);
+    T max_value = 0;
+    for (auto v_it = std::begin(v); v_it != std::end(v); ++v_it) {
+        T abs_value = std::abs(*v_it);
+        if (abs_value>max_value) {
+            max_value = abs_value;
         }
     }
     return max_value;
@@ -298,11 +322,16 @@ inline
 OptimizationResult optimize(const LinearSystem<double> &constraints, 
                              std::vector<double> direction,
                              const std::vector<unsigned int> &axis_vector,
-                             const int opt_type)
+                             const int opt_type, double approx=1e10)
 {
     direction = extend(direction, axis_vector, constraints.num_of_columns());
     OptimizationResult res = optimize(constraints, direction, opt_type);
     res.optimizer = project(res.optimizer, axis_vector);
+
+    for (auto opt_it = std::begin(res.optimizer); opt_it!=std::end(res.optimizer); ++opt_it) {
+        *opt_it = floor(*opt_it*approx)/approx;
+    }
+
     return res;
 }
 
@@ -371,6 +400,36 @@ class Plan
     std::vector<T> _coeffs;
     T _const;
 
+    static std::vector<T> normalize(const std::vector<T> &delta)
+    {
+        T min_log = std::numeric_limits<T>::max();
+        T max_log = std::numeric_limits<T>::lowest();
+        for (auto value_it = std::begin(delta); value_it != std::end(delta); ++value_it) {
+            if (*value_it != 0) {
+                auto vlog = log2(std::abs(*value_it));
+
+                if (vlog < min_log) {
+                    min_log = vlog;
+                }
+
+                if (vlog > max_log) {
+                    max_log = vlog;
+                }
+            }
+        }
+        if (max_log <= -1) {
+            T mult = 1<<(int(-max_log));
+            return mult*delta;
+        }
+
+        if (min_log >= 1) {
+            T div = 1<<(int(min_log));
+            return delta/div;
+        }
+
+        return delta;
+    }
+
 public:
     Plan(const T& coeff1, const T& coeff2, const T& coeff3):
         _coeffs{coeff1, coeff2, coeff3}, _const(0)
@@ -382,8 +441,16 @@ public:
 
     Plan(const Point<T> &p1, const Point<T> &p2, const Point<T> &p3)
     {
-        _coeffs = std::move(cross(p2-p1, p3-p1));
-        _const = _coeffs * p1;
+        // the normalization step is to reduce floating-point errors
+        std::vector<T> v1 = normalize(p2-p1), v2 = normalize(p3-p1);
+
+        _coeffs = std::move(cross(v1, v2));
+
+        std::vector<T> consts{_coeffs * p1, 
+                              _coeffs * p2,
+                              _coeffs * p3};
+        _const = *std::max_element(std::begin(consts),
+                                   std::end(consts));
     }
 
     const std::vector<T> &get_coeffs() const
@@ -539,20 +606,25 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
                            const std::vector<unsigned int> &axis_vector,
                            const std::vector<T> &plan,
                            std::vector<Point<T>> &vertices,
-                           const Point<T> &v1, const Point<T> &v2)
+                           const Point<T> &v1, const Point<T> &v2,
+                           const T approx=1e-10)
 {
     std::vector<T> direction = Space3D::cross(plan, v1-v2);
 
-    auto new_vertex = optimize(constraints, direction, axis_vector, GLP_MAX).optimizer;
+    auto result = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-	if ((v1 == new_vertex) || (v2 == new_vertex)) {
-		return;
-	}
+    if (result.status == GLP_OPT) {
+        
+        Point<T> new_vertex = std::move(result.optimizer);
 
-	vertices.push_back(new_vertex);
+        if (norm1(v1 - new_vertex)>approx && norm1(v2 - new_vertex)>approx) {
 
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, v1, new_vertex);
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, new_vertex, v2);
+            vertices.push_back(new_vertex);
+
+            refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, v1, new_vertex);
+            refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, new_vertex, v2);
+        }
+    }
 }
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
@@ -585,26 +657,34 @@ void
 refine_3D_proj_on(LinearSystem<T> &constraints,
                     const std::vector<unsigned int> &axis_vector,
                     std::vector<Point<T>> &vertices,
-                    Point<T> v1, const Point<T> &v2, const Point<T> &v3)
+                    Point<T> v1, const Point<T> &v2, const Point<T> &v3,
+                    const T approx=1e-10)
 {
     using namespace Space3D;
 
 	Plan<T> plan = Plan<T>(v1, v2, v3);
-    std::vector<T> plan_direction = extend(plan.get_coeffs(), axis_vector, constraints.num_of_columns());
-
+    std::vector<T> plan_direction = extend(-plan.get_coeffs(), axis_vector, constraints.num_of_columns());
+ 
 	// add the new plan to the constrains
-	constraints.push_back(-plan_direction, -plan.get_const());
+	constraints.push_back(plan_direction, -plan.get_const());
 
-    auto new_vertex = optimize(constraints, plan.get_coeffs(), axis_vector, GLP_MAX).optimizer;
+    auto result = optimize(constraints, plan.get_coeffs(), axis_vector, GLP_MAX);
 
-	// if new_vertex is above the plan
-	if (new_vertex * plan.get_coeffs() > plan.get_const()) { 
-		vertices.push_back(new_vertex);
+    if (result.status == GLP_OPT) {
+        Point<T> new_vertex = std::move(result.optimizer);
 
-		refine_3D_proj_on(constraints, axis_vector, vertices, v1, v2, new_vertex);
-		refine_3D_proj_on(constraints, axis_vector, vertices, v2, v3, new_vertex);
-		refine_3D_proj_on(constraints, axis_vector, vertices, v3, v1, new_vertex);
-	}
+        // if new_vertex is above the plan and new_vertex differs from v1, v2, and v3
+        // (the vertex comparisons is due to floating point approximation)
+        if (new_vertex * plan.get_coeffs() > plan.get_const()+approx && 
+                norm1(v1 - new_vertex) > approx && norm1(v2 - new_vertex) > approx && 
+                norm1(v3 - new_vertex) > approx) {
+            vertices.push_back(new_vertex);
+
+            refine_3D_proj_on(constraints, axis_vector, vertices, v1, v2, new_vertex);
+            refine_3D_proj_on(constraints, axis_vector, vertices, v2, v3, new_vertex);
+            refine_3D_proj_on(constraints, axis_vector, vertices, v3, v1, new_vertex);
+        }
+    }
 
 	// remove the added plan from the constraints
 	constraints.pop_back();
