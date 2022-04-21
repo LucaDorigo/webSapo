@@ -322,15 +322,11 @@ inline
 OptimizationResult optimize(const LinearSystem<double> &constraints, 
                              std::vector<double> direction,
                              const std::vector<unsigned int> &axis_vector,
-                             const int opt_type, double approx=1e10)
+                             const int opt_type)
 {
     direction = extend(direction, axis_vector, constraints.num_of_columns());
     OptimizationResult res = optimize(constraints, direction, opt_type);
     res.optimizer = project(res.optimizer, axis_vector);
-
-    for (auto opt_it = std::begin(res.optimizer); opt_it!=std::end(res.optimizer); ++opt_it) {
-        *opt_it = floor(*opt_it*approx)/approx;
-    }
 
     return res;
 }
@@ -617,7 +613,7 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
         
         Point<T> new_vertex = std::move(result.optimizer);
 
-        if (norm1(v1 - new_vertex)>approx && norm1(v2 - new_vertex)>approx) {
+       if (norm1(v1 - new_vertex)>approx && norm1(v2 - new_vertex)>approx) {
 
             vertices.push_back(new_vertex);
 
@@ -675,9 +671,7 @@ refine_3D_proj_on(LinearSystem<T> &constraints,
 
         // if new_vertex is above the plan and new_vertex differs from v1, v2, and v3
         // (the vertex comparisons is due to floating point approximation)
-        if (new_vertex * plan.get_coeffs() > plan.get_const()+approx && 
-                norm1(v1 - new_vertex) > approx && norm1(v2 - new_vertex) > approx && 
-                norm1(v3 - new_vertex) > approx) {
+        if (new_vertex * plan.get_coeffs() > plan.get_const()+approx) {
             vertices.push_back(new_vertex);
 
             refine_3D_proj_on(constraints, axis_vector, vertices, v1, v2, new_vertex);

@@ -54,6 +54,25 @@ function hasManyPSets(sapoResults)
 	return sapoResults !== undefined && sapoResults.data.length > 1;
 }
 
+function approx_fp_vertices(input, decimal=6)
+{
+	if (Array.isArray(input)) {
+		let output = [];
+
+		input.forEach((elem) => {
+			output.push(approx_fp_vertices(elem));
+		});
+
+		return output;
+	}
+
+	if (typeof(input) === "number") {
+		return Number(input.toFixed(decimal));
+	}
+
+	throw new TypeError("Unsupported type")
+}
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
@@ -372,18 +391,29 @@ export default class Chart extends Component<Props> {
 		}
 
 		const req = http.request(options, (res) => {
-			let msg = '';
+			let JSON_msg = '';
 			res.on('data', (dmsg) => {
-				msg += dmsg
+				JSON_msg += dmsg
 			});
 
 			res.on('end', () => {
-				let data_vertices =  JSON.parse(JSON.parse(msg).stdout);
-				this.updateDataVertices(data_vertices);
-				console.log(data_vertices);
+				let msg = JSON.parse(JSON_msg);
+
+				if (msg.stderr === "") {
+					let data_vertices =  JSON.parse(msg.stdout);
+					console.log(data_vertices);
+					data_vertices = approx_fp_vertices(data_vertices);
+					console.log(data_vertices);
+					this.updateDataVertices(data_vertices);
+				} else {
+					toast.error(msg.stderr);
+					this.setState({
+						changed: false
+					});
+				}
 			});
 		}).on('error', (error) => {
-			console.error(error);
+			toast.error(error);
 			this.setState({
 				changed: false
 			});
