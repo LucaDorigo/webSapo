@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <set>
 #include <iterator>
@@ -898,10 +899,28 @@ compute_input_proj(const json &json_input,
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
     json json_input;
-    std::cin >> json_input; 
+
+    switch(argc) {
+    case 1:
+        std::cin >> json_input; 
+        break;
+    case 2: {
+        std::ifstream inputfile(argv[1]);
+        if (!inputfile.is_open()) {
+            std::cerr << "Input file is not readable" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        inputfile >> json_input;
+        break;
+    }
+    default:
+        std::cerr << "Unsupported number of parameters" << std::endl
+                  << "  " << argv[0] << " <input file> " << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     json output;
     bool flowpipe = json_input["what"]=="flowpipe";
