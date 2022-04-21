@@ -63,7 +63,6 @@ app.post("/websapo", (req, res, next) => {
 				res.end();
 			},
 	  (stderr_data) => {
-		  res.write(stderr_data);
 	  }
     );
   });
@@ -84,7 +83,6 @@ app.post("/polyproject", (req, res, next) => {
 				res.end();
 			},
 	  (stderr_data) => {
-		  res.write(stderr_data);
 	  }
     );
   });
