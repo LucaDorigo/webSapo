@@ -350,8 +350,6 @@ export default class Chart extends Component<Props> {
 			toast.info("The set of parameters is empty");
 		}
 
-		console.log("updateDataVertices")
-
 		if (this.plottingParameters()) {
 			let polytopes = this.getParameterSet(data_vertices);
 			this.setParamPlot(polytopes);
@@ -401,9 +399,7 @@ export default class Chart extends Component<Props> {
 
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
-					console.log(data_vertices);
 					data_vertices = approx_fp_vertices(data_vertices);
-					console.log(data_vertices);
 					this.updateDataVertices(data_vertices);
 				} else {
 					toast.error(msg.stderr);
@@ -662,6 +658,9 @@ export default class Chart extends Component<Props> {
 		this.setState({
 			plottable: [],
 			selected: [],
+			current_frame: 0,
+			dataType: "reachability",
+			animate: true,
 			axes: { 
 				x: undefined, 
 				y: undefined, 
@@ -682,7 +681,6 @@ export default class Chart extends Component<Props> {
 				this.setUnplottable();
 			}
 		}
-		console.log("plotData")
 
 		return this.state.selected;
 	}
@@ -713,7 +711,6 @@ export default class Chart extends Component<Props> {
 
 	setReachPlot(polytopes)
 	{
-		console.log("setReachPlot AAAA")
 		this.setState({ 
 			selected: getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection),
 			plottable: polytopes,
@@ -726,10 +723,6 @@ export default class Chart extends Component<Props> {
 
 	setAnimPlot(polytopes)
 	{
-		console.log("setAnimPlot")
-		console.log(polytopes)
-		console.log(this.state.pset_selection)
-
 		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
 
 		if (frames.length > 0) {
@@ -756,9 +749,6 @@ export default class Chart extends Component<Props> {
 			}
 		}
 
-		console.log("setParamPlot")
-		console.log(selectedData);
-
 		this.setState({
 			selected: selectedData,
 			plottable: polytopes,
@@ -766,9 +756,6 @@ export default class Chart extends Component<Props> {
 			animBBox: [],
 			slider_steps: [],
 			changed: false
-		}, () => {
-			console.log("this.state.selected");
-			console.log(this.state.selected);
 		});
 	}
 
@@ -795,7 +782,6 @@ export default class Chart extends Component<Props> {
 	getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx = undefined)
 	{
 		var polygons = [];
-		console.log("getFlowpipe2DTimePolygons")
 		for (let time=0; time<flowpipe_vertices.length; time++) {
 			let intervals = compute1DProjIntervals(flowpipe_vertices[time])
 	
@@ -842,7 +828,6 @@ export default class Chart extends Component<Props> {
 
 	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined)
 	{
-		console.log("getFlowpipePolytopes");
 		let timeplot;
 		let poly_gen;
 		if (this.state.axes.x === TimeAxisValue) {
@@ -872,9 +857,6 @@ export default class Chart extends Component<Props> {
 			f_polytopes.push(polytopes);
 		}
 
-		console.log("getFlowpipePolytopes end");
-		console.log(f_polytopes)
-
 		return f_polytopes;		
 	}
 
@@ -883,10 +865,6 @@ export default class Chart extends Component<Props> {
 		var polytopes = [];
 
 		var poly_gen;
-
-		console.log("getReachSet")
-		console.log(this.state.axes.x)
-		console.log(this.state.chartType)
 
 		if (this.state.axes.x === TimeAxisValue && this.state.chartType === "2D") {
 
@@ -904,9 +882,6 @@ export default class Chart extends Component<Props> {
 		for (let i=0; i<data_vertices.length; i++) {
 			polytopes.push(poly_gen(data_vertices[i], (this.state.pset_distinction ? i : undefined)));
 		}
-
-		console.log("getReachSet end")
-		console.log(polytopes)
 
 		return polytopes;
 	}
@@ -968,10 +943,6 @@ function build_slider_steps(num_of_frames, time_step = 1)
 
 function getSelectedFlowpipesPolytopes(flowpipes, selection)
 {
-	console.log("getSelectedFlowpipesPolytopes BBB")
-
-	console.log("selection")
-	console.log(selection)
 	var result = [];
 	flowpipes.forEach((flowpipe, i) => {
 		if (selection[i]) {
@@ -1242,8 +1213,6 @@ function get2DConvexHullVertices(vertices)
 
 function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 {
-	console.log("get2DPolygon")
-
 	if (vertices.length === 1) {
 		return getSinglePoint(vertices, color, name);
 	}
@@ -1271,7 +1240,6 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 
 function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, thickness = 0.4)
 {
-	console.log("get2DTimePolygon")
 	var chull = get2DConvexHullVertices(vertices);
 
 	var times = []
