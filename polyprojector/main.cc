@@ -442,11 +442,7 @@ public:
 
         _coeffs = std::move(cross(v1, v2));
 
-        std::vector<T> consts{_coeffs * p1, 
-                              _coeffs * p2,
-                              _coeffs * p3};
-        _const = *std::max_element(std::begin(consts),
-                                   std::end(consts));
+        _const = _coeffs * p1;
     }
 
     const std::vector<T> &get_coeffs() const
@@ -613,7 +609,7 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
         
         Point<T> new_vertex = std::move(result.optimizer);
 
-       if (norm1(v1 - new_vertex)>approx && norm1(v2 - new_vertex)>approx) {
+       if (direction*(new_vertex-v2) > approx) {
 
             vertices.push_back(new_vertex);
 
