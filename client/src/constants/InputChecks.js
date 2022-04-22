@@ -102,24 +102,6 @@ const checkVarAndParamsNames = (elementList, result) => {
 };
 
 /**
- * @param str: string that needs to be checked to contain only letters from the ranges [a-z] or [A-z]
- */
-const strOnlyLetters = (str) => {
-  var code, i, len;
-
-  for (i = 0, len = str.length; i < len; i++) {
-    code = str.charCodeAt(i);
-    if (
-      !(code > 64 && code < 91) && // upper alpha (A-Z)
-      !(code > 96 && code < 123) // lower alpha (a-z)
-    ) {
-      return false;
-    }
-  }
-  return true;
-};
-
-/**
  * @param elementList: JSON object containing all the info's about the variables/parameters defined by the user
  * @param result: JSON object containing the info to return in case of error to the main file
  */
@@ -197,8 +179,6 @@ const cheksEquationsVarAndParams = (
     parametersName.push(element.name);
   });
 
-  let parsedEquation;
-
   variables.forEach(element => {
     let dynamics = element.dynamics;
 
@@ -235,16 +215,11 @@ const cheksEquationsVarAndParams = (
                 element.name +
                 " is undefined and can't be used";
             } else {
-              if (subEquation === "sqrt") {
-                //future checks on sqrt still to be implemented
-                parsedEquation = math.parse(dynamics);
-              } else {
-                result.errorMessagge =
-                  subEquation +
-                  " function in equation for variable " +
-                  element.name +
-                  " can't be used";
-              }
+              result.errorMessagge =
+                subEquation +
+                " function in equation for variable " +
+                element.name +
+                " can't be used";
             }
           }
         }
