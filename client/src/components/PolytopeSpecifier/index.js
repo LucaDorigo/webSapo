@@ -18,7 +18,7 @@ let hstyles = classNames.bind(homestyles);
 
 /**
  * @param expression: constraint expression
- * @param	expressionBoundaries the constraint expression boundaries
+ * @param expressionBoundaries the constraint expression boundaries
  * @param index: index of the direction
  * @param deleteConstraint: callback to delete a constraint
  * @param changeExpression: callback to change the constraint expression

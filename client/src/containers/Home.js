@@ -845,46 +845,47 @@ export default class HomeContainer extends Component {
 									} catch (e) {}
 
 									if (msg_data.stderr === "") {
-										this.setState({ progress: 100 });
-										document.getElementById("progress_msg").innerHTML =
-													"Setting-up plots...";
-										setTimeout(function() {
-											document.getElementById("progress").style.display =
-													"none";
-										}, 1500);
+										this.setState({ progress: 100 },
+											() => {
+											document.getElementById("progress_msg").innerHTML =
+														"Setting-up plots...";
 
-										sleep(1000).then(() => {
-											if (result.data.length === 0) {
-												this.setState({
-													hasResults: false,
-													executing: false
-												});
-
-												toast.info("The synthesized set is empty.");
-											} else {
-												if (result.data[0].flowpipe.length !== 0 &&
-													result.data[0].flowpipe[0].length === 0) {
-													toast.info("The initial set was empty.");
+											sleep(1000).then(() => {
+												if (result.data.length === 0) {
 													this.setState({
 														hasResults: false,
 														executing: false
 													});
-												} else {
-													this.setState({
-														sapoResults: result,
-														hasResults: true,
-														updateChart: true
-													});
 
-													downloadFile(JSON.stringify(this.state),
-															(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-															"result.webSapo", "text/plain");
+													toast.info("The synthesized set is empty.");
+												} else {
+													if (result.data[0].flowpipe.length !== 0 &&
+														result.data[0].flowpipe[0].length === 0) {
+														toast.info("The initial set was empty.");
+														this.setState({
+															hasResults: false,
+															executing: false
+														});
+													} else {
+														this.setState({
+															sapoResults: result,
+															hasResults: true,
+															updateChart: true,
+															executing: false
+														}, () => {
+															downloadFile(JSON.stringify(this.state),
+																		 (this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+																		 "result.webSapo", "text/plain");
+														});
+													}
 												}
-											}
-											sleep(500).then(() => {
-												this.setState({
-													progress: 0,
-													killed: false
+												sleep(500).then(() => {
+													document.getElementById("progress").style.display =
+														"none";
+													this.setState({
+														progress: 0,
+														killed: false
+													});
 												});
 											});
 										});

@@ -7,23 +7,27 @@ import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
 import { toast } from 'react-toastify';
 
+const TimeAxisValue = "!webSapo_Time";
+
+var http = require("http");
+
 const Plot = createPlotlyComponent(Plotly);
 
 type Props = {};
 
-function getOption(item, selected_cond)
+function getOption(prefix, item, selected_cond)
 {
 	if (selected_cond) {
 		return (
 			<>
-				<option key={"yoption" + item} value={item}  selected="selected">{item}</option>
+				<option key={prefix + "option" + item} value={item}  selected="selected">{item}</option>
 			</>
 		);
 	}
 
 	return (
 		<>
-			<option key={"yoption" + item} value={item}>{item}</option>
+			<option key={prefix + "option" + item} value={item}>{item}</option>
 		</>
 	);
 }
@@ -50,16 +54,33 @@ function hasManyPSets(sapoResults)
 	return sapoResults !== undefined && sapoResults.data.length > 1;
 }
 
+function approx_fp_vertices(input, decimal=6)
+{
+	if (Array.isArray(input)) {
+		let output = [];
+
+		input.forEach((elem) => {
+			output.push(approx_fp_vertices(elem));
+		});
+
+		return output;
+	}
+
+	if (typeof(input) === "number") {
+		return Number(input.toFixed(decimal));
+	}
+
+	throw new TypeError("Unsupported type")
+}
+
 export default class Chart extends Component<Props> {
 
 	constructor(props) {
 		super(props);
 
 		this.state = {
-			reachData: [],                // Overall reachability data: one flow pipe per parameter set
-			paramData: [],                // Overall parameter set data: a list of parameter set
-			reachPlottable: [],           // reachability polytopes filtered by pset_selection
-			paramPlottable: [],           // parameter polytopes filtered by pset_selection
+			plottable: [],            	  // plottable polytopes
+			selected: [],             	  // polytopes filtered by pset_selection
 			animFrames: [],               // frames for reachability animation
 			current_frame: 0,			  // index of the current frame
 			animBBox: [],			      // the bounding box of the reachability procedure
@@ -67,9 +88,9 @@ export default class Chart extends Component<Props> {
 			camera:	getInitialCamera(),   // camera object for 3D plots (see Plotly.scene.camera)			   		   
 			animate: true,                // a Boolean flag for reachability animation
 			selection_text: "",           // the text describing the parameter set selection
-			pset_selection: [],           // a Boolean filter for reachData and paramData
+			pset_selection: [],           // a Boolean filter for plottable
 			pset_selection_error: false,  // a Boolean flag signaling an error on the last selection
-			colors: [],                   // colors for reachData and paramData
+			colors: [],                   // colors for plottable
 			pset_distinction: false,      // a Boolean flag for distinguishing parameter set data
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
@@ -87,7 +108,7 @@ export default class Chart extends Component<Props> {
 			<>
 				<div className={styles.left_chart}>
 					<Plot
-						data = {this.calcData()}
+						data = {this.plotData()}
 						frames={this.state.animFrames}
 						layout={{
 							/* to remove title space */
@@ -95,7 +116,7 @@ export default class Chart extends Component<Props> {
 							autosize: true,
 							showlegend: false,
 							xaxis: { 
-								title: { text: this.state.axes.x },
+								title: { text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x)},
 								autorange: !this.plottingAnimation(),
 								range: this.state.animBBox.x
 							 },
@@ -107,7 +128,7 @@ export default class Chart extends Component<Props> {
 							scene: {
 								xaxis: { 
 									title: {
-										text: this.state.axes.x,
+										text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x),
 										/*font: {
 											family: 'Computer Modern Roman',
 											size: 20,
@@ -247,23 +268,23 @@ export default class Chart extends Component<Props> {
 				<div className={styles.right_controls}>
 					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType"/> Reachability
+							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType" disabled={this.state.changed}/> Reachability
 						</div>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType"/> Parameters
+							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>
 					</div>} {/*closing radio group*/}
-					<div className={styles.radio_group} onChange={e => this.setState({ chartType: e.target.value, changed: true })}>
+					<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions"/> 2D
+							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions" disabled={this.state.changed}/> 2D
 						</div>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions"/> 3D
+							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions" disabled={this.state.changed}/> 3D
 						</div>
 					</div> {/*closing radio group*/}
 					{ this.plottingReachability() && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
-							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)}/> Flowpipe animation
+							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)} disabled={this.state.changed}/> Flowpipe animation
 						</div>
 					</div>} {/*closing checkbox group*/}
 					{ hasManyPSets(this.props.sapoResults) && <div className={styles.radio_group}>
@@ -277,43 +298,43 @@ export default class Chart extends Component<Props> {
 								<label for="pset-selector">Select parameter sets</label>
 							</div>
 							<div>
-								<input id="pset-selector" type="text" placeholder="e.g., '2-4, 6'" onChange={e => this.changedPSetSelector(e)}/>
+								<input id="pset-selector" type="text" placeholder="e.g., '2-4, 6'" value={this.state.selection_text} onChange={e => this.changedPSetSelector(e)}/>
 							</div>
 						</div>
 					</div>} {/*closing text group*/}
 					<div className={styles.selects}>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
-							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select}>
-								{this.plottingReachability() && <option value="Time">Time</option> }
+							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select} disabled={this.state.changed}>
+								{this.plottingReachability() && <option value={TimeAxisValue}>Time</option> }
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
-									return getOption(item, index===0);
+									return getOption('x', item, index===0);
 								})}
 								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
-									return getOption(item, index===0);
+									return getOption('x', item, index===0);
 								})}
 							</select>
 						</div>
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
-							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select}>
+							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select} disabled={this.state.changed}>
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
-									return getOption(item, index===1);
+									return getOption('y', item, index===1);
 								})}
 								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
-									return getOption(item, index===1);
+									return getOption('y', item, index===1);
 								})}
 							</select>
 						</div>
 						{this.state.chartType === "3D" && 
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
-							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select}>
+							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select} disabled={this.state.changed}>
 								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
-									return getOption(item, index===2);
+									return getOption('z', item, index===2);
 								})}
 								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
-									return getOption(item, index===2);
+									return getOption('z', item, index===2);
 								})}
 							</select>
 						</div>}
@@ -323,11 +344,90 @@ export default class Chart extends Component<Props> {
 		);
 	}
 
+	updateDataVertices(data_vertices)
+	{
+		if (data_vertices.length === 0) {
+			toast.info("The set of parameters is empty");
+		}
+
+		if (this.plottingParameters()) {
+			let polytopes = this.getParameterSet(data_vertices);
+			this.setParamPlot(polytopes);
+
+			return;
+		}
+
+		let polytopes = this.getReachSet(data_vertices);
+		if (this.state.animate) {
+			this.setAnimPlot(polytopes);
+		} else {
+			this.setReachPlot(polytopes);
+		}
+	}
+
+	updatePlot()
+	{
+		let query = {data: this.props.sapoResults.data};
+		if (this.plottingReachability()) {
+			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
+			query["what"] = "flowpipe";
+		} else {
+			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
+			query["what"] = "parameters set";
+		}
+
+		let data = JSON.stringify(query);
+		const options = {
+			hostname: window.location.hostname,
+			port: process.env.REACT_APP_SERVER_PORT,
+			path: '/polyproject',
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': data.length
+			}
+		}
+
+		const req = http.request(options, (res) => {
+			let JSON_msg = '';
+			res.on('data', (dmsg) => {
+				JSON_msg += dmsg
+			});
+
+			res.on('end', () => {
+				let msg = JSON.parse(JSON_msg);
+
+				if (msg.stderr === "") {
+					let data_vertices =  JSON.parse(msg.stdout);
+					data_vertices = approx_fp_vertices(data_vertices);
+					this.updateDataVertices(data_vertices);
+				} else {
+					toast.error(msg.stderr);
+					this.setState({
+						changed: false
+					});
+				}
+			});
+		}).on('error', (error) => {
+			toast.error(error);
+			this.setState({
+				changed: false
+			});
+		});
+		req.write(data);
+		req.end();
+	}
+
 	changeAxis(axis_name, value)
 	{
 		var axes = this.state.axes;
 		axes[ axis_name ] = value;
-		this.setState({ axes: axes, changed: true }); 
+		this.setState({ 
+			axes: axes,
+			changed: true
+		}, ()=>{
+			this.updatePlot();
+		});
 	}
 
 	plottingReachability()
@@ -375,18 +475,44 @@ export default class Chart extends Component<Props> {
 		axis_names.y = name_if_valid(dims, 1, axis_names.x);
 		axis_names.z = name_if_valid(dims, 2, axis_names.x);
 
-		return {axes: axis_names};
+		return axis_names;
 	}
 
 	changeDataType(e)
 	{
-		this.setState(Object.assign(this.getAxisNames(e.target.value),
-								   { dataType: e.target.value, changed: true }));
+		this.setState({axes: this.getAxisNames(e.target.value),
+					   dataType: e.target.value,
+					   changed: true }, 
+					   ()=>{
+						 this.updatePlot();
+					   });
 	}
 	
+	changeCharType(e)
+	{
+		this.setState({ chartType: e.target.value, changed: true}, 
+			()=>{
+			  this.updatePlot();
+			});
+	}
+
 	changeAnimation(e)
 	{
-		this.setState({ animate: e.currentTarget.checked, changed: true });
+		if (this.plottingReachability()) {
+			this.setState({ animate: e.currentTarget.checked, changed: true },
+				() => {
+					if (this.plottingAnimation()) {
+						this.setAnimPlot(this.state.plottable);
+					} else {
+						this.setReachPlot(this.state.plottable);
+					}
+				});
+		} else {
+			this.setState({ animate: e.currentTarget.checked, changed: true },
+				() => {
+					this.updatePlot();
+				});
+		}
 	}
 
 	createColors(distinct)
@@ -408,9 +534,21 @@ export default class Chart extends Component<Props> {
 
 	changeDistinguish(e)
 	{
-		this.setState({ pset_distinction: e.currentTarget.checked, 
-						colors: this.createColors(e.currentTarget.checked),
-						changed: true });
+		let selection;
+
+		if (e.currentTarget.checked) {
+			selection = this.parseSelected(this.state.selection_text);
+		} else {
+			selection = this.parseSelected("");
+		}
+
+		this.setState({ 
+			pset_distinction: e.currentTarget.checked, 
+			colors: this.createColors(e.currentTarget.checked),
+			changed: true
+		}, () => {
+			this.updateSelection(selection);
+		});
 	}
 
 	parseSelected(sel_text) {
@@ -460,330 +598,304 @@ export default class Chart extends Component<Props> {
 		return styles.input_text_group;
 	}
 
+	updateSelected()
+	{
+		if (this.plottingAnimation()) {
+			this.setAnimPlot(this.state.plottable);
+		} else {
+			if (this.plottingReachability()) {
+				this.setReachPlot(this.state.plottable);
+			} else {
+				this.setParamPlot(this.state.plottable);
+			}
+		}
+	}
+
+	updateSelection(selection)
+	{
+		if (selection !== undefined) {
+			this.setState({
+				pset_selection: selection, 
+				pset_selection_error: false,
+				changed: true
+			}, () => {
+				this.updateSelected();
+			});
+		} else {
+			toast.error("Wrong selection");
+			this.setState({ 
+				pset_selection_error: true 
+			}); 
+		}
+	}
+
 	changedPSetSelector(e)
 	{
-		const self = this;
-
 		// Changes selection only after 1.5 seconds after the user stops writing
-		if (self.state.typingTimeout) {
+		if (this.state.typingTimeout) {
        		clearTimeout(this.state.typingTimeout);
     	}
 
 		this.setState({
 			selection_text: e.currentTarget.value,
-			typingTimeout: setTimeout(function () {
-				if (self.props.sapoResults !== undefined) { // Things may be changed in 1.5 seconds
-					var selection = self.parseSelected(self.state.selection_text);
+			typingTimeout: setTimeout(() => { // Things may be changed in 1.5 seconds
+				var selection = this.parseSelected(this.state.selection_text);
+				this.updateSelection(selection);
+			}, 1500)
+		});
+	}
 
-					if (selection !== undefined) {
+	resetPlot()
+	{
+		if (this.props.sapoResults !== undefined) {
+			let selection = this.parseSelected("");
 
-						if (self.plottingAnimation()) {
-							var frames = getFramesForSelectedFlowpipes(self.state.reachData, selection);
+			let dist = hasManyPSets(this.props.sapoResults);
+			this.setState({
+				axes: this.getAxisNames(this.state.dataType),
+				pset_distinction: dist,
+				colors: this.createColors(dist),
+				selection_text: "",
+				pset_selection: selection,
+				current_frame: 0,
+				changed: true
+			}, () => {
+				this.updatePlot();
+			});
+		}
+	}
 
-							/* the following line bypasses a reactjs-plotly bug.
-							   See https://github.com/plotly/plotly.js/issues/1839 */
-							var plottable = deepCopy(frames[0].data);
-							self.setState({ reachPlottable: plottable,
-											animFrames: frames });
-						} else {
-							self.setState({ reachPlottable: getSelectedFlowpipesPolytopes(self.state.reachData, selection) });
-						}
-
-						self.setState({ pset_selection: selection, 
-									    pset_selection_error: false, 
-										paramPlottable: self.state.paramData.filter( (e, i) => selection[i]), 
-										changed: true });
-					} else {
-						toast.error("Wrong selection");
-						self.setState({ pset_selection_error: true }); 
-					}
-				}
-			}, 1500),
+	setUnplottable()
+	{
+		this.setState({
+			plottable: [],
+			selected: [],
+			current_frame: 0,
+			dataType: "reachability",
+			animate: true,
+			axes: { 
+				x: undefined, 
+				y: undefined, 
+				z: undefined
+			},
 			changed: false
 		});
 	}
 
-	updatePlotData()
+	plotData()
 	{
-		if (this.props.sapoResults !== undefined) {
-			var newProps = this.getAxisNames(this.state.dataType);
-
-			newProps.pset_distinction = hasManyPSets(this.props.sapoResults);
-			newProps.colors = this.createColors(newProps.pset_distinction);
-			
-			newProps.selection_text = "";
-			newProps.pset_selection = [];
-			for (let i=0; i<this.props.sapoResults.data.length; i++) {
-				newProps.pset_selection.push(true);
-			}
-
-			newProps.changed = true;
-
-			this.setState(newProps);
-		}
-	}
-
-	calcData()
-	{
-		if (this.props.sapoResults === undefined || this.props.sapoResults.data[0].flowpipe[0].length === 0) {
-			return [];
-		}
-
-		if (this.props.updateChart)
-		{
-			this.updatePlotData();
-			this.props.setUpdated();
-		}
-		
 		if (!this.state.changed) {
-			if (this.plottingReachability()) {
-				return this.state.reachPlottable;
+			if (this.props.sapoResults !== undefined && this.state.plottable.length===0) {
+				this.resetPlot();
 			}
-			
-			if (this.plottingParameters()) {
-				return this.state.paramPlottable;
-			} 
 
-			return [];
+			if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
+				this.setUnplottable();
+			}
 		}
 
-		if ((this.plottingReachability() && !this.hasReachData()) ||
-				(this.plottingParameters() && !this.hasParamData()))
-		{
-			var newProps = {axes: { x: undefined, y: undefined, z: undefined} };
-			if (this.plottingReachability())
-				newProps=Object.assign(newProps, { reachData: [], reachPlottable: [], changed: false });
-			else
-				newProps=Object.assign(newProps, { paramData: [], paramPlottable: [], changed: false });
-
-			this.setState(newProps);
-
-			this.props.setExecuting(false);
-
-			return [];
-		}
-
-		var polytopes;
-		if (this.plottingReachability()) {
-			polytopes = this.calcReachData();
-		} else {
-			polytopes = this.calcParamData();
-		}
-
-		this.props.setExecuting(false);
-
-		return polytopes;
-	}	// end calcData
+		return this.state.selected;
+	}
 
 	getProjSubspace(variables)
 	{
 		var subspace;
 		if (this.state.chartType === "2D")
-			subspace = [-1,-1];
+			subspace = [0,1];
 		else
-			subspace = [-1,-1,-1];
+			subspace = [0,1,2];
 		
 		variables.forEach((v, i) => {
 			if (v === this.state.axes.x)
 				subspace[0] = i;
 			if (v === this.state.axes.y)
 				subspace[1] = i;
-			if (v === this.state.axes.z)
+			if (subspace.length === 3 && v === this.state.axes.z)
 				subspace[2] = i;
 		});
+
+		if (this.state.axes.x === TimeAxisValue) {
+			subspace.splice(0,1);
+		}
 
 		return subspace;
 	}
 
-	getFlowpipe2DTimePolygons(flowpipe, variables, param_set_idx = undefined)
+	setReachPlot(polytopes)
 	{
-		var polygons = [];
-		var subspace = this.getProjSubspace(variables);
-
-		var time = 0;
-		flowpipe.forEach((polytopes_union) => {
-			var intervals = [];
-			polytopes_union.forEach((polytope) => {
-				/* The following call is quite expensive for 
-				   large dimensional polytopes */
-				var vertices = computePolytopeVertices(polytope);
-				if (vertices.length !== 0)  // some valid vertices found in
-				{
-					intervals.push(findMinMaxItvl(vertices, subspace[1]));
-				}
-			});
-
-			polygons[time] = [];
-			// join overlapping intervals
-			joinOverlappingItvls(intervals).forEach((itvl) => {
-				// create the two vertices
-				var vertices = [[time, itvl.min], [time, itvl.max]];
-
-				// add the polytope to the dataset
-				if (param_set_idx !== undefined) {
-					polygons[time].push(get2DTimePolygon(vertices, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
-				} else {
-					polygons[time].push(get2DTimePolygon(vertices, time, this.state.colors[0], undefined));
-				}
-			});
-			time = time + 1;
+		this.setState({ 
+			selected: getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection),
+			plottable: polytopes,
+			animFrames: [],
+			animBBox: [],
+			slider_steps: [],
+			changed: false
 		});
-
-		return polygons;
 	}
 
-	getPolytopes(polytopes_union, variables, param_set_idx=undefined)
+	setAnimPlot(polytopes)
 	{
-		const polytope_gen = function (vertices, state, color, name) {
-			if (state.chartType === "2D") {
-				return get2DPolygon(vertices, color, name);
-			} else {
-				return get3DPolylitope(vertices, color, name);
+		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
+
+		if (frames.length > 0) {
+			/* the following line bypasses a reactjs-plotly bug.
+			   See https://github.com/plotly/plotly.js/issues/1839 */
+			var selectedFrame = deepCopy(frames[this.state.current_frame].data);
+			this.setState({ 
+				selected: selectedFrame,
+				plottable: polytopes,
+				animFrames: frames,
+				animBBox: getFramesBBox(frames),
+				slider_steps: build_slider_steps(frames.length),
+				changed: false
+			});
+		}
+	}
+
+	setParamPlot(polytopes) 
+	{
+		let selectedData = [];
+		for (let i=0; i<polytopes.length; i++) {
+			if (this.state.pset_selection[i]) {
+				selectedData.push(polytopes[i]);
 			}
-		};
+		}
+
+		this.setState({
+			selected: selectedData,
+			plottable: polytopes,
+			animFrames: [],
+			animBBox: [],
+			slider_steps: [],
+			changed: false
+		});
+	}
+
+	getParameterSet(data_vertices)
+	{
+		let polytope_gen = [];
+		if (this.state.chartType === "2D") {
+			polytope_gen = get2DPolygon;
+		} else {
+			polytope_gen = get3DPolytope;
+		}
 	
 		var polytopes = [];
-		var subspace = this.getProjSubspace(variables);
-
-		polytopes_union.forEach((polytope) => {
-			var vertices = computePolytopeVertices(polytope);
-			if (vertices.length !== 0)  // some valid vertices found in
-			{
-				// vertices projected in the subspace
-				var proj = getVerticesProjection(vertices, subspace);
-
-				// add the polytope to the dataset
-				if (param_set_idx !== undefined) {
-					polytopes.push(polytope_gen(proj, this.state, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
-				} else {
-					polytopes.push(polytope_gen(proj, this.state, this.state.colors[0], undefined));
-				}
-			}
-		});
-
+		for (let i=0; i<data_vertices.length; i++) {
+			let polys = this.getPolytopes(polytope_gen, data_vertices[i],
+					(this.state.pset_distinction ? i : undefined));
+	
+			polys.forEach(polytope => polytopes.push(polytope));
+		}
+	
 		return polytopes;
 	}
 
-	getFlowpipePolytopes(flowpipe, variables, param_set_idx=undefined) {
-		const polytope_gen = function (vertices, state, time, color, name) {
-			if (state.axes.x !== "Time") {
-				if (state.chartType === "2D") {
-					return get2DPolygon(vertices, color, name);
-				} else {
-					return get3DPolylitope(vertices, color, name);
-				}
-			} else {
-				if (state.chartType === "2D") {
-					return get2DTimePolygon(vertices, time, color, name);
-				} else {
-					return get3DTimePolylitope(vertices, time, color, name);
-				}
-			}
-		};
+	getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx = undefined)
+	{
+		var polygons = [];
+		for (let time=0; time<flowpipe_vertices.length; time++) {
+			let intervals = compute1DProjIntervals(flowpipe_vertices[time])
 	
-		var polytopes = [];
-		var subspace = this.getProjSubspace(variables);
-
-		var time = 0;
-		flowpipe.forEach((polytopes_union) => {
-			polytopes[time] = [];
-			polytopes_union.forEach((polytope) => {
-				var vertices = computePolytopeVertices(polytope);
-				if (vertices.length !== 0)  // some valid vertices found in
-				{
-					// vertices projected in the subspace
-					var proj = getVerticesProjection(vertices, subspace);
-
-					// add the polytope to the dataset
-					if (param_set_idx !== undefined) {
-						polytopes[time].push(polytope_gen(proj, this.state, time, this.state.colors[param_set_idx], 'pSet #'+param_set_idx));
-					} else {
-						polytopes[time].push(polytope_gen(proj, this.state, time, this.state.colors[0], undefined));
-					}
+			polygons[time] = [];
+			// join overlapping intervals
+			intervals.forEach((itvl) => {
+				// create the two vertices
+				var itvl_vertices = [[time, itvl.min], [time, itvl.max]];
+	
+				let color = this.state.colors[0];
+				let name = undefined;
+				// add the polytope to the dataset
+				if (param_set_idx !== undefined) {
+					color = this.state.colors[param_set_idx];
+					name = 'pSet #'+param_set_idx;
 				}
+				polygons[time].push(get2DTimePolygon(itvl_vertices, time, color, name));
 			});
-
-			time = time + 1;
-		});
-
-		return polytopes;		
+		}
+	
+		return polygons;
 	}
 
-	calcReachData()
+
+	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined)
 	{
-		// console.log("Computing polytope vertices")
-		// var begin_time = new Date();
-
 		var polytopes = [];
-		if (this.state.axes.x === "Time" && this.state.chartType === "2D") {
-			// this is just to exploit 2D time series properties and speed-up 
-			// their plotting with respect to getPolytopes-based plotting
-			this.props.sapoResults.data.forEach((elem, i) => {
-				polytopes.push(this.getFlowpipe2DTimePolygons(elem[ 'flowpipe' ], this.props.sapoResults.variables, 
-										  (this.hasParamData() && this.props.sapoResults.data.length > 1 ? i : undefined)));
-			});
-		} else {
-			this.props.sapoResults.data.forEach((elem, i) => {
-				polytopes.push(this.getFlowpipePolytopes(elem[ 'flowpipe' ], this.props.sapoResults.variables, 
-										  (this.hasParamData() && this.props.sapoResults.data.length > 1 ? i : undefined)));
-			});
+	
+		for (let i=0; i<polyunion_vertices.length; i++) {
+			let vertices = polyunion_vertices[i];
+	
+			let new_poly;
+			if (param_set_idx !== undefined) {
+				new_poly = polytope_gen(vertices, this.state.colors[param_set_idx], 
+										'pSet #'+param_set_idx);
+			} else {
+				new_poly = polytope_gen(vertices, this.state.colors[0], undefined);
+			}
+			polytopes.push(new_poly);
 		}
+	
+		return polytopes;
+	}
 
-		if (polytopes.length === 0) {
-			toast.info("The reached set is empty.");
-		}
-
-		if (this.plottingAnimation()) {
-			var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
-
-			if (frames.length > 0) {
-				/* the following line bypasses a reactjs-plotly bug.
-				   See https://github.com/plotly/plotly.js/issues/1839 */
-				var plottable = deepCopy(frames[0].data);
-				this.setState({ reachData: polytopes,
-								reachPlottable: plottable,
-								animFrames: frames,
-								animBBox: getFramesBBox(frames),
-								slider_steps: build_slider_steps(frames.length),
-								changed: false });
+	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined)
+	{
+		let timeplot;
+		let poly_gen;
+		if (this.state.axes.x === TimeAxisValue) {
+			if (this.state.chartType === "2D") {
+				timeplot = get2DTimePolygon;
+			} else {
+				timeplot = get3DTimePolylitope;
 			}
 		} else {
-			var reachPlottable = getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection);
-			this.setState({ reachData: polytopes,
-							reachPlottable: reachPlottable,
-							animFrames: [],
-							animBBox: [],
-							slider_steps: [],
-							changed: false });
+			if (this.state.chartType === "2D") {
+				poly_gen = get2DPolygon;
+			} else {
+				poly_gen = get3DPolytope;
+			}
 		}
 
-		// var end_time = new Date();
-		// console.log("Vertices has been computed in " + Math.round((end_time.getTime()-begin_time.getTime())/1000) + " seconds.");
+		var f_polytopes = [];
 
-		return this.state.reachPlottable;
-	} // end calcReachData
-	
-	
-	calcParamData()
+		for (let time=0; time<flowpipe_vertices.length; time++) {
+			if (this.state.axes.x === TimeAxisValue) {
+				poly_gen = (vertices, color, name) => {
+					return timeplot(vertices, time, color, name);
+				};
+			}
+			let polytopes = this.getPolytopes(poly_gen, flowpipe_vertices[time], 
+												param_set_idx);
+			f_polytopes.push(polytopes);
+		}
+
+		return f_polytopes;		
+	}
+
+	getReachSet(data_vertices)
 	{
 		var polytopes = [];
-		this.props.sapoResults.data.forEach((elem, i) => {
-			this.getPolytopes(elem[ 'parameter set' ], this.props.sapoResults.parameters, 
-										  (this.hasParamData() && this.props.sapoResults.data.length > 1 ? i : undefined)).forEach((polytope) => {
-				polytopes.push(polytope);
-			});
-		});
 
-		if (polytopes.length === 0) {
-			toast.info("The set of parameters is empty");
+		var poly_gen;
+
+		if (this.state.axes.x === TimeAxisValue && this.state.chartType === "2D") {
+
+			// this is just to exploit 2D time series properties and speed-up 
+			// their plotting with respect to getPolytopes-based plotting
+			poly_gen = (flowpipe_vertices, param_set_idx) => {
+				return this.getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx);
+			};
+		} else {
+			poly_gen = (flowpipe_vertices, param_set_idx) => {
+				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx);
+			};
 		}
 
-		var plottable = polytopes.filter((e,i) => this.state.pset_selection[i]);
-		this.setState({ paramData: polytopes,
-		                paramPlottable: plottable,
-						changed: false });
+		for (let i=0; i<data_vertices.length; i++) {
+			polytopes.push(poly_gen(data_vertices[i], (this.state.pset_distinction ? i : undefined)));
+		}
 
-		return this.state.paramPlottable;
+		return polytopes;
 	}
 }	// end Chart
 
@@ -957,19 +1069,6 @@ function compareItvls(a, b)
 	return 0;
 }
 
-function compareArray(v1, v2)
-{
-	if (v1.length < v2.length) return -1;
-	if (v1.length > v2.length) return 1;
-	
-	for (var i = 0; i < v1.length; i++)
-	{
-		if (v1[i] < v2[i]) return -1;
-		if (v1[i] > v2[i]) return 1;
-	}
-	return 0;
-}
-
 // given a 2D point and an origin, retunrs the quadrant in which the point lies
 function findQuadrant(p, c)
 {
@@ -1016,79 +1115,6 @@ function compare(p1, p2, c)
 	}
 }
 
-function isValidVertex(vertex, polytope, tol)
-{
-	for (var i = 0; i < polytope.A.length; i++)
-	{
-		var dir = math.dot(polytope.A[i], vertex);
-		if (dir > polytope.b[i] + tol) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/* This function is exponential in the number of polytope dimentions */
-function computePolytopeVertices(polytope, tol = 0.00000001)
-{
-	var vertices = [];
-				
-	let directions = polytope.A;
-	let offsets = polytope.b;
-
-	if (directions.length === 0) {
-		return vertices;
-	}
-
-	var A_comb = getFirstCombination(directions[0].length, directions.length);
-	var hasNext = true;
-
-	/* find possible vertices */
-	while (hasNext)
-	{
-		var mat = directions.filter((item, pos) => A_comb[pos] === 1);
-		if (math.det(mat) !== 0) {
-			var v = offsets.filter((item, pos) => A_comb[pos] === 1);
-			var vertex = math.lusolve(mat, v).reduce((acc, el) => acc.concat(el), [])
-
-			if (isValidVertex(vertex, polytope, tol)) {
-				vertices.push(vertex);
-			}
-		}
-		
-		// find next combination
-		hasNext = findNextCombination(A_comb);
-	}
-
-	return vertices
-}
-
-function filterDuplicateVertices(vertices)
-{
-	vertices.sort();
-	var j = 0;
-	while (j+1 < vertices.length)
-	{
-		if (compareArray(vertices[j], vertices[j+1]) === 0)
-			vertices.splice(j+1, 1);
-		else
-			j++;
-	}
-
-	return vertices;
-}
-
-function getVerticesProjection(vertices, subspace)
-{
-	// vertices projected in the subspace
-	var proj = vertices.map(e => subspace.map(i => {
-		if (i !== -1) return e[i]; else return -1;
-	}));
-
-	return filterDuplicateVertices(proj);
-}
-
 // vertices are sorted counterclockwise
 function removeInnerVertices(vertices)
 {
@@ -1131,73 +1157,6 @@ function removeInnerVertices(vertices)
 	return vertices;
 }
 
-function getFirstCombination(k, n)
-{
-	// initial combination
-	return Array.from({length: n}, 
-						(_, i) => {
-							if (i<k) {
-								return 1;
-							} else {
-								return 0;
-							}
-						});
-}
-
-function findNextCombination(combination)
-{
-	var l = combination.length - 1;
-	
-	if (combination[l] === 0)
-	{
-		var i = 1;
-		while (combination[l-i] === 0)
-			i++;
-		
-		// combination[l-i]===1 and 
-		// combination[l-i+1]===0
-		combination[l-i] = 0;
-		combination[l-i+1] = 1;
-	}
-	else
-	{
-		// search for the last 0 in the combination
-		var j = 1;
-		while (j <= l && combination[l-j] === 1)
-			j++;
-
-		var k = j;
-
-		// search for the successive last 1
-		while (j <= l && combination[l-j] === 0)
-			j++;
-		
-		// if there is no successive 1
-		if (j > l) {
-			// all the 1s are at the end of the 
-			// array and there is no successive 
-			// combination
-			return false;
-		}
-		
-		// otherwise, combination[l-j]===1 and
-		// combination[l-j+1]===0
-		combination[l-j] = 0;
-		var pos = l-j+1;
-		while (pos <= l-j+1+k)
-		{
-			combination[pos] = 1;
-			pos++;
-		}
-		while (pos <= l)
-		{
-			combination[pos] = 0;
-			pos++;
-		}
-	}
-	return true;
-}
-
 function getSinglePoint(vertices, color = '#ff8f00', name = undefined, marker_size = 7)
 {
 	var plot_param =  {
@@ -1232,7 +1191,22 @@ function getDistinctColors(num_colors)
 	}
 
 	return colors;
+}		
+
+function compute1DProjIntervals(polyunion_vertices)
+{
+	let intervals = [];
+	for (let j=0; j<polyunion_vertices.length; j++) {
+		let vertices = polyunion_vertices[j];
+		if (vertices.length !== 0)  // some valid vertices found in
+		{
+			intervals.push(findMinMaxItvl(vertices));
+		}
+	}
+
+	return joinOverlappingItvls(intervals);
 }
+
 
 function get2DConvexHullVertices(vertices)
 {  // TODO: implement a real 2D convex hull
@@ -1281,7 +1255,7 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 	var chull = get2DConvexHullVertices(vertices);
 
 	var times = []
-	var y = chull.map(e => e[1]);
+	var y = chull.map(e => e[0]);
 
 	for (var j = 0; j < y.length; j++)
 		times.push(time-thickness/2);
@@ -1347,7 +1321,6 @@ function getPlanePassingThrough(vertex_a, vertex_b, vertex_c)
 	var delta2 = math.subtract(vertex_c, vertex_a);
 
 	var normal_vect = math.cross(delta1, delta2);
-
 	// normalize normal vector
 	var base_idx = 0;
 	while (base_idx < normal_vect.length && 
@@ -1466,7 +1439,7 @@ function getColinearVerticesBBoxBoundaries(vertices)
 	return [min_vert, max_vert];
 }
 
-function get3DPolylitope(vertices, color = '#ff8f00', name = undefined)
+function get3DPolytope(vertices, color = '#ff8f00', name = undefined)
 {
 	if (vertices.length === 1) {
 		return getSinglePoint(vertices);
