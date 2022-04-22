@@ -54,13 +54,8 @@ exports.executeShellCommand = (
 
 exports.killShellCommand = () => {
   if (childProcess != undefined) {
-    childProcess.kill();
+    process.kill(childProcess.pid, 9);
   } else {
     console.log("No process is running");
   }
-};
-
-exports.pkillCommand = (cmd) => {
-  exec('pkill '+cmd);
-  exports.killShellCommand();
 };

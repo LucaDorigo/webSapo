@@ -104,7 +104,6 @@ app.post("/polyproject", (req, res, next) => {
 app.get("/kill", (req, res, next) => {
   console.log("Received STOP signal...");
   globals.killShellCommand();
-  globals.pkill('./sapoCore/bin/sapo');
   console.log("stopped");
   res.end();
 });

@@ -926,11 +926,15 @@ export default class HomeContainer extends Component {
 		this.setState({
 			killed: true
 		});
-		http.get("/kill", (req, res) => {
+		const options = {
+			hostname: window.location.hostname,
+			port: process.env.REACT_APP_SERVER_PORT,
+			path: '/kill'
+		}
+		http.get(options, (res) => {
 			this.setState({ executing: false });
+			document.getElementById("progress").style.display = "none";
 		});
-		document.getElementById("progress").style.display =
-													"none";
 	};
 
 	resetConfiguration = () => {
