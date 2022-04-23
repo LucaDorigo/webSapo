@@ -758,7 +758,8 @@ template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::v
 void refine_2D_proj_on(const LinearSystem<T> &constraints,
                       const std::vector<unsigned int> &axis_vector, 
                       std::vector<Point<T>> &vertices,
-                      Point<T> v1, const Point<T> &v2)
+                      Point<T> v1, const Point<T> &v2,
+                      const T approx=1e-10)
 {
     using namespace Space2D;
 
@@ -771,7 +772,7 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
             return;
         }
 
-        if (v1 == res.optimizer || v2 == res.optimizer) {
+        if (norm1(v1-res.optimizer)<=approx || norm1(v2-res.optimizer)<=approx) {
             return;
         }
 
