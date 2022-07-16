@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { downloadFile } from "../constants/global";
+import { downloadFile, tasks } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
@@ -37,15 +37,13 @@ const initState = {
 		startPosition: 0,
 		endPosition: 0
 	},
-	reachability: true, // possible use of enumeration?
-	synthesis: false,
+	task: tasks.undefined,
 	leftButtonActive: true, // for the parameters type
 	rightButtonActive: false, // for the parameters type
 	disabledAddVariable: false,
 	disabledAddParameter: false,
 	disabledAddFormula: false,
 	// will display a combination of 'reachability/synthesis and methods'
-	nameSelectedMenu: "reachability",
 	sapoResults: undefined,
 	projectName: undefined,
 	updateChart: true
@@ -120,26 +118,15 @@ export default class HomeContainer extends Component {
 		}
 	};
 
-	// it's not called when there is a load configuration, the menù name and state are already set.
+	// it's not called when there is a load configuration, the menu name and state are already set.
 	handleMethodSelection = info => {
 		let { key } = info; // extract only the key value
 
 		// clean the state
 		this.setState({
-			reachability: false,
-			synthesis: false,
+			task: key,
 			sapoResults: undefined
 		});
-
-		// assumes that there is only reachability and synthesis
-		if (key.includes("reachability")) {
-			this.setState({ reachability: true });
-		} else {
-			this.setState({ synthesis: true });
-		}
-
-		// write the menu name
-		this.setState({ nameSelectedMenu: key });
 	};
 
 	// save the array at every changes, array contains variables or parameters of the system
@@ -747,15 +734,18 @@ export default class HomeContainer extends Component {
 		// if synthesis it's possible to draw variables and parameters
 		let array;
 
-		if (this.state.reachability === true) {
-			array = this.state.variables.map(item => {
-				return item.name;
-			});
-		} else if (this.state.synthesis === true) {
-			array = this.state.variables.concat(this.state.parameters);
-			array = array.map(item => {
-				return item.name;
-			});
+		switch(this.state.task) {
+			case tasks.synthesis:
+				array = this.state.variables.concat(this.state.parameters);
+				array = array.map(item => {
+					return item.name;
+				});
+				break;
+			default:
+				array = this.state.variables.map(item => {
+					return item.name;
+				});
+				break;
 		}
 
 		return array;
@@ -973,6 +963,16 @@ export default class HomeContainer extends Component {
 				try
 				{
 					let stateFromFile = JSON.parse(e.target.result);
+
+					if ("reachability" in stateFromFile && stateFromFile.reachability) {
+						stateFromFile.task = tasks.reachability;
+					} else {
+						if ("reachability" in stateFromFile && stateFromFile.synthesis) {
+							stateFromFile.task = tasks.synthesis;
+						} else {
+							stateFromFile.task = tasks.undefined;
+						}
+					} 
 					this.setState(
 						{
 							...stateFromFile,
@@ -1095,10 +1095,8 @@ export default class HomeContainer extends Component {
 				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
 				handleMethodSelection={this.handleMethodSelection}
-				nameSelectedMenu={this.state.nameSelectedMenu}
 				//
-				reachability={this.state.reachability}
-				synthesis={this.state.synthesis}
+				task={this.state.task}
 				variables={this.state.variables}
 				directions={this.state.directions}
 				initialDirBoundaries={this.state.initialDirBoundaries}

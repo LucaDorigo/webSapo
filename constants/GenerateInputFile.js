@@ -1,8 +1,14 @@
+const tasks = {
+	undefined: "0",
+	reachability: "1",
+	synthesis: "2",
+	invariant_proving: "3"
+};
+
 exports.generateModelFile = (
   variables,
   parameters,
-  reachability,
-  synthesis,
+  task,
   leftButtonActive,
   rightButtonActive,
   numberOfIterations,
@@ -17,10 +23,17 @@ exports.generateModelFile = (
 	var model = "";
 	
 	// problem type
-	if (reachability)
-		model += "problem: reachability;\n";
-	else
-		model += "problem: synthesis;\n";
+	switch (task) {
+		case tasks.reachability:
+			model += "problem: reachability;\n";
+			break;
+		case tasks.synthesis:
+			model += "problem: synthesis;\n";
+			break;
+		case tasks.invariant_proving:
+			model += "problem: invariant_validation;\n";
+			break;
+	}
 	
 	// iterations
 	model += "iterations: " + numberOfIterations + ";\n";

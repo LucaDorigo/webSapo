@@ -1,9 +1,7 @@
 /* eslint no-console:0 */
 import React, { Component } from "react";
 import Menu, { SubMenu, MenuItem } from "rc-menu";
-
-const reachability = "reachability";
-const synthesis = "synthesis";
+import { tasks, task_name } from "../../constants/global";
 
 export default class SelectorMenu extends Component {
 
@@ -17,9 +15,9 @@ export default class SelectorMenu extends Component {
         onSelect={this.props.handleMethodSelection}
         triggerSubMenuAction={triggerSubMenuAction}
       >
-        <SubMenu title={this.props.nameSelectedMenu}>
-          <MenuItem key={reachability}>{reachability}</MenuItem>
-          <MenuItem key={synthesis}>{synthesis}</MenuItem>
+        <SubMenu title={task_name(this.props.task)}>
+          <MenuItem key={tasks.reachability}>{task_name(tasks.reachability)}</MenuItem>
+          <MenuItem key={tasks.synthesis}>{task_name(tasks.synthesis)}</MenuItem>
         </SubMenu>
       </Menu>
     );

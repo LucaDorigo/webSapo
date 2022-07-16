@@ -14,6 +14,7 @@ import PolytopeSpecifier from "../PolytopeSpecifier/index";
 import LogicDisplayer from "../LogicDisplayer/index";
 import Chart from "../Chart/index";
 //import { black } from "ansi-colors";
+import { tasks, task_name } from "../../constants/global";
 
 import { toast } from 'react-toastify';
 
@@ -42,15 +43,15 @@ export default class BoxesPage extends Component<Props> {
 
 							<DropdownMenu
 								handleMethodSelection={this.props.handleMethodSelection}
-								nameSelectedMenu={this.props.nameSelectedMenu}
+								task={this.props.task}
 							/>
 						</div>
 						<div className={styles.headerCenter}>
 							<div className={styles.buttonBox}>
 								{this.props.sapoResults === undefined && 
-								 (this.props.synthesis || this.props.reachability) &&
+								 this.props.task !== tasks.undefined &&
 								 <RoundedButton
-									text={(this.props.synthesis?"Synthesis":"Reachability")+ " Analysis"}
+									text={task_name(this.props.task)+ " Analysis"}
 									parameter={false}
 									callback={() => {
 										document.getElementById("progress").style.display =
@@ -61,12 +62,13 @@ export default class BoxesPage extends Component<Props> {
 										this.props.disabledAddParameter||this.props.disabledAddFormula||
 										(this.props.variables.length===0)||
 										(this.props.directions.length===0)||
-										(this.props.synthesis && this.props.logicFormulas.length===0)}
+										((this.props.task === tasks.synthesis || this.props.task === tasks.invariant_proving)
+										 && this.props.logicFormulas.length===0)}
 								 />
 								}
 								
 								{this.props.sapoResults !== undefined && 
-								 (this.props.synthesis || this.props.reachability) && 
+								 this.props.task !== tasks.undefined && 
 								<RoundedButton
 									text={"Plot"}
 									className={styles.plotButton}
@@ -75,12 +77,15 @@ export default class BoxesPage extends Component<Props> {
 											document.getElementById("chart").style.display = "block";
 											window.dispatchEvent(new Event('resize'));
 										} else {
-											if (this.props.reachability) {
-												toast.info("The reachable set is empty", {position: "bottom-center"});
+											let msg;
+											switch(this.props.task) {
+												case tasks.synthesis:
+													msg = "The synthesized set is empty";
+													break;
+												default:
+													msg = "The reachable set is empty";
 											}
-											if (this.props.synthesis) {
-												toast.info("The synthesized set is empty", {position: "bottom-center"});
-											}
+											toast.info(msg, {position: "bottom-center"});
 										}
 									}}
 								/> 
@@ -117,13 +122,13 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 					{/* end of the header*/}
 
-					{this.props.nameSelectedMenu === "Analysis method" && (
+					{this.props.task === tasks.undefined && (
 						<div className={styles.selectMethodContainer}>
 							<p>Select an analysis method from the header menu</p>
 						</div>
 					)}
 
-					{this.props.nameSelectedMenu !== "Analysis method" && (
+					{this.props.task !== tasks.undefined && (
 						<div className={styles.mainContainer}>
 							<div className={styles.main}>
 								<div className={styles.grid_container}>
@@ -214,7 +219,7 @@ export default class BoxesPage extends Component<Props> {
 									</div>
 								</div>
 
-								<div className={`${this.props.synthesis?styles.grid_container3:styles.grid_container2}`}>
+								<div className={`${this.props.task===tasks.synthesis?styles.grid_container3:styles.grid_container2}`}>
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
 											Directions & Initial Set
@@ -250,7 +255,7 @@ export default class BoxesPage extends Component<Props> {
 
 										<div className={styles.center}>
 										{/*selector for iteration of the system*/}
-										{ (this.props.synthesis || this.props.reachability) && 
+										{ this.props.task !== tasks.undefined && 
 										<div className={styles.simplePaddingLeft}>
 											Reachability steps:{" "}
 											<input
@@ -266,7 +271,7 @@ export default class BoxesPage extends Component<Props> {
 										}
 
 										{/*selector for maximum vector magnitude*/}
-										{ (this.props.synthesis || this.props.reachability) &&
+										{ this.props.task !== tasks.undefined &&
 										<div className={styles.simplePaddingLeft}>
 											Max bundle magnitude:{" "}
 											<input
@@ -281,7 +286,7 @@ export default class BoxesPage extends Component<Props> {
 										}
 										</div>
 									</div>
-									{ this.props.synthesis &&
+									{ this.props.task === tasks.synthesis &&
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
 											Synthesis

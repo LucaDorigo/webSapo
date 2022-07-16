@@ -4,6 +4,27 @@ export const colors = {
   orange: "#FF8F00"
 };
 
+export const tasks = {
+	undefined: "0",
+	reachability: "1",
+	synthesis: "2",
+	invariant_proving: "3"
+};
+
+export const task_name = (task) => {
+
+  switch(task) {
+    case tasks.reachability:
+      return "Reachability";
+    case tasks.synthesis:
+      return "Synthesis";
+    case tasks.invariant_proving:
+      return "Invariant Proof";
+    default:
+      return "Analysis Method";
+  }
+};
+
 export const deepCopy = value => {
   return JSON.parse(JSON.stringify(value));
 };
