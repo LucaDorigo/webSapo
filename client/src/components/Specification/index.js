@@ -6,7 +6,7 @@ import styles from "./style.module.css";
 
 type Props = {};
 
-export default class LogicDisplayer extends Component<Props> {
+export default class Specification extends Component<Props> {
   props: Props;
 
   render() {

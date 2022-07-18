@@ -4,11 +4,24 @@ export const colors = {
   orange: "#FF8F00"
 };
 
+export const k_induction_join = {
+	listing: 0,
+	packaging: 1,
+	merging: 2,
+};
+
+export const change_targets = {
+	variables: 0,
+	initial_set: 1,
+	parameters: 2,
+	invariant: 3
+};
+
 export const tasks = {
 	undefined: "0",
 	reachability: "1",
 	synthesis: "2",
-	invariant_proving: "3"
+	invariant_validation: "3"
 };
 
 export const task_name = (task) => {
@@ -18,8 +31,8 @@ export const task_name = (task) => {
       return "Reachability";
     case tasks.synthesis:
       return "Synthesis";
-    case tasks.invariant_proving:
-      return "Invariant Proof";
+    case tasks.invariant_validation:
+      return "Invariant Validation";
     default:
       return "Analysis Method";
   }

@@ -6,6 +6,8 @@ import homestyles from "../Home/style.module.css";
 import { MdClose } from "react-icons/md";
 import classNames from 'classnames/bind';
 
+import { change_targets } from "../../constants/global";
+
 type Props = {};
 
 
@@ -33,12 +35,12 @@ export default class ParameterRows extends Component<Props> {
           <MdClose
             size={20}
             className={styles.icon}
-            onClick={e => this.props.deleteCallback(this.props.index, true)}
+            onClick={e => this.props.deleteCallback(this.props.index, change_targets.parameters)}
           />
             <input
               className={homestyles.equation}
               value={this.props.parameter.name}
-              onChange={e => this.props.changeName(e, true)}
+              onChange={e => this.props.changeName(e, change_targets.parameters)}
               type="text"
               id={this.props.index}
             />
@@ -56,10 +58,10 @@ export default class ParameterRows extends Component<Props> {
                   })}
                   value={this.props.parameter.lowerBound}
                   onBlur={e => 
-                    this.props.changedLowerBound(e, true)
+                    this.props.changedLowerBound(e, change_targets.parameters)
                   }
                   onChange={e => 
-                    this.props.changeLowerBound(e, true)
+                    this.props.changeLowerBound(e, change_targets.parameters)
                   }
                   type="text"
                   id={this.props.index}
@@ -71,10 +73,10 @@ export default class ParameterRows extends Component<Props> {
                   })}
                   value={this.props.parameter.upperBound}
                   onBlur={e => 
-                    this.props.changedUpperBound(e, true)
+                    this.props.changedUpperBound(e, change_targets.parameters)
                   }
                   onChange={e =>
-                    this.props.changeUpperBound(e, true)
+                    this.props.changeUpperBound(e, change_targets.parameters)
                   }
                   type="text"
                   id={this.props.index}

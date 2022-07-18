@@ -49,8 +49,9 @@ app.post("/websapo", (req, res, next) => {
 			vars.maxBundleMagnitude,
 			vars.maxParamSplits,
 			vars.parametersMatrix,
-			vars.directions,
-			vars.initialDirBoundaries,
+			vars.initial_set,
+			vars.invariant,
+			vars.kInductionJoin,
 			vars.tMatrix,
 			vars.logicFormulas
 		);
@@ -125,8 +126,9 @@ app.post("/saveModel", (req, res, next) => {
 			vars.maxBundleMagnitude,
 			vars.maxParamSplits,
 			vars.parametersMatrix,
-			vars.directions,
-			vars.initialDirBoundaries,
+			vars.initial_set,
+			vars.invariant,
+			vars.kInductionJoin,
 			vars.tMatrix,
 			vars.logicFormulas
 		);

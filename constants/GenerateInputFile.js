@@ -2,7 +2,7 @@ const tasks = {
 	undefined: "0",
 	reachability: "1",
 	synthesis: "2",
-	invariant_proving: "3"
+	invariant_validation: "3"
 };
 
 exports.generateModelFile = (
@@ -15,8 +15,9 @@ exports.generateModelFile = (
   maxBundleMagnitude,
   maxParamSplits,
   parametersMatrix,
-  directions,
-  initialDirBoundaries,
+  initial_set,
+  invariant,
+  k_induction_join,
   tMatrix,
   logicFormulas
 ) => {
@@ -30,7 +31,7 @@ exports.generateModelFile = (
 		case tasks.synthesis:
 			model += "problem: synthesis;\n";
 			break;
-		case tasks.invariant_proving:
+		case tasks.invariant_validation:
 			model += "problem: invariant_validation;\n";
 			break;
 	}
@@ -118,26 +119,51 @@ exports.generateModelFile = (
 	// directions
 	model += "\n// directions\n";
 
-	directions.forEach((direction, index) => {
-		model += "direction "+ direction;
+	initial_set.forEach((constraint, index) => {
+		model += "direction "+ constraint.expression;
 
-		let bounds = initialDirBoundaries[index]
-		let relation = bounds.relation;
-		switch (relation) {
+		switch (constraint.relation) {
 			case "=":
 			case ">=":
-				model += " " + relation + " " + bounds.lowerBound + ";\n"
+				model += " " + constraint.relation + " " + constraint.lowerBound + ";\n"
 				break;
 			case "<=":
-				model += " <= " + bounds.upperBound + ";\n"
+				model += " <= " + constraint.upperBound + ";\n"
 				break;
 			default:
 			case "in":
-				model += " in [" + bounds.lowerBound + ", " + 
-								   bounds.upperBound + "];\n"		
+				model += " in [" + constraint.lowerBound + ", " + 
+								   constraint.upperBound + "];\n"		
 		}
 	});
-	model += "\n";
+
+	// invariant
+	model += "\n\n// invariant\ninvariant: ";
+
+	invariant.forEach((constraint, index) => {
+		if (index>0) {
+			model += " && "
+		}
+
+		model += constraint.expression;
+
+		switch (constraint.relation) {
+			case "=":
+			case ">=":
+				model += " " + constraint.relation + " " + constraint.lowerBound
+				break;
+			case "<=":
+				model += " <= " + constraint.upperBound
+				break;
+			default:
+			case "in":
+				model += " in [" + constraint.lowerBound + ", " + 
+								   constraint.upperBound + "]"		
+		}
+	});
+	model += ";\n\n"
+	
+	model += "option k_induction_join "+ k_induction_join +";\n\n";
 
 	// template
 	if (tMatrix.size[1]>0 && tMatrix.size[0]>0)

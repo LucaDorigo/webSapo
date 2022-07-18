@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { downloadFile, tasks } from "../constants/global";
+import { downloadFile, tasks, change_targets } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
@@ -16,7 +16,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-let partial_value = /^(-)?([0-9]*|[0-9]+((\.|,)[0-9]*)?)$/;
+let partial_value = /^(-)?[0-9]*((\.|,)[0-9]*)?$/;
 
 const initState = {
 	executing: false,
@@ -25,12 +25,13 @@ const initState = {
 	numberOfIterations: 1,
 	maxBundleMagnitude: 0.0,
 	maxParamSplits: 0,
+	kInductionJoin: "listing",
 	variables: [], // array of object
 	parameters: [],
 	parametersMatrix: math.zeros(1),
 	tMatrix: math.zeros(1),
-	directions: [], // array of directions
-	initialDirBoundaries: [],
+	initial_set: [], // array of initial_set
+	invariant: [],
 	logicFormulas: [],
 	cursorPositionForLogicFormula: {
 		index: 0,
@@ -107,6 +108,13 @@ export default class HomeContainer extends Component {
 		}
 	};
 
+	changeKInductionJoin = e => {
+		this.setState({ 
+			kInductionJoin: e.target.value, 
+			sapoResults: undefined
+		});
+	};
+
 	changeMaxParamSplits = e => {
 		const value = e.target.value;
 
@@ -144,22 +152,53 @@ export default class HomeContainer extends Component {
 		}
 	}
 
-	// save the array at every changes, array contains variables or parameters of the system
-	saveBoundaries(targetArray, parameter) {
-		if (parameter) {
-			this.setState({
-				parameters: targetArray,
-				sapoResults: undefined
-			});
-		} else {
-			this.setState({
-				initialDirBoundaries: targetArray,
-				sapoResults: undefined
-			});
+	getTarget(change_target) {
+		switch(change_target) {
+			case change_targets.initial_set:
+				return this.state.initial_set;
+			case change_targets.parameters:
+				return this.state.parameters;
+			case change_targets.invariant:
+				return this.state.invariant;
+			case change_targets.variables:
+			default:
+				return this.state.variables;
 		}
 	}
 
-	// prevent the insertion of variables or paramenters if the previous ones aren't defined
+	saveTarget(targetArray, change_target) {
+		switch (change_target) {
+			case change_targets.variables:
+				this.setState({
+					variables: targetArray,
+					sapoResults: undefined
+				});
+				break;
+			case change_targets.initial_set:
+				this.setState({
+					initial_set: targetArray,
+					sapoResults: undefined
+				});
+				break;
+			case change_targets.parameters:
+				this.setState({
+					parameters: targetArray,
+					sapoResults: undefined
+				});
+				break;
+			case change_targets.invariant:
+				this.setState({
+					invariant: targetArray,
+					sapoResults: undefined
+				});
+				break;
+			default:
+				console.log("saveTarget: unsupported target "+change_target);
+				break;
+		}
+	}
+
+	// prevent the insertion of variables or parameters if the previous ones aren't defined
 	checkAllDefined = (targetArray, parameter) => {
 		let i = 0;
 		if (!parameter) {
@@ -203,29 +242,15 @@ export default class HomeContainer extends Component {
 
 	// ------------- VARIABLE STUFF ----------------------
 
-	changeName = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.variables;
+	changeName = (e, change_target) => {
+		let targetArray = this.getTarget(change_target);
 
 		let index = e.target.id
-		let obj = targetArray[index];
-		var old_name = obj.name;
-		obj.name = e.target.value;
+		targetArray[index].name = e.target.value;
 
-		if (!parameter) {
-			let directions = this.state.directions;
+		this.checkAllDefined(targetArray, change_target === change_targets.parameters);
 
-			if (directions[directions.length-1] === old_name) {
-				this.changeDirection(e, directions.length-1);
-			}
-
-			if (obj.dynamics===old_name) {
-				this.changeDynamics(e);
-			}
-		}
-
-		this.checkAllDefined(targetArray, parameter);
-
-		this.saveChanges(targetArray, parameter);
+		this.saveTarget(targetArray, change_target);
 	};
 
 	getVariableNames = () => {
@@ -255,23 +280,182 @@ export default class HomeContainer extends Component {
 
 		this.checkAllDefined(this.state.variables, false);
 
-		this.saveChanges(this.state.variables, false);
+		this.saveTarget(this.state.variables, change_targets.variables);
 	}
 
-	changeRelation = (e, index) => {
-		let targetArray = this.state.initialDirBoundaries;
+	addParameter = () => {
+		this.state.parameters.push({
+			name: "",
+			lowerBound: 0,
+			upperBound: 0,
+			lb_error : false,
+			ub_error : false,
+		});
+		const indexFirstMatrixEl = (this.state.parameters.length - 1) * 2;
+		const indexSecondMatrixEl = indexFirstMatrixEl + 1;
 
-		let obj = targetArray[index];
-		obj.relation = e.target.value;
+		let newMatrix = this.state.parametersMatrix.resize([
+			this.state.parameters.length * 2,
+			this.state.parameters.length + 1
+		]);
+
+		newMatrix = math.subset(
+			newMatrix,
+			math.index(indexFirstMatrixEl, this.state.parameters.length - 1),
+			1
+		);
+		newMatrix = math.subset(
+			newMatrix,
+			math.index(indexSecondMatrixEl, this.state.parameters.length - 1),
+			-1
+		);
 
 		this.setState({
-			initialDirBoundaries: targetArray,
+			parametersMatrix: newMatrix,
+			disabledAddParameter: true,
+			parameters: this.state.parameters,
 			sapoResults: undefined
 		});
 	}
 
-	checkLowerBoundAndUpdateConcistency = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+	addVariable = () => {
+		this.state.variables.push({
+			name: "",
+			dynamics: ""
+		});
+
+		let newTMatrix = this.state.tMatrix.resize([0, this.state.variables.length]);
+
+		this.setState({
+			tMatrix: newTMatrix,
+			disabledAddVariable: true,
+			variables: this.state.variables,
+			sapoResults: undefined
+		});
+	}
+
+	// callback to add a variable or a parameter, modifying the respective matrix
+	addCallback = (change_target) => {
+		switch (change_target) {
+			case change_targets.variables:
+				this.addVariable();
+				break;
+			case change_targets.parameters:
+				this.addParameter();
+				break;
+			default:
+				console.log("addCallback: target "+change_target+" not supported")
+		}
+	}
+
+	deleteParameter = (idx) => {
+		this.state.parameters.splice(idx, 1);
+
+		this.checkAllDefined(this.state.parameters, true);
+		let newMatrix = this.state.parameters.length !== 0
+				? this.state.parametersMatrix.resize([
+						this.state.parameters.length * 2,
+						this.state.parameters.length + 1
+					])
+				: math.zeros(1);
+
+		this.setState({
+			parametersMatrix: newMatrix,
+			parameters: this.state.parameters,
+			sapoResults: undefined
+		});
+	}
+
+	deleteVariable = (idx) => {
+		this.state.variables.splice(idx, 1);
+
+		this.checkAllDefined(this.state.variables, false);
+		let newTMatrix;
+
+		if (this.state.variables.length !== 0) {
+			let row_num = this.state.tMatrix.size()[0];
+			newTMatrix = this.state.tMatrix.resize([row_num, this.state.variables.length]);
+		} else {
+			newTMatrix = this.state.tMatrix.resize([0, this.state.variables.length]);
+		}
+
+		this.setState({
+			tMatrix: newTMatrix,
+			variables: this.state.variables,
+			sapoResults: undefined
+		});
+	}
+
+	// callback for removing a variable or a parameter, modifying the respective matrix
+	deleteCallback = (idx, change_target) => {
+		var parsed_idx = parseInt(idx);
+		if (!isNaN(parsed_idx)) {
+			switch(change_target) {
+				case change_targets.variables:
+					this.deleteVariable(parsed_idx);
+					break;
+				case change_targets.parameters:
+					this.deleteParameter(parsed_idx);
+					break;
+				default:
+					console.log("deleteCallback: target "+change_target+" not supported");
+			}
+		}
+	};
+
+	// ------------------------ Constraint Methods -------------------------------
+
+	deleteConstraint = (index, change_target) => {
+		let targetArray = this.getTarget(change_target);
+
+		if (index < targetArray.length) {
+			targetArray.splice(index, 1);
+
+			this.saveTarget(targetArray, change_target);
+		}
+	};
+
+	changeExpression = (e, index, change_target) => {
+		const value = e.target.value;
+
+		let targetArray = this.getTarget(change_target);
+
+		if (index < targetArray.length) {
+			targetArray[index].expression = value;
+
+			this.saveTarget(targetArray, change_target);
+		}
+	};
+
+	addConstraint = (change_target) => {
+		let targetArray = this.getTarget(change_target);
+
+		targetArray.push({
+			expression: "",
+			relation: "in",
+			lowerBound: 0,
+			upperBound: 0,
+			lb_error: false,
+			ub_error: false
+		})
+
+		this.saveTarget(targetArray, change_target);
+	};
+
+
+	changeRelation = (e, index, change_target) => {
+		let targetArray = this.getTarget(change_target);
+
+		let obj = targetArray[index];
+		obj.relation = e.target.value;
+
+		this.saveTarget(targetArray, change_target);
+	}
+
+	checkLowerBoundAndUpdateConsistency = (e, change_target) => {
+		let targetArray = this.getTarget(change_target);
+
+		console.log("checkLowerBoundAndUpdateConsistency: "+targetArray)
 
 		let obj = targetArray[e.target.id]
 		obj.lowerBound = parseFloat(e.target.value);
@@ -283,11 +467,11 @@ export default class HomeContainer extends Component {
 			}
 		}
 
-		this.saveBoundaries(targetArray, parameter);
+		this.saveTarget(targetArray, change_target);
 	}
 
-	checkUpperBoundAndUpdateConcistency = (e, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+	checkUpperBoundAndUpdateConsistency = (e, change_target) => {
+		let targetArray = this.getTarget(change_target);
 
 		let obj = targetArray[e.target.id]
 		obj.upperBound = parseFloat(e.target.value);
@@ -299,216 +483,30 @@ export default class HomeContainer extends Component {
 			}
 		}
 
-		this.saveBoundaries(targetArray, parameter);
+		this.saveTarget(targetArray, change_target);
 	}
 
-	changeLowerBound = (e, parameter) => {
+	changeLowerBound = (e, change_target) => {
 		if (partial_value.test(e.target.value)) {
-			let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+			let targetArray = this.getTarget(change_target);
+
 			let obj = targetArray[e.target.id];
 
 			obj.lowerBound = e.target.value;
 
-			this.saveBoundaries(targetArray, parameter);
+			this.saveTarget(targetArray, change_target);
 		}
 	};
 
-	changeUpperBound = (e, parameter) => {
+	changeUpperBound = (e, change_target) => {
 		if (partial_value.test(e.target.value)) {
-			let targetArray = parameter ? this.state.parameters : this.state.initialDirBoundaries;
+			let targetArray = this.getTarget(change_target);
 			let obj = targetArray[e.target.id];
 
 			obj.upperBound = e.target.value;
 
-			this.saveBoundaries(targetArray, parameter);
+			this.saveTarget(targetArray, change_target);
 		}
-	};
-
-	// callback to add a variable or a parameter, modifying the rispective matrix
-	addCallback = parameter => {
-		let targetArray = parameter ? this.state.parameters : this.state.variables;
-
-		if (parameter) {
-			targetArray.push({
-				name: "",
-				lowerBound: 0,
-				upperBound: 0,
-				lb_error : false,
-				ub_error : false,
-			});
-			const indexFirstMatrixEl = (targetArray.length - 1) * 2;
-			const indexSecondMatrixEl = indexFirstMatrixEl + 1;
-
-			let newMatrix = this.state.parametersMatrix.resize([
-				targetArray.length * 2,
-				targetArray.length + 1
-			]);
-
-			newMatrix = math.subset(
-				newMatrix,
-				math.index(indexFirstMatrixEl, targetArray.length - 1),
-				1
-			);
-			newMatrix = math.subset(
-				newMatrix,
-				math.index(indexSecondMatrixEl, targetArray.length - 1),
-				-1
-			);
-
-			this.setState({
-				parametersMatrix: newMatrix,
-				disabledAddParameter: true
-			});
-		} else {
-			targetArray.push({
-				name: "",
-				dynamics: ""
-			});
-
-			/*
-			let directions = this.state.directions
-			if (directions.length < targetArray.length) {
-				this.addDirection();
-			}*/
-
-			let newTMatrix = this.state.tMatrix.resize([0, targetArray.length]);
-
-			this.setState({
-				tMatrix: newTMatrix,
-				disabledAddVariable: true
-			});
-		}
-		this.saveChanges(targetArray, parameter);
-	};
-
-	// callback for removing a variable or a parameter, modifying the rispective matrix
-	deleteCallback = (idx, parameter) => {
-		let targetArray = parameter ? this.state.parameters : this.state.variables;
-
-		var parsed = parseInt(idx);
-		if (!isNaN(parsed)) {
-
-			targetArray.splice(parsed, 1);
-
-			this.checkAllDefined(targetArray, parameter);
-
-			if (!parameter) {
-				let newTMatrix;
-
-				if (targetArray.length !== 0) {
-					let row_num = this.state.tMatrix.size()[0];
-					newTMatrix = this.state.tMatrix.resize([row_num, targetArray.length]);
-				} else {
-					newTMatrix = this.state.tMatrix.resize([0, targetArray.length]);
-				}
-
-				this.setState({
-					tMatrix: newTMatrix
-				});
-			} else {
-				let newMatrix =
-					targetArray.length !== 0
-						? this.state.parametersMatrix.resize([
-								targetArray.length * 2,
-								targetArray.length + 1
-							])
-						: math.zeros(1);
-
-				this.setState({
-					parametersMatrix: newMatrix
-				});
-			}
-
-			this.saveChanges(targetArray, parameter);
-		}
-	};
-
-	// ------------- MATRIX STUFF ----------------------
-
-	addRowParameterMatrix = () => {
-		let newMatrix = this.state.parametersMatrix;
-		let matrixDimensions = newMatrix.size();
-		let numberOfRows = matrixDimensions[0];
-		matrixDimensions[0] = numberOfRows + 1;
-		newMatrix.resize(matrixDimensions);
-
-		this.setState({
-			parametersMatrix: newMatrix,
-			sapoResults: undefined
-		});
-	};
-
-	deleteRowParameterMatrix = () => {
-		let newMatrix = this.state.parametersMatrix;
-		let matrixDimensions = newMatrix.size();
-		let numberOfRows = matrixDimensions[0];
-
-		if (numberOfRows > this.state.parameters.length * 2) {
-			matrixDimensions[0] = numberOfRows - 1;
-			newMatrix.resize(matrixDimensions);
-
-			this.setState({
-				parametersMatrix: newMatrix,
-				sapoResults: undefined
-			});
-		} else {
-			toast.error("The number of rows must be at least twice the number of parameters");
-		}
-	};
-
-	// ------------ Direction Stuff ---------------------
-
-	deleteDirection = (index) => {
-		let directions = this.state.directions;
-		let initialDirBoundaries = this.state.initialDirBoundaries;
-
-		if (index < directions.length) {
-			directions.splice(index, 1);
-			initialDirBoundaries.splice(index, 1);
-
-			/* tMatrix UPDATE TO BE DONE */
-
-			this.setState({
-				directions: directions,
-				initialDirBoundaries: initialDirBoundaries,
-				sapoResults: undefined
-			});
-		}
-	};
-
-	changeDirection = (e, index) => {
-		const value = e.target.value;
-
-		let directions = this.state.directions;
-
-		if (index < directions.length) {
-			directions[index] = value;
-
-			this.setState({
-				directions: directions,
-				sapoResults: undefined
-			});
-		}
-	};
-
-	addDirection = () => {
-		let directions = this.state.directions;
-		let initialDirBoundaries = this.state.initialDirBoundaries;
-
-		directions.push("");
-		initialDirBoundaries.push({
-			relation: "in",
-			lowerBound: 0,
-			upperBound: 0,
-			lb_error: false,
-			ub_error: false
-		})
-
-		this.setState({
-			directions: directions,
-			initialDirBoundaries: initialDirBoundaries,
-			sapoResults: undefined
-		});
 	};
 
 	updateTMatrixElement = (e, indexRow, indexColumn) => {
@@ -753,6 +751,57 @@ export default class HomeContainer extends Component {
 
 	// ------------- BUTTON STUFF ----------------------
 
+	saveReachSynthResults = (result) => {
+		if (!("data" in result)) {
+			toast.info("Wrong output format");
+
+			document.getElementById("progress").style.display =
+				"none";
+			this.setState({
+				progress: 0,
+				killed: false
+			});
+		}
+
+		if (result.data.length === 0) {
+			this.setState({
+				hasResults: false,
+				executing: false
+			});
+
+			toast.info("The synthesized set is empty.");
+		} else {
+			if (result.data[0].flowpipe.length !== 0 &&
+				result.data[0].flowpipe[0].length === 0) {
+				toast.info("The initial set was empty.");
+				this.setState({
+					hasResults: false,
+					executing: false
+				});
+			} else {
+				this.setState({
+					sapoResults: result,
+					hasResults: true,
+					updateChart: true,
+					executing: false
+				}, () => {
+					downloadFile(JSON.stringify(this.state),
+									(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+									"result.webSapo", "text/plain");
+				});
+			}
+		}
+														
+		sleep(500).then(() => {
+			document.getElementById("progress").style.display =
+				"none";
+			this.setState({
+				progress: 0,
+				killed: false
+			});
+		});
+	}
+
 	startExecuting = () => {
 		let resultChecks = checkInput(
 			this.state.variables,
@@ -841,42 +890,7 @@ export default class HomeContainer extends Component {
 														"Setting-up plots...";
 
 											sleep(1000).then(() => {
-												if (result.data.length === 0) {
-													this.setState({
-														hasResults: false,
-														executing: false
-													});
-
-													toast.info("The synthesized set is empty.");
-												} else {
-													if (result.data[0].flowpipe.length !== 0 &&
-														result.data[0].flowpipe[0].length === 0) {
-														toast.info("The initial set was empty.");
-														this.setState({
-															hasResults: false,
-															executing: false
-														});
-													} else {
-														this.setState({
-															sapoResults: result,
-															hasResults: true,
-															updateChart: true,
-															executing: false
-														}, () => {
-															downloadFile(JSON.stringify(this.state),
-																		 (this.state.projectName !== undefined ? this.state.projectName + "-": "") +
-																		 "result.webSapo", "text/plain");
-														});
-													}
-												}
-												sleep(500).then(() => {
-													document.getElementById("progress").style.display =
-														"none";
-													this.setState({
-														progress: 0,
-														killed: false
-													});
-												});
+												this.saveReachSynthResults(result);
 											});
 										});
 									} else {
@@ -1092,28 +1106,30 @@ export default class HomeContainer extends Component {
 				numberOfIterations={this.state.numberOfIterations}
 				changeMaxBundleMagnitude={this.changeMaxBundleMagnitude}
 				changeMaxParamSplits={this.changeMaxParamSplits}
+				changeKInductionJoin={this.changeKInductionJoin}
 				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
+				kInductionJoin={this.state.kInductionJoin}
 				handleMethodSelection={this.handleMethodSelection}
 				//
 				task={this.state.task}
 				variables={this.state.variables}
-				directions={this.state.directions}
-				initialDirBoundaries={this.state.initialDirBoundaries}
+				initial_set={this.state.initial_set}
+				invariant={this.state.invariant}
 				parameters={this.state.parameters}
 				//
 				addCallback={this.addCallback}
 				deleteCallback={this.deleteCallback}
 				changeName={this.changeName}
 				changeDynamics={this.changeDynamics}
-				addDirection={this.addDirection}
-				changeDirection={this.changeDirection}
-				deleteDirection={this.deleteDirection}
+				addConstraint={this.addConstraint}
+				changeExpression={this.changeExpression}
+				deleteConstraint={this.deleteConstraint}
 				changeRelation={this.changeRelation}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
-				changedLowerBound={this.checkLowerBoundAndUpdateConcistency}
-				changedUpperBound={this.checkUpperBoundAndUpdateConcistency}
+				changedLowerBound={this.checkLowerBoundAndUpdateConsistency}
+				changedUpperBound={this.checkUpperBoundAndUpdateConsistency}
 				parametersMatrix={this.state.parametersMatrix}
 				//
 				logicFormulas={this.state.logicFormulas}
@@ -1143,9 +1159,6 @@ export default class HomeContainer extends Component {
 				loadResult={this.loadResult}
 				exportSourceFile={this.exportSourceFile}
 				chooseMethod={this.chooseMethod}
-				//
-				addRowParameterMatrix={this.addRowParameterMatrix}
-				deleteRowParameterMatrix={this.deleteRowParameterMatrix}
 				//
 				printSettings={this.state.printSettings}
 				updatePrintSwSettings={this.updatePrintSwSettings}

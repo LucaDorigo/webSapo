@@ -18,6 +18,7 @@ export default class SelectorMenu extends Component {
         <SubMenu title={task_name(this.props.task)}>
           <MenuItem key={tasks.reachability}>{task_name(tasks.reachability)}</MenuItem>
           <MenuItem key={tasks.synthesis}>{task_name(tasks.synthesis)}</MenuItem>
+          <MenuItem key={tasks.invariant_validation}>{task_name(tasks.invariant_validation)}</MenuItem>
         </SubMenu>
       </Menu>
     );

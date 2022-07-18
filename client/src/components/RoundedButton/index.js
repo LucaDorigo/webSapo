@@ -8,7 +8,7 @@ type Props = {};
 /**
  * @param callback: function executed on button click
  * @param text: text to display inside the button
- * @param parameter: true|false value to distinguish between variables and parameters
+ * @param parameter: callback parameter
  * @param notClickable: true|false value to enable|disable button
  */
 

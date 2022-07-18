@@ -3,6 +3,8 @@ import React, { Component } from "react";
 import styles from "./style.module.css";
 import { MdClose } from "react-icons/md";
 
+import { change_targets } from "../../constants/global";
+
 type Props = {};
 
 /**
@@ -24,12 +26,12 @@ export default class VariableRows extends Component<Props> {
             <MdClose
               size={20}
               className={styles.icon}
-              onClick={(e) => this.props.deleteCallback(this.props.index, false)}
+              onClick={(e) => this.props.deleteCallback(this.props.index, change_targets.variables)}
             />
             <input
               className={styles.name}
               value={this.props.name}
-              onChange={(e) => this.props.changeName(e, false)}
+              onChange={(e) => this.props.changeName(e, change_targets.variables)}
               type="text"
               id={this.props.index}
             />
@@ -37,7 +39,7 @@ export default class VariableRows extends Component<Props> {
             <input className={styles.dynamics} 
               type="text"
               value={this.props.dynamics}
-              onChange={(e) => this.props.changeDynamics(e, false)}
+              onChange={(e) => this.props.changeDynamics(e)}
               id={this.props.index}
               />
           </div>

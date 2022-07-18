@@ -10,11 +10,11 @@ import VariableRows from "../VariableRows/index";
 import ParameterRows from "../ParameterRows/index";
 //import InlineMenu from "../InlineMenu/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
-import PolytopeSpecifier from "../PolytopeSpecifier/index";
-import LogicDisplayer from "../LogicDisplayer/index";
+import ConvexSetSpecifier from "../ConvexSetSpecifier/index";
+import Specification from "../Specification/index";
 import Chart from "../Chart/index";
 //import { black } from "ansi-colors";
-import { tasks, task_name } from "../../constants/global";
+import { tasks, task_name, change_targets } from "../../constants/global";
 
 import { toast } from 'react-toastify';
 
@@ -31,6 +31,17 @@ export default class BoxesPage extends Component<Props> {
 			isPopoverOpen: false,
 			proj_extension: "webSapo"
 		};
+	}
+
+	analysis_not_ready() {
+		return (this.props.executing||this.props.disabledAddVariable||
+				this.props.disabledAddParameter||this.props.disabledAddFormula||
+				this.props.variables.length===0||
+				this.props.initial_set.length===0||
+				(this.props.task === tasks.synthesis 
+		 		 && this.props.logicFormulas.length===0)||
+				(this.props.task === tasks.invariant_validation 
+					&& this.props.invariant.length===0));
 	}
 
 	render() {
@@ -58,12 +69,7 @@ export default class BoxesPage extends Component<Props> {
 													"block";
 										this.props.startExecuting();
 									}}
-									notClickable={this.props.executing||this.props.disabledAddVariable||
-										this.props.disabledAddParameter||this.props.disabledAddFormula||
-										(this.props.variables.length===0)||
-										(this.props.directions.length===0)||
-										((this.props.task === tasks.synthesis || this.props.task === tasks.invariant_proving)
-										 && this.props.logicFormulas.length===0)}
+									notClickable={this.analysis_not_ready()}
 								 />
 								}
 								
@@ -155,7 +161,7 @@ export default class BoxesPage extends Component<Props> {
 										<div className={styles.buttonBox}>
 											<RoundedButton
 												text={"New Variable"}
-												parameter={false}
+												parameter={change_targets.variables}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddVariable}
 											/>
@@ -200,7 +206,7 @@ export default class BoxesPage extends Component<Props> {
 										<div className={styles.buttonBox}>
 											<RoundedButton
 												text={"New Parameter"}
-												parameter={true}
+												parameter={change_targets.parameters}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddParameter}
 											/>
@@ -219,19 +225,20 @@ export default class BoxesPage extends Component<Props> {
 									</div>
 								</div>
 
-								<div className={`${this.props.task===tasks.synthesis?styles.grid_container3:styles.grid_container2}`}>
+								<div className={`${this.props.task===tasks.synthesis?
+									styles.grid_container3:styles.grid_container2}`}>
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
-											Directions & Initial Set
+											Initial Set & Templates
 										</div>
 										<div className={styles.center}>
 											<RoundedButton
-												text={"Directions and Initial Set"}
+												text={"Initial Set"}
 												parameter={false}
 												notClickable={false}
 												callback={() => {
 													document.getElementById(
-														"DirectionsModal"
+														"InitialSetModel"
 													).style.display = "block";
 												}}
 											/>
@@ -248,6 +255,8 @@ export default class BoxesPage extends Component<Props> {
 										</div>
 									</div>
 
+									{ (this.props.task === tasks.reachability ||
+									   this.props.task === tasks.synthesis) && 
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
 											Reachability
@@ -255,37 +264,35 @@ export default class BoxesPage extends Component<Props> {
 
 										<div className={styles.center}>
 										{/*selector for iteration of the system*/}
-										{ this.props.task !== tasks.undefined && 
-										<div className={styles.simplePaddingLeft}>
-											Reachability steps:{" "}
-											<input
-												onChange={this.props.changeNumberOfIterations}
-												value={this.props.numberOfIterations}
-												className={styles.textInput}
-												type="number"
-												name="numberIterations"
-												min="1"
-												step="1"
-											/>
-										</div>
-										}
+											<div className={styles.simplePaddingLeft}>
+												Reachability steps:{" "}
+												<input
+													onChange={this.props.changeNumberOfIterations}
+													value={this.props.numberOfIterations}
+													className={styles.textInput}
+													type="number"
+													name="numberIterations"
+													min="1"
+													step="1"
+												/>
+											</div>
 
-										{/*selector for maximum vector magnitude*/}
-										{ this.props.task !== tasks.undefined &&
-										<div className={styles.simplePaddingLeft}>
-											Max bundle magnitude:{" "}
-											<input
-												onChange={this.props.changeMaxBundleMagnitude}
-												value={this.props.maxBundleMagnitude}
-												className={styles.textInput}
-												type="number"
-												min="0"
-												step="0.01"
-											/>
-										</div>
-										}
+											{/*selector for maximum vector magnitude*/}
+											<div className={styles.simplePaddingLeft}>
+												Max bundle magnitude:{" "}
+												<input
+													onChange={this.props.changeMaxBundleMagnitude}
+													value={this.props.maxBundleMagnitude}
+													className={styles.textInput}
+													type="number"
+													min="0"
+													step="0.01"
+												/>
+											</div>
 										</div>
 									</div>
+									}
+
 									{ this.props.task === tasks.synthesis &&
 									<div className={styles.grid_item}>
 										<div className={styles.titleBox}>
@@ -317,6 +324,50 @@ export default class BoxesPage extends Component<Props> {
 
 									</div>
 									}
+									{ this.props.task === tasks.invariant_validation &&
+									<div className={styles.grid_item}>
+										<div className={styles.titleBox}>
+											Invariant Validation
+										</div>
+										<div className={styles.center}>
+												<RoundedButton
+													text={"Candidate Invariant"}
+													parameter={false}
+													callback={() => {
+														document.getElementById("invariant").style.display =
+															"block";
+														}
+													}
+												/>
+
+											{/* K-Induction join selector */}			
+											<div className={styles.simplePaddingLeft}>
+												K-Induction Join:{" "}
+												<select onChange={this.props.changeKInductionJoin}
+													value={this.props.kInductionJoin}>
+													<option value="listing">Listing</option>
+													<option value="packaging">Packaging</option>
+													<option value="merging">Merging</option>
+												</select>
+											</div>
+								
+											{/*selector for maximum vector magnitude*/}
+											<div className={styles.simplePaddingLeft}>
+												Max epoch (0 means forever):{" "}
+												<input
+													onChange={this.props.changeNumberOfIterations}
+													value={this.props.numberOfIterations}
+													className={styles.textInput}
+													type="number"
+													name="numberIterations"
+													min="1"
+													step="1"
+												/>
+											</div>
+										</div>
+
+									</div>
+									}
 								</div>
 							</div>
 
@@ -329,12 +380,12 @@ export default class BoxesPage extends Component<Props> {
 				</div> 
 
 				{/*modal for showing the L matrix*/}
-				<div id="DirectionsModal" className={modalStyles.modal}>
+				<div id="InitialSetModel" className={modalStyles.modal}>
 					<div className={modalStyles.modal_content}>
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("DirectionsModal").style.display =
+									document.getElementById("InitialSetModel").style.display =
 										"none";
 								}}
 								className={modalStyles.close}
@@ -342,22 +393,35 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>Directions and Initial Set</h2>
+								<h2>Initial Set</h2>
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
 							{this.props.variables.length === 0 && <p>No variables inserted</p>}
 							{this.props.variables.length > 0 && (
-									<PolytopeSpecifier
-										expressions={this.props.directions}
-										expressionBoundaries={this.props.initialDirBoundaries}
-										changeRelation={this.props.changeRelation}
-										changeExpression={this.props.changeDirection}
-										deleteConstraint={this.props.deleteDirection}
-										changeLowerBound={this.props.changeLowerBound}
-										changeUpperBound={this.props.changeUpperBound}
-										changedLowerBound={this.props.changedLowerBound}
-										changedUpperBound={this.props.changedUpperBound}
+									<ConvexSetSpecifier
+										constraints={this.props.initial_set}
+										changeRelation={(e, index) => {
+											this.props.changeRelation(e, index, change_targets.initial_set);
+										}}
+										changeExpression={(e, index) => { 
+											this.props.changeExpression(e, index, change_targets.initial_set);
+										}}
+										deleteConstraint={(e) => { 
+											this.props.deleteConstraint(e, change_targets.initial_set);
+										}}
+										changeLowerBound={(e) => {
+											this.props.changeLowerBound(e, change_targets.initial_set);
+										}}
+										changeUpperBound={(e) => {
+											this.props.changeUpperBound(e, change_targets.initial_set);
+										}}
+										changedLowerBound={(e) => {
+											this.props.changedLowerBound(e, change_targets.initial_set);
+										}}
+										changedUpperBound={(e) => {
+											this.props.changedUpperBound(e, change_targets.initial_set);
+										}}
 									/>
 							)}
 
@@ -367,7 +431,9 @@ export default class BoxesPage extends Component<Props> {
 										<RoundedButton
 											text={"New Direction"}
 											parameter={false}
-											callback={this.props.addDirection}
+											callback={() => {
+												this.props.addConstraint(change_targets.initial_set);
+											}}
 											notClickable={false}
 										/>
 									</div>
@@ -399,7 +465,7 @@ export default class BoxesPage extends Component<Props> {
 							<TemplateDisplayer
 								updateMatrixElement={this.props.updateTMatrixElement}
 								tMatrix={this.props.tMatrix}
-								directions={this.props.directions}
+								directions={this.props.initial_set}
 							/>
 							{this.props.variables.length !== 0 && (
 								<div>
@@ -444,7 +510,7 @@ export default class BoxesPage extends Component<Props> {
 						</div>
 
 						<div className={modalStyles.modal_body}>
-							<LogicDisplayer
+							<Specification
 								logicFormulas={this.props.logicFormulas}
 								addLogicFormulaCallback={this.props.addLogicFormulaCallback}
 								updateLogicFormulaCallback={
@@ -464,7 +530,74 @@ export default class BoxesPage extends Component<Props> {
 					</div>
 				</div>
 				{/*end of the modal for the logic*/}
-				
+
+				{/*modal for showing the candidate invariant*/}
+				<div id="invariant" className={modalStyles.modal}>
+					<div className={modalStyles.modal_content}>
+						<div className={modalStyles.modal_header}>
+							<span
+								onClick={() => {
+									if (!this.props.disabledAddFormula) {
+										document.getElementById("invariant").style.display = "none";
+									}
+								}}
+								className={modalStyles.close}
+							>
+								&times; {/*X in HTML*/}
+							</span>
+							<div className={modalStyles.flexRow}>
+								<h2>Candidate Invariant</h2>
+							</div>
+						</div>
+
+						<div className={modalStyles.modal_body}>
+							{this.props.variables.length === 0 && <p>No variables inserted</p>}
+							{this.props.variables.length > 0 && (
+									<ConvexSetSpecifier
+										constraints={this.props.invariant}
+										changeRelation={(e, index) => {
+											this.props.changeRelation(e, index, change_targets.invariant);
+										}}
+										changeExpression={(e, index) => { 
+											this.props.changeExpression(e, index, change_targets.invariant);
+										}}
+										deleteConstraint={(e) => { 
+											this.props.deleteConstraint(e, change_targets.invariant);
+										}}
+										changeLowerBound={(e) => {
+											this.props.changeLowerBound(e, change_targets.invariant);
+										}}
+										changeUpperBound={(e) => {
+											this.props.changeUpperBound(e, change_targets.invariant);
+										}}
+										changedLowerBound={(e) => {
+											this.props.changedLowerBound(e, change_targets.invariant);
+										}}
+										changedUpperBound={(e) => {
+											this.props.changedUpperBound(e, change_targets.invariant);
+										}}
+									/>
+							)}
+
+							{this.props.variables.length !== 0 && (
+								<div>
+									<div className={styles.footer}>
+										<RoundedButton
+											text={"New Invariant Constraint"}
+											parameter={false}
+											callback={() => {
+												this.props.addConstraint(change_targets.invariant);
+											}}
+											notClickable={false}
+										/>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+				{/*end of the modal for the logic*/}
+
 				{/*modal for showing chart*/}
 				<div id="chart" className={modalStyles.modal_chart}>
 					<div className={modalStyles.modal_content_chart}>

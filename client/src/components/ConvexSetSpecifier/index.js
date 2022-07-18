@@ -17,9 +17,8 @@ const options = [{value: "=", label: "="},
 let hstyles = classNames.bind(homestyles);
 
 /**
- * @param expression: constraint expression
- * @param expressionBoundaries the constraint expression boundaries
- * @param index: index of the direction
+ * @param constraint: the constraint
+ * @param index: index of the constraint in the constraint vector
  * @param deleteConstraint: callback to delete a constraint
  * @param changeExpression: callback to change the constraint expression
  * @param	changeRelation change constraint relation
@@ -32,7 +31,6 @@ export class Constraints extends Component<Props> {
   props: Props;
 
   render() {
-    let exprBoundaries = this.props.expressionBoundaries[this.props.index];
     return (
           <div className={styles.constraint}>
             <MdClose
@@ -44,47 +42,47 @@ export class Constraints extends Component<Props> {
             <p className={homestyles.smallFont}>{this.props.index+1}:&nbsp;</p>
             <input className={homestyles.equation} 
               type="text"
-              value={this.props.expression}
+              value={this.props.constraint.expression}
               onChange={(e) => this.props.changeExpression(e, this.props.index)}
               />
             <select onChange={e => {
               this.props.changeRelation(e, this.props.index);
             }}
-              value={exprBoundaries.relation}>
+              value={this.props.constraint.relation}>
               {options.map((option) => (
                 <option value={option.value} key={option.value}>{option.label}</option>
               ))}
             </select>
-            {(exprBoundaries.relation==="in" || exprBoundaries.relation===">=" || 
-              exprBoundaries.relation==="=") &&
+            {(this.props.constraint.relation==="in" || this.props.constraint.relation===">=" || 
+              this.props.constraint.relation==="=") &&
             <input
               className={hstyles('boundaryInput', {
-                error: exprBoundaries.lb_error
+                error: this.props.constraint.lb_error
               })}
-              value={exprBoundaries.lowerBound}
+              value={this.props.constraint.lowerBound}
               onBlur={e => 
-                this.props.changedLowerBound(e, false)
+                this.props.changedLowerBound(e)
               }
               onChange={e =>
-                this.props.changeLowerBound(e, false)
+                this.props.changeLowerBound(e)
               }
               type="text"
               id={this.props.index}
             />}
-            {(exprBoundaries.relation==="in") &&
+            {(this.props.constraint.relation==="in") &&
             <p> - </p>
             }
-            {(exprBoundaries.relation==="in" || exprBoundaries.relation==="<=") &&
+            {(this.props.constraint.relation==="in" || this.props.constraint.relation==="<=") &&
             <input
               className={hstyles('boundaryInput', {
-                error: exprBoundaries.ub_error
+                error: this.props.constraint.ub_error
               })}
-              value={exprBoundaries.upperBound}
+              value={this.props.constraint.upperBound}
               onBlur={e => 
-                this.props.changedUpperBound(e, false)
+                this.props.changedUpperBound(e)
               }
               onChange={e =>
-                this.props.changeUpperBound(e, false)
+                this.props.changeUpperBound(e)
               }
               type="text"
               id={this.props.index}
@@ -96,8 +94,7 @@ export class Constraints extends Component<Props> {
 }
 
 /**
- * @param expressions the constraint expression vector
- * @param	expressionBoundaries the constraint expression boundaries
+ * @param constraints the constraint vector
  * @param deleteConstraint: callback to delete a constraint
  * @param changeExpression: callback to change the constraint expression
  * @param	changeRelation change constraint relation
@@ -106,18 +103,17 @@ export class Constraints extends Component<Props> {
  * @param	changedLowerBound check lower bound and update upper bound if needed
  * @param	changedUpperBound check upper bound and update lower bound if needed
  */
-export default class PolytopeSpecifier extends Component<Props> {
+export default class ConvexSetSpecifier extends Component<Props> {
   props: Props;
 
   render() {
     return (
       <div className={styles.polytopeContainer}>
-        {this.props.expressions.map((expression, index) => {
+        {this.props.constraints.map((constraint, index) => {
           return (
             <div key={index} className={styles.constrContainer}>
               <Constraints
-                expression={expression}
-                expressionBoundaries={this.props.expressionBoundaries}
+                constraint={constraint}
                 index={index}
                 deleteConstraint={this.props.deleteConstraint}
                 changeExpression={this.props.changeExpression}
