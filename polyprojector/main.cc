@@ -881,19 +881,20 @@ template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::v
 json
 compute_input_proj(const json &json_input,
                     const std::vector<unsigned int> &axis_vector,
-                    bool flowpipe)
+                    json field_name)
 {
     json output;
 
-    if (flowpipe) {
-        auto fp_it = json_input.find("flowpipe");
-        if (fp_it != std::end(json_input)) {
-            output = compute_flowpipe_proj<T>(fp_it.value(), axis_vector);
-        }
-    } else {
-        auto ps_it = json_input.find("parameter set");
+    if (field_name == "parameter set") {
+
+        auto ps_it = json_input.find(field_name);
         if (ps_it != std::end(json_input)) {
             output = compute_polytopes_union_proj<T>(ps_it.value(), axis_vector);
+        }
+    } else {
+        auto fp_it = json_input.find(field_name);
+        if (fp_it != std::end(json_input)) {
+            output = compute_flowpipe_proj<T>(fp_it.value(), axis_vector);
         }
     }
     return output;
@@ -924,7 +925,6 @@ int main(int argc, char *argv[])
     }
 
     json output;
-    bool flowpipe = json_input["what"]=="flowpipe";
 
     try {
         unsigned int i=0;
@@ -932,7 +932,7 @@ int main(int argc, char *argv[])
             data_it != std::end(json_input["data"]); ++data_it) {
 
             output[i++] = compute_input_proj<double>(data_it.value(), json_input["axes"],
-                                                    flowpipe);
+                                                     json_input["what"]);
         }
         std::cout << output << std::endl;
     } catch (std::exception &e) {

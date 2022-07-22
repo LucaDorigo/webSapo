@@ -73,7 +73,7 @@ function approx_fp_vertices(input, decimal=6)
 	throw new TypeError("Unsupported type")
 }
 
-export default class Chart extends Component<Props> {
+export default class InvariantPlot extends Component<Props> {
 
 	constructor(props) {
 		super(props);
@@ -95,7 +95,7 @@ export default class Chart extends Component<Props> {
 			typingTimeout: 0,             // a timeout for the parameter set selector
 			changed: false,               // a Boolean flag for changes
 			chartType: "2D",              // chart type, i.e., either "2D" or "3D"
-			dataType: "reachability",     // data type, i.e., either "reachability" or "parameters"
+			dataType: "flowpipe",     	  // data type, i.e., either "flowpipe", "parameter set", or "k-induction proof"
 			axes: { x: undefined,         // axis names
 			        y: undefined, 
 					z: undefined }
@@ -104,6 +104,11 @@ export default class Chart extends Component<Props> {
 
 	render()
 	{
+		if (!(typeof(this.props.sapoResults) === "object" && "task" in this.props.sapoResults &&
+			 (this.props.sapoResults.task === "invariant validation"))) {
+			return null;
+		}
+
 		return (
 			<>
 				<div className={styles.left_chart}>
@@ -266,13 +271,16 @@ export default class Chart extends Component<Props> {
 					/>
 				</div>
 				<div className={styles.right_controls}>
-					{this.hasParamData() && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
+					{(this.hasParamData() || this.hasProofData()) && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingReachability()} value="reachability" name="dataType" disabled={this.state.changed}/> Reachability
+							<input type="radio" defaultChecked={this.plottingFlowpipe()} value="flowpipe" name="dataType" disabled={this.state.changed}/> Reachability
 						</div>
-						<div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingParameters()} value="parameters" name="dataType" disabled={this.state.changed}/> Parameters
-						</div>
+						{this.hasProofData() && <div className={styles.radio_element}>
+							<input type="radio" defaultChecked={this.plottingProof()} value="k-induction proof" name="dataType" disabled={this.state.changed}/> K-Induction Proof
+						</div>}
+						{this.hasParamData() && <div className={styles.radio_element}>
+							<input type="radio" defaultChecked={this.plottingParameterSet()} value="parameter set" name="dataType" disabled={this.state.changed}/> Parameters
+						</div>}
 					</div>} {/*closing radio group*/}
 					<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
 						<div className={styles.radio_element}>
@@ -282,7 +290,7 @@ export default class Chart extends Component<Props> {
 							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions" disabled={this.state.changed}/> 3D
 						</div>
 					</div> {/*closing radio group*/}
-					{ this.plottingReachability() && <div className={styles.radio_group}>
+					{ (this.plottingFlowpipe() || this.plottingProof()) && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
 							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)} disabled={this.state.changed}/> Flowpipe animation
 						</div>
@@ -306,11 +314,11 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select} disabled={this.state.changed}>
-								{this.plottingReachability() && <option value={TimeAxisValue}>Time</option> }
-								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
+								{(this.plottingFlowpipe() || this.plottingProof()) && <option value={TimeAxisValue}>Time</option> }
+								{(this.plottingFlowpipe() || this.plottingProof()) && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('x', item, index===0);
 								})}
-								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
+								{this.plottingParameterSet() && this.props.sapoResults.parameters.map((item, index) => {
 									return getOption('x', item, index===0);
 								})}
 							</select>
@@ -318,10 +326,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Y axis:</p>
 							<select name="yAxis" onChange={e => { this.changeAxis('y', e.target.value); }} className={styles.select} disabled={this.state.changed}>
-								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
+								{(this.plottingFlowpipe() || this.plottingProof()) && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('y', item, index===1);
 								})}
-								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
+								{this.plottingParameterSet() && this.props.sapoResults.parameters.map((item, index) => {
 									return getOption('y', item, index===1);
 								})}
 							</select>
@@ -330,10 +338,10 @@ export default class Chart extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>Z axis:</p>
 							<select name="zAxis" onChange={e => { this.changeAxis('z', e.target.value); }} className={styles.select} disabled={this.state.changed}>
-								{this.plottingReachability() && this.props.sapoResults.variables.map((item, index) => {
+								{(this.plottingFlowpipe() || this.plottingProof()) && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('z', item, index===2);
 								})}
-								{this.plottingParameters() && this.props.sapoResults.parameters.map((item, index) => {
+								{this.plottingParameterSet() && this.props.sapoResults.parameters.map((item, index) => {
 									return getOption('z', item, index===2);
 								})}
 							</select>
@@ -350,7 +358,7 @@ export default class Chart extends Component<Props> {
 			toast.info("The set of parameters is empty");
 		}
 
-		if (this.plottingParameters()) {
+		if (this.plottingParameterSet()) {
 			let polytopes = this.getParameterSet(data_vertices);
 			this.setParamPlot(polytopes);
 
@@ -367,14 +375,18 @@ export default class Chart extends Component<Props> {
 
 	updatePlot()
 	{
-		let query = {data: this.props.sapoResults.data};
-		if (this.plottingReachability()) {
-			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
-			query["what"] = "flowpipe";
-		} else {
+		let query = {
+			data: this.props.sapoResults.data,
+			what: this.state.dataType
+		};
+		if (this.plottingParameterSet()) {
 			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
-			query["what"] = "parameters set";
+		} else {
+			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
 		}
+
+		console.log("data");
+		console.log(query);
 
 		let data = JSON.stringify(query);
 		const options = {
@@ -430,19 +442,24 @@ export default class Chart extends Component<Props> {
 		});
 	}
 
-	plottingReachability()
+	plottingFlowpipe()
 	{
-		return this.props.sapoResults !== undefined && this.state.dataType === "reachability";
+		return this.props.sapoResults !== undefined && this.state.dataType === "flowpipe";
 	}
 
-	plottingParameters()
+	plottingParameterSet()
 	{
-		return this.props.sapoResults !== undefined && this.state.dataType === "parameters";
+		return this.props.sapoResults !== undefined && this.state.dataType === "parameter set";
+	}
+
+	plottingProof()
+	{
+		return this.props.sapoResults !== undefined && this.state.dataType === "k-induction proof";
 	}
 
 	plottingAnimation()
 	{
-		return this.plottingReachability() && this.state.animate
+		return (this.plottingFlowpipe() || this.plottingProof()) && this.state.animate
 	}
 
 	hasData(name)
@@ -460,12 +477,17 @@ export default class Chart extends Component<Props> {
 		return this.hasData('parameter set');
 	}
 
+	hasProofData()
+	{
+		return this.hasData('k-induction proof');
+	}
+
 	getAxisNames(dataType)
 	{
 		var axis_names = {};
 
 		var dims;
-		if (dataType === "reachability") {
+		if (dataType === "flowpipe" || dataType === "k-induction proof") {
 			dims = this.props.sapoResults.variables;
 		} else {
 			dims = this.props.sapoResults.parameters;
@@ -498,7 +520,7 @@ export default class Chart extends Component<Props> {
 
 	changeAnimation(e)
 	{
-		if (this.plottingReachability()) {
+		if (this.plottingFlowpipe() || this.plottingProof()) {
 			this.setState({ animate: e.currentTarget.checked, changed: true },
 				() => {
 					if (this.plottingAnimation()) {
@@ -603,7 +625,7 @@ export default class Chart extends Component<Props> {
 		if (this.plottingAnimation()) {
 			this.setAnimPlot(this.state.plottable);
 		} else {
-			if (this.plottingReachability()) {
+			if (this.plottingFlowpipe()) {
 				this.setReachPlot(this.state.plottable);
 			} else {
 				this.setParamPlot(this.state.plottable);
@@ -671,7 +693,7 @@ export default class Chart extends Component<Props> {
 			plottable: [],
 			selected: [],
 			current_frame: 0,
-			dataType: "reachability",
+			dataType: "flowpipe",
 			animate: true,
 			axes: { 
 				x: undefined, 

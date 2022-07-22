@@ -1,0 +1,94 @@
+.left_chart {
+	display: inline-block;
+	width: 70%;
+	margin: 0;
+	padding: 0px 0px 5px 5px;
+}
+
+.right_controls {
+	display: flex;
+	flex-direction: column;
+	width: 30%;
+	margin: 0;
+	padding: 0;
+}
+
+.radio_group {
+	display: flex;
+	flex-direction: row;
+}
+
+.radio_element {
+	margin: 10%;
+	margin-top: 5%;
+	margin-bottom: 5%;
+}
+
+.input_text_group {
+	display: flex;
+	flex-direction: row;
+}
+
+.input_text_group div {
+	margin: 10%;
+	margin-top: 5%;
+	margin-bottom: 5%;
+	width: 100%;
+}
+
+.input_text_group div div {
+	margin: 0%;
+}
+
+.input_text_group input[type=text] {
+	width: 100%;
+}
+
+.input_text_group label {
+	margin-bottom: 5px;
+}
+
+.error label {
+   color: #cc0033;
+}
+  
+.error input[type=text] {
+	background-color: #fce4e4;
+	border-color: #cc0033;
+	outline: none;
+ }
+  
+ .error-message {
+	color: #cc0033;
+	display: inline-block;
+	font-size: 12px;
+	line-height: 15px;
+	margin: 5px 0 0;
+}
+
+.selects {
+	display: flex;
+	flex-direction: column;
+}
+
+.selectRow {
+	display: block;
+	width: 100%;
+	margin: 1em 0;
+}
+
+.selectLabel {
+	display: inline-block;
+	width: 20%;
+	margin: 0;
+}
+
+.select {
+	margin: 0 10%;
+	width: 60%;
+	height: 2.5em;
+	background-color: white;
+	border: 1px solid #ff8f00;
+	border-radius: 10px;
+	text-align: center;
+}

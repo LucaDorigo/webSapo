@@ -17,11 +17,17 @@ export const change_targets = {
 	invariant: 3
 };
 
+export const invariant_results = {
+	proved: "proved",
+	disproved: "disproved",
+	epoch_limit: "epoch limit reached"
+};
+
 export const tasks = {
-	undefined: "0",
-	reachability: "1",
-	synthesis: "2",
-	invariant_validation: "3"
+	undefined: "undefined",
+	reachability: "reachability",
+	synthesis: "synthesis",
+	invariant_validation: "invariant validation"
 };
 
 export const task_name = (task) => {

@@ -12,9 +12,10 @@ import ParameterRows from "../ParameterRows/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
 import ConvexSetSpecifier from "../ConvexSetSpecifier/index";
 import Specification from "../Specification/index";
-import Chart from "../Chart/index";
+import ReachSynthPlot from "../ReachSynthPlot/index";
+import InvariantPlot from "../InvariantPlot/index";
 //import { black } from "ansi-colors";
-import { tasks, task_name, change_targets } from "../../constants/global";
+import { tasks, task_name, change_targets, invariant_results } from "../../constants/global";
 
 import { toast } from 'react-toastify';
 
@@ -45,6 +46,26 @@ export default class BoxesPage extends Component<Props> {
 	}
 
 	render() {
+		
+		let plot_button_msg = "Plot";
+
+		if (this.props.sapoResults !== undefined && "task" in this.props.sapoResults && 
+			this.props.sapoResults.task === tasks.invariant_validation) {
+			switch(this.props.sapoResults.result) {
+				case invariant_results.proved:
+					plot_button_msg += " the invariant proof";
+					break;
+				case invariant_results.disproved:
+					plot_button_msg += " the invariant disproof";
+					break;
+				case invariant_results.epoch_limit:
+					plot_button_msg += " the system flow";
+					break;
+				default:
+					break;
+			}
+		}
+
 		return (
 			<div className={styles.container} data-tid="container">
 				<div>
@@ -76,22 +97,33 @@ export default class BoxesPage extends Component<Props> {
 								{this.props.sapoResults !== undefined && 
 								 this.props.task !== tasks.undefined && 
 								<RoundedButton
-									text={"Plot"}
+									text={plot_button_msg}
 									className={styles.plotButton}
 									callback={() => {
-										if (this.props.sapoResults.data.length > 0) {
-											document.getElementById("chart").style.display = "block";
-											window.dispatchEvent(new Event('resize'));
-										} else {
-											let msg;
-											switch(this.props.task) {
-												case tasks.synthesis:
-													msg = "The synthesized set is empty";
-													break;
-												default:
-													msg = "The reachable set is empty";
-											}
-											toast.info(msg, {position: "bottom-center"});
+										switch(this.props.task) {
+											case tasks.reachability:
+											case tasks.synthesis:
+												if (this.props.sapoResults.data.length > 0) {
+													document.getElementById("reach_synth_plot").style.display = "block";
+													window.dispatchEvent(new Event('resize'));
+												} else {
+													let msg;
+													switch(this.props.task) {
+														case tasks.synthesis:
+															msg = "The synthesized set is empty";
+															break;
+														default:
+															msg = "The reachable set is empty";
+													}
+													toast.info(msg, {position: "bottom-center"});
+												}
+												break;
+											case tasks.invariant_validation:
+												document.getElementById("invariant_plot").style.display = "block";
+												window.dispatchEvent(new Event('resize'));
+												break;
+											default:
+												break;
 										}
 									}}
 								/> 
@@ -272,7 +304,7 @@ export default class BoxesPage extends Component<Props> {
 													className={styles.textInput}
 													type="number"
 													name="numberIterations"
-													min="1"
+													min="0"
 													step="1"
 												/>
 											</div>
@@ -360,7 +392,7 @@ export default class BoxesPage extends Component<Props> {
 													className={styles.textInput}
 													type="number"
 													name="numberIterations"
-													min="1"
+													min="0"
 													step="1"
 												/>
 											</div>
@@ -598,13 +630,13 @@ export default class BoxesPage extends Component<Props> {
 				</div>
 				{/*end of the modal for the logic*/}
 
-				{/*modal for showing chart*/}
-				<div id="chart" className={modalStyles.modal_chart}>
+				{/*modal for showing reachability/synthesis result plot */}
+				<div id="reach_synth_plot" className={modalStyles.modal_chart}>
 					<div className={modalStyles.modal_content_chart}>
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("chart").style.display = "none";
+									document.getElementById("reach_synth_plot").style.display = "none";
 								}}
 								className={modalStyles.close}
 							>
@@ -615,7 +647,7 @@ export default class BoxesPage extends Component<Props> {
 						</div>
 
 						<div className={modalStyles.modal_body_chart}>
-							<Chart
+							<ReachSynthPlot
 									sapoResults={this.props.sapoResults}
 									projectName={this.props.projectName}
 									updateChart={this.props.updateChart}
@@ -625,8 +657,36 @@ export default class BoxesPage extends Component<Props> {
 						</div>
 					</div>
 				</div>
-				{/*end modal for showing chart*/}
+				{/*end modal for showing reachability/synthesis result plot*/}
 
+				{/*modal for showing invariant validation result plot*/}
+				<div id="invariant_plot" className={modalStyles.modal_chart}>
+					<div className={modalStyles.modal_content_chart}>
+						<div className={modalStyles.modal_header}>
+							<span
+								onClick={() => {
+									document.getElementById("invariant_plot").style.display = "none";
+								}}
+								className={modalStyles.close}
+							>
+								&times; {/*X in HTML*/}
+							</span>
+							<div className={modalStyles.flexRow}>
+							</div>
+						</div>
+
+						<div className={modalStyles.modal_body_chart}>
+							<InvariantPlot
+									sapoResults={this.props.sapoResults}
+									projectName={this.props.projectName}
+									updateChart={this.props.updateChart}
+									setUpdated={this.props.setUpdated}
+									setExecuting={this.props.setExecuting}
+								/>
+						</div>
+					</div>
+				</div>
+				{/*end modal for showing invariant validation result plot*/}
 
 				{/*modal for showing the about*/}
 				<div id="about" className={modalStyles.modal}>

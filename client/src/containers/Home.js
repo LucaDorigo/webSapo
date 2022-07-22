@@ -1,12 +1,13 @@
 // @flow
 import React, { Component } from "react";
 import Home from "../components/Home";
-import { downloadFile, tasks, change_targets } from "../constants/global";
+import { downloadFile, tasks, change_targets, invariant_results } from "../constants/global";
 import * as math from "mathjs";
 //import { range } from "rxjs";
 import { checkInput } from "../constants/InputChecks";
 import { ToastContainer, toast } from 'react-toastify';
 
+import { FaRegThumbsUp, FaRegThumbsDown, FaRegQuestionCircle } from 'react-icons/fa';
 import 'react-toastify/dist/ReactToastify.min.css';
 
 
@@ -90,11 +91,11 @@ export default class HomeContainer extends Component {
 	changeNumberOfIterations = e => {
 		const value = e.target.value;
 
-		if (value > 0 && Number.isInteger(parseFloat(value, 10)) === true) {
+		if (value >= 0 && Number.isInteger(parseFloat(value, 10)) === true) {
 			// parseInt is not used because does an automatic truncate and returns always an int
 			this.setState({ numberOfIterations: value, sapoResults: undefined});
 		} else {
-			this.setState({ numberOfIterations: 1, sapoResults: undefined});
+			this.setState({ numberOfIterations: 0, sapoResults: undefined});
 		}
 	};
 
@@ -668,7 +669,6 @@ export default class HomeContainer extends Component {
 	// ------------- PRINT SETTINGS --------------------
 
 	updatePrintSwSettings = e => {
-		console.log(e.target.value);
 		// overwrite the choice
 		this.setState({
 			printSettings: {
@@ -751,34 +751,49 @@ export default class HomeContainer extends Component {
 
 	// ------------- BUTTON STUFF ----------------------
 
-	saveReachSynthResults = (result) => {
-		if (!("data" in result)) {
-			toast.info("Wrong output format");
-
+	saveResults = (result) => {
+											
+		sleep(500).then(() => {
 			document.getElementById("progress").style.display =
 				"none";
 			this.setState({
 				progress: 0,
 				killed: false
 			});
+		});
+
+		if (!("task" in result)) {
+			toast.info("Wrong output format");
+
+			return;
 		}
 
-		if (result.data.length === 0) {
-			this.setState({
-				hasResults: false,
-				executing: false
-			});
+		switch(result.task) {
+			case tasks.reachability:
+			case tasks.synthesis:
+				if (result.data.length === 0) {
+					this.setState({
+						hasResults: false,
+						executing: false
+					});
+		
+					toast.info("The synthesized set is empty.");
 
-			toast.info("The synthesized set is empty.");
-		} else {
-			if (result.data[0].flowpipe.length !== 0 &&
-				result.data[0].flowpipe[0].length === 0) {
-				toast.info("The initial set was empty.");
-				this.setState({
-					hasResults: false,
-					executing: false
-				});
-			} else {
+					return;
+				}
+
+				if (result.data[0].flowpipe.length !== 0 &&
+					result.data[0].flowpipe[0].length === 0) {
+					this.setState({
+						hasResults: false,
+						executing: false
+					});
+
+					toast.info("The initial set was empty.");
+
+					return;
+				}
+
 				this.setState({
 					sapoResults: result,
 					hasResults: true,
@@ -789,17 +804,72 @@ export default class HomeContainer extends Component {
 									(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
 									"result.webSapo", "text/plain");
 				});
-			}
+				break;
+			case tasks.invariant_validation:
+
+				let data = {};
+
+				const fields_in_data = ["flowpipe", "k-induction proof", "parameter set"];
+
+				fields_in_data.forEach(function (item, index) {
+					if (item in result) {
+						data[item] = result[item];
+	
+						delete result[item];
+					}
+				});
+
+				result.data = [data];
+
+				switch(result.result) {
+					case invariant_results.proved:
+						toast.success("Invariant proved", {
+							icon: FaRegThumbsUp,
+							autoClose: false,
+							progress: undefined,
+						  });
+						break;
+					case invariant_results.disproved:
+						toast.error("Invariant disproved", {
+							icon: FaRegThumbsDown,
+							autoClose: false,
+							progress: undefined,
+						  });
+						break;
+					case invariant_results.epoch_limit:
+						toast.warning("Epoch limit reached", {
+							icon: FaRegQuestionCircle,
+							autoClose: false,
+							progress: undefined,
+						  });
+						break;
+					default:
+						toast.error("Unsupported result \"{result.result}\"", {
+							autoClose: false,
+							progress: undefined,
+						  });
+						break;
+				}
+
+				this.setState({
+					sapoResults: result,
+					hasResults: true,
+					updateChart: true,
+					executing: false
+				}, () => {
+					downloadFile(JSON.stringify(this.state),
+									(this.state.projectName !== undefined ? this.state.projectName + "-": "") +
+									"result.webSapo", "text/plain");
+				});
+				break;
+			
+			default:
+				this.setState({
+					hasResults: false,
+					executing: false
+				});
+				toast.info("Unsupported task type");
 		}
-														
-		sleep(500).then(() => {
-			document.getElementById("progress").style.display =
-				"none";
-			this.setState({
-				progress: 0,
-				killed: false
-			});
-		});
 	}
 
 	startExecuting = () => {
@@ -890,7 +960,7 @@ export default class HomeContainer extends Component {
 														"Setting-up plots...";
 
 											sleep(1000).then(() => {
-												this.saveReachSynthResults(result);
+												this.saveResults(result);
 											});
 										});
 									} else {
@@ -978,15 +1048,17 @@ export default class HomeContainer extends Component {
 				{
 					let stateFromFile = JSON.parse(e.target.result);
 
-					if ("reachability" in stateFromFile && stateFromFile.reachability) {
-						stateFromFile.task = tasks.reachability;
-					} else {
-						if ("reachability" in stateFromFile && stateFromFile.synthesis) {
-							stateFromFile.task = tasks.synthesis;
+					if (!("task" in stateFromFile)) {
+						if ("reachability" in stateFromFile && stateFromFile.reachability) {
+							stateFromFile.task = tasks.reachability;
 						} else {
-							stateFromFile.task = tasks.undefined;
+							if ("reachability" in stateFromFile && stateFromFile.synthesis) {
+								stateFromFile.task = tasks.synthesis;
+							} else {
+								stateFromFile.task = tasks.undefined;
+							}
 						}
-					} 
+					}
 					this.setState(
 						{
 							...stateFromFile,

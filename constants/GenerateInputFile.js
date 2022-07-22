@@ -1,8 +1,8 @@
 const tasks = {
-	undefined: "0",
-	reachability: "1",
-	synthesis: "2",
-	invariant_validation: "3"
+	undefined: "undefined",
+	reachability: "reachability",
+	synthesis: "synthesis",
+	invariant_validation: "invariant validation"
 };
 
 exports.generateModelFile = (
@@ -91,33 +91,35 @@ exports.generateModelFile = (
 	});
 	
 	// spec
-	model += "\n// specification\n"
-	var allFormulas = "";
-	logicFormulas.forEach(f => {
-		if (f != "")
-		{
-			if (allFormulas == "")
-				allFormulas = f;
-			else
-				allFormulas += " && " + f;
+	if (logicFormulas.length>0) {
+		var allFormulas = "";
+		logicFormulas.forEach(f => {
+			if (f != "")
+			{
+				if (allFormulas == "")
+					allFormulas = f;
+				else
+					allFormulas += " && " + f;
+			}
+		});
+		allFormulas = allFormulas.replace(/∧/g, "&&");
+		allFormulas = allFormulas.replace(/∨/g, "||");
+		allFormulas = allFormulas.replace(/¬/g, "!");
+		allFormulas = allFormulas.replace(/F_/g, "F");
+		allFormulas = allFormulas.replace(/G_/g, "G");
+		allFormulas = allFormulas.replace(/_U_/g, "U");
+		
+	//	console.log("PRINT ALL FORMULAS");
+	//	console.log(allFormulas);
+		
+		if (allFormulas != "") {
+			model += "\n// specification\nspec: " + allFormulas + ";\n";
 		}
-	});
-	allFormulas = allFormulas.replace(/∧/g, "&&");
-	allFormulas = allFormulas.replace(/∨/g, "||");
-	allFormulas = allFormulas.replace(/¬/g, "!");
-	allFormulas = allFormulas.replace(/F_/g, "F");
-	allFormulas = allFormulas.replace(/G_/g, "G");
-	allFormulas = allFormulas.replace(/_U_/g, "U");
-	
-//	console.log("PRINT ALL FORMULAS");
-//	console.log(allFormulas);
-	
-	if (allFormulas != "")
-		model += "spec: " + allFormulas + ";\n";
+	}
 
 
-	// directions
-	model += "\n// directions\n";
+	// initial set
+	model += "\n// initial set\n";
 
 	initial_set.forEach((constraint, index) => {
 		model += "direction "+ constraint.expression;
@@ -138,32 +140,34 @@ exports.generateModelFile = (
 	});
 
 	// invariant
-	model += "\n\n// invariant\ninvariant: ";
+	if (invariant.length>0) {
+		model += "\n\n// invariant\ninvariant: ";
 
-	invariant.forEach((constraint, index) => {
-		if (index>0) {
-			model += " && "
-		}
+		invariant.forEach((constraint, index) => {
+			if (index>0) {
+				model += " && "
+			}
 
-		model += constraint.expression;
+			model += constraint.expression;
 
-		switch (constraint.relation) {
-			case "=":
-			case ">=":
-				model += " " + constraint.relation + " " + constraint.lowerBound
-				break;
-			case "<=":
-				model += " <= " + constraint.upperBound
-				break;
-			default:
-			case "in":
-				model += " in [" + constraint.lowerBound + ", " + 
-								   constraint.upperBound + "]"		
-		}
-	});
-	model += ";\n\n"
-	
-	model += "option k_induction_join "+ k_induction_join +";\n\n";
+			switch (constraint.relation) {
+				case "=":
+				case ">=":
+					model += " " + constraint.relation + " " + constraint.lowerBound
+					break;
+				case "<=":
+					model += " <= " + constraint.upperBound
+					break;
+				default:
+				case "in":
+					model += " in [" + constraint.lowerBound + ", " + 
+									constraint.upperBound + "]"		
+			}
+		});
+		model += ";\n\n"
+		
+		model += "option k_induction_join "+ k_induction_join +";\n\n";
+	}
 
 	// template
 	if (tMatrix.size[1]>0 && tMatrix.size[0]>0)
