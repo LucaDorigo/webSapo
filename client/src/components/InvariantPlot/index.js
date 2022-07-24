@@ -7,6 +7,8 @@ import Plotly from 'plotly.js-gl3d-dist-min'
 import createPlotlyComponent from 'react-plotly.js/factory';
 import { toast } from 'react-toastify';
 
+import { tasks } from "../../constants/global";
+
 const TimeAxisValue = "!webSapo_Time";
 
 var http = require("http");
@@ -49,6 +51,15 @@ function getInitialCamera() {
 		   };
 }
 
+function buildArray(length, default_value = 0) {
+	let array = [];
+	for (var i=0; i<length; i++) {
+		array.push(default_value);
+	}
+
+	return array;
+}
+
 function hasManyPSets(sapoResults)
 {
 	return sapoResults !== undefined && sapoResults.data.length > 1;
@@ -73,6 +84,46 @@ function approx_fp_vertices(input, decimal=6)
 	throw new TypeError("Unsupported type")
 }
 
+function getFlowpipesBoundingBox(flowpipes, expand_ratio=0.10) 
+{
+	var dims = ['x', 'y', 'z'];
+
+	var bbox = {};
+
+	flowpipes.forEach((flowpipe) => {
+		flowpipe.forEach((poly_union) => {
+			poly_union.forEach((polytope) => {
+				for (var dim of dims) {
+					if (dim in polytope) {
+						let polytope_min = Math.min(...polytope[dim])
+						let polytope_max = Math.max(...polytope[dim])
+
+						if (dim in bbox) {
+							bbox[dim][0] = Math.min(polytope_min, bbox[dim][0]);
+							bbox[dim][1] = Math.max(polytope_max, bbox[dim][1]);
+						} else {
+							bbox[dim] = [polytope_min, polytope_max];
+						}
+					}
+				}
+			});
+		});
+	});
+
+	let max_precision = 9;
+
+	for (let dim of dims) {
+		if (dim in bbox) {
+			var expand_size = (bbox[dim][1]-bbox[dim][0])*expand_ratio/2;
+			expand_size += Math.pow(10, -max_precision);
+			bbox[dim][0] = Number((bbox[dim][0] - expand_size).toFixed(max_precision));
+			bbox[dim][1] = Number((bbox[dim][1] + expand_size).toFixed(max_precision));
+		}
+	}
+
+	return bbox;
+}
+
 export default class InvariantPlot extends Component<Props> {
 
 	constructor(props) {
@@ -80,10 +131,10 @@ export default class InvariantPlot extends Component<Props> {
 
 		this.state = {
 			plottable: [],            	  // plottable polytopes
+			invariant: JSON.parse("[{\"x\":[0.0728863, 0.4493877, 0.4493877, 0.0728863, 0.0728863],\"y\":[0.013416600000000002, 0.013416600000000002, 0.2130754, 0.2130754, 0.013416600000000002],\"mode\":\"lines+markers\",\"type\":\"scatter\",\"fill\":\"toself\",\"color\":\"#51f542\",\"hoverinfo\":\"x+y\",\"line\":{\"color\":\"#51f542\",\"width\":0},\"marker\":{\"size\":1}}]"),
 			selected: [],             	  // polytopes filtered by pset_selection
 			animFrames: [],               // frames for reachability animation
 			current_frame: 0,			  // index of the current frame
-			animBBox: [],			      // the bounding box of the reachability procedure
 			slider_steps: [],             // the slider steps for reachability animation
 			camera:	getInitialCamera(),   // camera object for 3D plots (see Plotly.scene.camera)			   		   
 			animate: true,                // a Boolean flag for reachability animation
@@ -98,7 +149,9 @@ export default class InvariantPlot extends Component<Props> {
 			dataType: "flowpipe",     	  // data type, i.e., either "flowpipe", "parameter set", or "k-induction proof"
 			axes: { x: undefined,         // axis names
 			        y: undefined, 
-					z: undefined }
+					z: undefined },
+			plot_bbox: {},				  // the bounding box of the plot
+			plot_frame: {}                // the frame of the plot
 		};
 	}
 
@@ -122,13 +175,13 @@ export default class InvariantPlot extends Component<Props> {
 							showlegend: false,
 							xaxis: { 
 								title: { text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x)},
-								autorange: !this.plottingAnimation(),
-								range: this.state.animBBox.x
+								autorange: false, //!this.plottingAnimation(),
+								range: this.state.plot_frame.x
 							 },
 							yaxis: { 
 								title: { text: this.state.axes.y },
-								autorange: !this.plottingAnimation(),
-								range: this.state.animBBox.y
+								autorange: false, //!this.plottingAnimation(),
+								range: this.state.plot_frame.y
 							},
 							scene: {
 								xaxis: { 
@@ -140,8 +193,8 @@ export default class InvariantPlot extends Component<Props> {
 											//color: '#ff8f00'
 										}*/
 									},
-									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.x
+									autorange: false, //!this.plottingAnimation(),
+									range: this.state.plot_frame.x
 								},
 								yaxis: { 
 									title: {
@@ -152,8 +205,8 @@ export default class InvariantPlot extends Component<Props> {
 											//color: '#ff8f00'
 										}*/
 									},
-									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.y
+									autorange: false, //!this.plottingAnimation(),
+									range: this.state.plot_frame.y
 								},
 								zaxis: { 
 									title: {
@@ -164,8 +217,8 @@ export default class InvariantPlot extends Component<Props> {
 											//color: '#ff8f00'
 										}*/
 									},
-									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.z
+									autorange: false, //!this.plottingAnimation(),
+									range: this.state.plot_frame.z
 								},
 								camera: this.state.camera
 							},
@@ -260,10 +313,29 @@ export default class InvariantPlot extends Component<Props> {
 									scale: 1 // Multiply title/legend/axis/canvas sizes by this factor
 							     }
   						       }}
+						onDoubleClick={() => {
+							this.updatePlot();
+						}}
 						onRelayout={(layout) => { if ('scene.camera' in layout) {
 								// here using setState bring me back to frame 0
 								this.setState({camera: layout['scene.camera']});
 							}
+							let plot_frame = this.state.plot_frame;
+							if ("xaxis.range[0]" in layout) {
+								plot_frame.x = [layout["xaxis.range[0]"], 
+											    layout["xaxis.range[1]"]] 
+							}
+							if ("yaxis.range[0]" in layout) {
+								plot_frame.y = [layout["yaxis.range[0]"], 
+											    layout["yaxis.range[1]"]] 
+							}
+							if ("zaxis.range[0]" in layout) {
+								plot_frame.z = [layout["zaxis.range[0]"], 
+											    layout["zaxis.range[1]"]] 
+							}
+							this.setState({plot_frame: plot_frame}, ()=>{
+								this.updateInvariantPolytopes();
+							});
 						}}
 						onAnimatingFrame={(frame) => {
 							//this.setState({current_frame: parseInt(frame.name)});
@@ -281,15 +353,15 @@ export default class InvariantPlot extends Component<Props> {
 						{this.hasParamData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingParameterSet()} value="parameter set" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>}
-					</div>} {/*closing radio group*/}
-					<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
+					</div>} {/*closing radio group*/
+					/*<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions" disabled={this.state.changed}/> 2D
 						</div>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions" disabled={this.state.changed}/> 3D
 						</div>
-					</div> {/*closing radio group*/}
+					</div>*/ /*closing radio group*/}
 					{ (this.plottingFlowpipe() || this.plottingProof()) && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
 							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)} disabled={this.state.changed}/> Flowpipe animation
@@ -314,7 +386,8 @@ export default class InvariantPlot extends Component<Props> {
 						<div className={styles.selectRow}>
 							<p className={styles.selectLabel}>X axis:</p>
 							<select name="xAxis" onChange={e => { this.changeAxis('x', e.target.value); }} className={styles.select} disabled={this.state.changed}>
-								{(this.plottingFlowpipe() || this.plottingProof()) && <option value={TimeAxisValue}>Time</option> }
+								{(this.plottingFlowpipe() && this.props.sapoResults.task !== "invariant validation")&& 
+									<option value={TimeAxisValue}>Time</option> }
 								{(this.plottingFlowpipe() || this.plottingProof()) && this.props.sapoResults.variables.map((item, index) => {
 									return getOption('x', item, index===0);
 								})}
@@ -352,43 +425,173 @@ export default class InvariantPlot extends Component<Props> {
 		);
 	}
 
-	updateDataVertices(data_vertices)
+	addBoundariesToPoly(poly, axis, interval)
 	{
-		if (data_vertices.length === 0) {
-			toast.info("The set of parameters is empty");
+		let axis_index = this.props.sapoResults.variables.indexOf(axis);
+		let array = buildArray(this.props.sapoResults.variables.length);
+
+		array[axis_index] = -1;
+		poly.A.push(JSON.parse(JSON.stringify(array)));
+		array[axis_index] = 1;
+		poly.A.push(array);
+
+		poly.b.push(-interval[0]);
+		poly.b.push(interval[1]);
+	}
+
+	updateInvariantPolytopes()
+	{
+		if (!("x" in this.state.plot_frame)) {
+			return
 		}
 
-		if (this.plottingParameterSet()) {
-			let polytopes = this.getParameterSet(data_vertices);
-			this.setParamPlot(polytopes);
+		let inv_polytope = JSON.parse(JSON.stringify(this.props.sapoResults.invariant));
 
+		this.addBoundariesToPoly(inv_polytope, this.state.axes.x, this.state.plot_frame.x)
+		this.addBoundariesToPoly(inv_polytope, this.state.axes.y, this.state.plot_frame.y)
+		if (this.state.chartType === "3D") {
+			this.addBoundariesToPoly(inv_polytope, this.state.axes.z, this.state.plot_frame.z)
+		}
+
+		this.computeVertices([inv_polytope], "polytope union", undefined,(vertices) => {
+			let invariant = [];
+			let polytope_gen;
+
+			if (this.state.chartType === "2D") {
+				polytope_gen = get2DPolygon;
+			} else {
+				polytope_gen = get3DPolytope;
+			}
+
+			for (var i=0; i<vertices.length; i++) {
+				invariant.push(polytope_gen(vertices[i], "#51f542", "Candidate invariant"));
+			}
+
+			this.setState({invariant: invariant});
+
+			if (this.plottingAnimation()) {
+				this.updateInvariantInAnimation(invariant);
+			}
+		})
+
+	}
+
+	dataFromInvariantValidation()
+	{
+		return (this.props.sapoResults !== null && "task" in this.props.sapoResults &&
+				this.props.sapoResults.task === tasks.invariant_validation);
+	}
+
+	setPolytopesPlot(polytopes)
+	{
+		if (this.plottingParameterSet()) {
+			this.setParamPlot(polytopes);
 			return;
 		}
-
-		let polytopes = this.getReachSet(data_vertices);
 		if (this.state.animate) {
 			this.setAnimPlot(polytopes);
-		} else {
-			this.setReachPlot(polytopes);
+			return;
 		}
+		
+		this.setReachPlot(polytopes);
+	}
+
+	getPolytopeDefaultColor()
+	{
+		if (this.dataFromInvariantValidation()) {
+			if (this.plottingFlowpipe()) {
+				return this.state.colors[0];
+			}
+			if (this.plottingProof()) {
+				return this.state.colors[1];
+			}
+		}
+
+		return undefined;
+	}
+
+	verticesToPolytopes(data_vertices, dataType, from_invariant_validation = false)
+	{
+		if (dataType === "parameter set") {
+			return this.getParameterSet(data_vertices);
+		}
+
+		let color = undefined;
+
+		if (from_invariant_validation) {
+			if (dataType === "flowpipe") {
+				color = this.state.colors[0];
+			}
+			if (dataType === "k-induction proof") {
+				color = this.state.colors[1];
+			}
+		}
+		return this.getReachSet(data_vertices, color);
 	}
 
 	updatePlot()
 	{
-		let query = {
-			data: this.props.sapoResults.data,
-			what: this.state.dataType
-		};
-		if (this.plottingParameterSet()) {
-			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
-		} else {
-			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
+		if (this.plottingProof()) {
+
+			this.computeVertices(this.props.sapoResults.data, "parametric flowpipe", 
+								 this.state.dataType, (vertices) => {
+				let polytopes = this.verticesToPolytopes(vertices, this.state.dataType,
+														 true);
+
+				this.computeVertices(this.props.sapoResults.data, "parametric flowpipe", 
+									 "flowpipe", (vertices) => {
+					let fp_polytopes = this.verticesToPolytopes(vertices, "flowpipe", true);
+
+					let reachability = [];
+					
+					fp_polytopes.forEach((poly, j) => {
+					
+						poly.forEach((poly_array, i) => {
+							reachability = reachability.concat(poly_array);
+						});
+
+						polytopes[j].forEach((poly_array, i) => {
+							polytopes[j][i] = poly_array.concat(reachability);
+						});
+					});
+
+					this.setPolytopesPlot(polytopes);
+
+					this.updateInvariantPolytopes();
+				});
+				
+			});
+
+			return;
 		}
 
-		console.log("data");
-		console.log(query);
+		this.computeVertices(this.props.sapoResults.data, "parametric flowpipe", 
+							 this.state.dataType, (vertices) => {
+			let polytopes = this.verticesToPolytopes(vertices, this.state.dataType,
+													 this.dataFromInvariantValidation());
+			this.setPolytopesPlot(polytopes);
 
-		let data = JSON.stringify(query);
+			this.updateInvariantPolytopes();
+		});
+	}
+
+	computeVertices(input_data, what, field, triggeredFunction)
+	{
+		let query_obj = {
+			data: input_data,
+			what: what,
+			field: field
+		};
+		if (field === "parameter set") {
+			query_obj["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
+		} else {
+			query_obj["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
+		}
+
+		let query = JSON.stringify(query_obj);
+
+		console.log("query")
+		console.log(query)
 		const options = {
 			hostname: window.location.hostname,
 			port: process.env.REACT_APP_SERVER_PORT,
@@ -396,7 +599,7 @@ export default class InvariantPlot extends Component<Props> {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Content-Length': data.length
+				'Content-Length': query.length
 			}
 		}
 
@@ -412,7 +615,7 @@ export default class InvariantPlot extends Component<Props> {
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
 					data_vertices = approx_fp_vertices(data_vertices);
-					this.updateDataVertices(data_vertices);
+					triggeredFunction(data_vertices);
 				} else {
 					toast.error(msg.stderr);
 					this.setState({
@@ -426,7 +629,7 @@ export default class InvariantPlot extends Component<Props> {
 				changed: false
 			});
 		});
-		req.write(data);
+		req.write(query);
 		req.end();
 	}
 
@@ -539,16 +742,25 @@ export default class InvariantPlot extends Component<Props> {
 
 	createColors(distinct)
 	{
-		var colors;
-		if (distinct) {
-			colors = getDistinctColors(this.props.sapoResults.data.length);
-		} else {
-			var color = getDistinctColors(1)[0];
+		if (this.dataFromInvariantValidation()) {
+			return ['#d62728', 		// flowpipe color
+					'#2870ed', 		// proof color
+					'#51f542' 		// candidate invariant color
+				];
+		}
 
-			colors = [];
-			for (let i=0; i<this.props.sapoResults.data.length; i++) {
-				colors.push(color);
-			}
+		if (distinct) {
+
+			// many colors
+			return getDistinctColors(this.props.sapoResults.data.length);
+		}
+		
+		// single color
+		var color = getDistinctColors(1)[0];
+
+		var colors = [];
+		for (let i=0; i<this.props.sapoResults.data.length; i++) {
+			colors.push(color);
 		}
 
 		return colors;
@@ -680,7 +892,7 @@ export default class InvariantPlot extends Component<Props> {
 				selection_text: "",
 				pset_selection: selection,
 				current_frame: 0,
-				changed: true
+				changed: true,
 			}, () => {
 				this.updatePlot();
 			});
@@ -716,7 +928,10 @@ export default class InvariantPlot extends Component<Props> {
 			}
 		}
 
-		return this.state.selected;
+		if (this.state.animFrames.length !== 0 || this.state.invariant === undefined) {
+			return this.state.selected;
+		}
+		return [...this.state.invariant, ...this.state.selected];
 	}
 
 	getProjSubspace(variables)
@@ -745,19 +960,24 @@ export default class InvariantPlot extends Component<Props> {
 
 	setReachPlot(polytopes)
 	{
+		let plot_bbox = getFlowpipesBoundingBox(polytopes);
+
 		this.setState({ 
 			selected: getSelectedFlowpipesPolytopes(polytopes, this.state.pset_selection),
 			plottable: polytopes,
 			animFrames: [],
-			animBBox: [],
+			plot_bbox: plot_bbox,
+			plot_frame: JSON.parse(JSON.stringify(plot_bbox)),
 			slider_steps: [],
 			changed: false
 		});
 	}
 
-	setAnimPlot(polytopes)
+	updateInvariantInAnimation(invariant)
 	{
-		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection);
+		var frames = getFramesForSelectedFlowpipes(this.state.plottable, 
+												   this.state.pset_selection,
+												   invariant);
 
 		if (frames.length > 0) {
 			/* the following line bypasses a reactjs-plotly bug.
@@ -765,9 +985,29 @@ export default class InvariantPlot extends Component<Props> {
 			var selectedFrame = deepCopy(frames[this.state.current_frame].data);
 			this.setState({ 
 				selected: selectedFrame,
+				animFrames: frames,
+				changed: false
+			});
+		}
+	}
+
+	setAnimPlot(polytopes)
+	{
+		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection,
+												   this.state.invariant);
+
+		if (frames.length > 0) {
+			let plot_bbox = getFlowpipesBoundingBox(polytopes);
+
+			/* the following line bypasses a reactjs-plotly bug.
+			   See https://github.com/plotly/plotly.js/issues/1839 */
+			var selectedFrame = deepCopy(frames[this.state.current_frame].data);
+			this.setState({ 
+				selected: selectedFrame,
 				plottable: polytopes,
 				animFrames: frames,
-				animBBox: getFramesBBox(frames),
+				plot_bbox: plot_bbox,
+				plot_frame: JSON.parse(JSON.stringify(plot_bbox)),
 				slider_steps: build_slider_steps(frames.length),
 				changed: false
 			});
@@ -783,11 +1023,14 @@ export default class InvariantPlot extends Component<Props> {
 			}
 		}
 
+		let plot_bbox = getFlowpipesBoundingBox(polytopes);
+
 		this.setState({
 			selected: selectedData,
 			plottable: polytopes,
 			animFrames: [],
-			animBBox: [],
+			plot_bbox: plot_bbox,
+			plot_frame: JSON.parse(JSON.stringify(plot_bbox)),
 			slider_steps: [],
 			changed: false
 		});
@@ -813,7 +1056,8 @@ export default class InvariantPlot extends Component<Props> {
 		return polytopes;
 	}
 
-	getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx = undefined)
+	getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx = undefined, 
+							  default_color = undefined)
 	{
 		var polygons = [];
 		for (let time=0; time<flowpipe_vertices.length; time++) {
@@ -825,7 +1069,7 @@ export default class InvariantPlot extends Component<Props> {
 				// create the two vertices
 				var itvl_vertices = [[time, itvl.min], [time, itvl.max]];
 	
-				let color = this.state.colors[0];
+				let color = (default_color === undefined? this.state.colors[0]: default_color);
 				let name = undefined;
 				// add the polytope to the dataset
 				if (param_set_idx !== undefined) {
@@ -839,8 +1083,8 @@ export default class InvariantPlot extends Component<Props> {
 		return polygons;
 	}
 
-
-	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined)
+	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined, 
+				 default_color = undefined)
 	{
 		var polytopes = [];
 	
@@ -852,7 +1096,9 @@ export default class InvariantPlot extends Component<Props> {
 				new_poly = polytope_gen(vertices, this.state.colors[param_set_idx], 
 										'pSet #'+param_set_idx);
 			} else {
-				new_poly = polytope_gen(vertices, this.state.colors[0], undefined);
+				let color = (default_color === undefined ? this.state.colors[0] : default_color);
+
+				new_poly = polytope_gen(vertices, color, undefined);
 			}
 			polytopes.push(new_poly);
 		}
@@ -860,7 +1106,7 @@ export default class InvariantPlot extends Component<Props> {
 		return polytopes;
 	}
 
-	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined)
+	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined, default_color = undefined)
 	{
 		let timeplot;
 		let poly_gen;
@@ -887,14 +1133,14 @@ export default class InvariantPlot extends Component<Props> {
 				};
 			}
 			let polytopes = this.getPolytopes(poly_gen, flowpipe_vertices[time], 
-												param_set_idx);
+												param_set_idx, default_color);
 			f_polytopes.push(polytopes);
 		}
 
 		return f_polytopes;		
 	}
 
-	getReachSet(data_vertices)
+	getReachSet(data_vertices, default_color = undefined)
 	{
 		var polytopes = [];
 
@@ -905,11 +1151,11 @@ export default class InvariantPlot extends Component<Props> {
 			// this is just to exploit 2D time series properties and speed-up 
 			// their plotting with respect to getPolytopes-based plotting
 			poly_gen = (flowpipe_vertices, param_set_idx) => {
-				return this.getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx);
+				return this.getFlowpipe2DTimePolygons(flowpipe_vertices, param_set_idx, default_color);
 			};
 		} else {
 			poly_gen = (flowpipe_vertices, param_set_idx) => {
-				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx);
+				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx, default_color);
 			};
 		}
 
@@ -920,41 +1166,6 @@ export default class InvariantPlot extends Component<Props> {
 		return polytopes;
 	}
 }	// end Chart
-
-function getFramesBBox(frames, expand_ratio=0.05)
-{
-	var dims = ['x', 'y', 'z'];
-
-	var bbox = {};
-
-	frames.forEach((frame) => {
-		frame.data.forEach((polytope) => {
-			for (let dim of dims) {
-				if (dim in polytope) {
-					let polytope_min = Math.min(...polytope[dim])
-					let polytope_max = Math.max(...polytope[dim])
-
-					if (dim in bbox) {
-						bbox[dim][0] = Math.min(polytope_min, bbox[dim][0]);
-						bbox[dim][1] = Math.max(polytope_max, bbox[dim][1]);
-					} else {
-						bbox[dim] = [polytope_min, polytope_max];
-					}
-				}
-			}
-		});
-	});
-
-	for (let dim of dims) {
-		if (dim in bbox) {
-			var expand_size = (bbox[dim][1]-bbox[dim][0])*expand_ratio/2;
-			bbox[dim][0] -= expand_size;
-			bbox[dim][1] += expand_size;
-		}
-	}
-
-	return bbox;
-}
 
 function build_slider_steps(num_of_frames, time_step = 1)
 {
@@ -1000,14 +1211,18 @@ function build_a_fake_polytope(polytope)
 	return getSinglePoint([vertex], polytope.color, polytope.text, 1);
 }
 
-function getFramesForSelectedFlowpipes(flowpipes, selection)
+function getFramesForSelectedFlowpipes(flowpipes, selection, invariant = undefined)
 {
 	var frames = [];
 	flowpipes.forEach((flowpipe, i) => {
 		if (selection[i]) {
 			while (frames.length < flowpipe.length) {
-				frames.push({name: frames.length.toString(), data: [] /*, traces: []*/ });
+				frames.push({
+					name: frames.length.toString(), 
+					data: (invariant !== undefined ? [...invariant] : [])
+				});
 			}
+
 			var max_polytopes = flowpipe[flowpipe.length-1].length;
 			flowpipe.forEach((polytopes, timestamp) => {
 				// Add missing polytopes when a bundle split occurred
@@ -1373,7 +1588,7 @@ function areAllLayingOn(vertices, plane)
 	return true;
 }
 
-function getBoundingBox(vertices)
+function getVerticesBoundingBox(vertices)
 {
 	var max_values = vertices[0].map(v => 0),
 		min_values = vertices[0].map(v => 0);
@@ -1423,7 +1638,7 @@ function areColinear(vertex_a, vertex_b, vertex_c)
 function doubleOnDirection(vertices, direction)
 {
 	// Compute what is meant to be a small number w.r.t. the plot values
-	var bbox = getBoundingBox(vertices);
+	var bbox = getVerticesBoundingBox(vertices);
 
 	var delta_bbox = bbox.map(value => {
 		return value[1]-value[0];

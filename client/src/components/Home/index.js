@@ -590,7 +590,9 @@ export default class BoxesPage extends Component<Props> {
 										changeRelation={(e, index) => {
 											this.props.changeRelation(e, index, change_targets.invariant);
 										}}
-										changeExpression={(e, index) => { 
+										changeExpression={(e, index) => {
+											console.log("this.props.invariant")
+											console.log(this.props.invariant)
 											this.props.changeExpression(e, index, change_targets.invariant);
 										}}
 										deleteConstraint={(e) => { 
