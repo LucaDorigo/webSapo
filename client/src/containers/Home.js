@@ -456,8 +456,6 @@ export default class HomeContainer extends Component {
 	checkLowerBoundAndUpdateConsistency = (e, change_target) => {
 		let targetArray = this.getTarget(change_target);
 
-		console.log("checkLowerBoundAndUpdateConsistency: "+targetArray)
-
 		let obj = targetArray[e.target.id]
 		obj.lowerBound = parseFloat(e.target.value);
 		obj.lb_error = isNaN(obj.lowerBound);
@@ -714,17 +712,13 @@ export default class HomeContainer extends Component {
 		let value = e.target.value; // name of the variable
 		newCharts[id][name] = value;
 
-		console.log(newCharts);
-
 		this.setState(
 			{
 				printSettings: {
 					drawingSw: this.state.printSettings.drawingSw,
 					charts: newCharts
 				}
-			},
-			() => console.log(this.state.printSettings)
-		);
+			});
 	};
 
 	createArrayOptions = () => {

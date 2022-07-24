@@ -853,7 +853,7 @@ compute_polytopes_union_proj(const json &json_input,
         LinearSystem<double> constraints(us_it.value()["A"], us_it.value()["b"]);
 
         if (max_axis >= constraints.num_of_columns()) {
-            throw std::domain_error("One of the selected dimensions is above the set dimentions");
+            throw std::domain_error("One of the selected dimensions is above the set dimensions");
         }
         output[i++] = compute_proj_vertices(constraints, axis_vector);
     }
@@ -877,11 +877,11 @@ compute_flowpipe_proj(const json &json_input,
     return output;
 }
 
-template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type, typename F>
 json
 compute_input_proj(const json &json_input,
                     const std::vector<unsigned int> &axis_vector,
-                    json field_name)
+                    F field_name)
 {
     json output;
 
@@ -927,12 +927,21 @@ int main(int argc, char *argv[])
     json output;
 
     try {
-        unsigned int i=0;
-        for (auto data_it = std::begin(json_input["data"]); 
-            data_it != std::end(json_input["data"]); ++data_it) {
+        if (json_input["what"] == "parametric flowpipe") {
+            unsigned int i=0;
+            for (auto data_it = std::begin(json_input["data"]); 
+                data_it != std::end(json_input["data"]); ++data_it) {
 
-            output[i++] = compute_input_proj<double>(data_it.value(), json_input["axes"],
-                                                     json_input["what"]);
+                output[i++] = compute_input_proj<double>(data_it.value(), json_input["axes"],
+                                                        json_input["field"]);
+            }
+        }
+        if (json_input["what"] == "flowpipe") {
+            output = compute_input_proj<double>(json_input, json_input["axes"],
+                                                "data");
+        }
+        if (json_input["what"] == "polytope union") {
+            output = compute_polytopes_union_proj<double>(json_input["data"], json_input["axes"]);
         }
         std::cout << output << std::endl;
     } catch (std::exception &e) {
