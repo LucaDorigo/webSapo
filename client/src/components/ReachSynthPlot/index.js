@@ -362,7 +362,7 @@ export default class InvariantPlot extends Component<Props> {
 			return;
 		}
 
-		let polytopes = this.getReachSet(data_vertices);
+		let polytopes = this.getReachSet(data_vertices, "T");
 		if (this.state.animate) {
 			this.setAnimPlot(polytopes);
 		} else {
@@ -372,13 +372,16 @@ export default class InvariantPlot extends Component<Props> {
 
 	updatePlot()
 	{
-		let query = {data: this.props.sapoResults.data};
+		let query = {
+			data: this.props.sapoResults.data,
+			what: "parametric flowpipe"
+		};
 		if (this.plottingFlowpipe()) {
 			query["axes"] = this.getProjSubspace(this.props.sapoResults.variables);
-			query["what"] = "flowpipe";
+			query["field"] = "flowpipe";
 		} else {
 			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
-			query["what"] = "parameters set";
+			query["field"] = "parameters set";
 		}
 
 		let data = JSON.stringify(query);
@@ -823,9 +826,14 @@ export default class InvariantPlot extends Component<Props> {
 	}
 
 
-	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined)
+	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined, 
+				 prefix_name = undefined)
 	{
 		var polytopes = [];
+	
+		if (param_set_idx !== undefined && prefix_name !== undefined) {
+			prefix_name += " "
+		}
 	
 		for (let i=0; i<polyunion_vertices.length; i++) {
 			let vertices = polyunion_vertices[i];
@@ -833,9 +841,9 @@ export default class InvariantPlot extends Component<Props> {
 			let new_poly;
 			if (param_set_idx !== undefined) {
 				new_poly = polytope_gen(vertices, this.state.colors[param_set_idx], 
-										'pSet #'+param_set_idx);
+										prefix_name + 'pSet #'+param_set_idx);
 			} else {
-				new_poly = polytope_gen(vertices, this.state.colors[0], undefined);
+				new_poly = polytope_gen(vertices, this.state.colors[0], prefix_name);
 			}
 			polytopes.push(new_poly);
 		}
@@ -843,7 +851,7 @@ export default class InvariantPlot extends Component<Props> {
 		return polytopes;
 	}
 
-	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined)
+	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined, prefix_name = undefined)
 	{
 		let timeplot;
 		let poly_gen;
@@ -862,22 +870,25 @@ export default class InvariantPlot extends Component<Props> {
 		}
 
 		var f_polytopes = [];
-
+		let prefix_time;
 		for (let time=0; time<flowpipe_vertices.length; time++) {
 			if (this.state.axes.x === TimeAxisValue) {
 				poly_gen = (vertices, color, name) => {
 					return timeplot(vertices, time, color, name);
 				};
 			}
+			if (prefix_name !== undefined) {
+				prefix_time = prefix_name + "_" +time;
+			}
 			let polytopes = this.getPolytopes(poly_gen, flowpipe_vertices[time], 
-												param_set_idx);
+												param_set_idx, prefix_time);
 			f_polytopes.push(polytopes);
 		}
 
 		return f_polytopes;		
 	}
 
-	getReachSet(data_vertices)
+	getReachSet(data_vertices, prefix_name = undefined)
 	{
 		var polytopes = [];
 
@@ -892,7 +903,7 @@ export default class InvariantPlot extends Component<Props> {
 			};
 		} else {
 			poly_gen = (flowpipe_vertices, param_set_idx) => {
-				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx);
+				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx, prefix_name);
 			};
 		}
 

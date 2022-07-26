@@ -27,6 +27,7 @@ const initState = {
 	maxBundleMagnitude: 0.0,
 	maxParamSplits: 0,
 	kInductionJoin: "listing",
+	useInvariantDirections: false,
 	variables: [], // array of object
 	parameters: [],
 	parametersMatrix: math.zeros(1),
@@ -112,6 +113,13 @@ export default class HomeContainer extends Component {
 	changeKInductionJoin = e => {
 		this.setState({ 
 			kInductionJoin: e.target.value, 
+			sapoResults: undefined
+		});
+	};
+
+	changeUseInvariantDirections = (e) => {
+		this.setState({ 
+			useInvariantDirections: e.target.checked, 
 			sapoResults: undefined
 		});
 	};
@@ -1173,9 +1181,11 @@ export default class HomeContainer extends Component {
 				changeMaxBundleMagnitude={this.changeMaxBundleMagnitude}
 				changeMaxParamSplits={this.changeMaxParamSplits}
 				changeKInductionJoin={this.changeKInductionJoin}
+				changeUseInvariantDirections={this.changeUseInvariantDirections}
 				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
 				kInductionJoin={this.state.kInductionJoin}
+				useInvariantDirections={this.state.useInvariantDirections}
 				handleMethodSelection={this.handleMethodSelection}
 				//
 				task={this.state.task}

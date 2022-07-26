@@ -51,6 +51,7 @@ app.post("/websapo", (req, res, next) => {
 			vars.parametersMatrix,
 			vars.initial_set,
 			vars.invariant,
+			vars.useInvariantDirections,
 			vars.kInductionJoin,
 			vars.tMatrix,
 			vars.logicFormulas
@@ -128,6 +129,7 @@ app.post("/saveModel", (req, res, next) => {
 			vars.parametersMatrix,
 			vars.initial_set,
 			vars.invariant,
+			vars.useInvariantDirections,
 			vars.kInductionJoin,
 			vars.tMatrix,
 			vars.logicFormulas

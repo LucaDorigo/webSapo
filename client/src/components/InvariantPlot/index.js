@@ -517,16 +517,22 @@ export default class InvariantPlot extends Component<Props> {
 		}
 
 		let color = undefined;
+		let prefix_name = undefined;
 
-		if (from_invariant_validation) {
-			if (dataType === "flowpipe") {
+		if (dataType === "flowpipe") {
+			prefix_name = "T";
+			if (from_invariant_validation) {
 				color = this.state.colors[0];
 			}
-			if (dataType === "k-induction proof") {
+		}
+		if (dataType === "k-induction proof") {
+			prefix_name = "Reach";
+			if (from_invariant_validation) {
 				color = this.state.colors[1];
 			}
 		}
-		return this.getReachSet(data_vertices, color);
+
+		return this.getReachSet(data_vertices, color, prefix_name);
 	}
 
 	updatePlot()
@@ -614,10 +620,13 @@ export default class InvariantPlot extends Component<Props> {
 					data_vertices = approx_fp_vertices(data_vertices);
 					triggeredFunction(data_vertices);
 				} else {
+					/*
 					toast.error(msg.stderr);
 					this.setState({
 						changed: false
 					});
+					*/
+					console.log(msg.stderr);
 				}
 			});
 		}).on('error', (error) => {
@@ -928,6 +937,7 @@ export default class InvariantPlot extends Component<Props> {
 		if (this.state.animFrames.length !== 0 || this.state.invariant === undefined) {
 			return this.state.selected;
 		}
+		
 		return [...this.state.invariant, ...this.state.selected];
 	}
 
@@ -972,9 +982,17 @@ export default class InvariantPlot extends Component<Props> {
 
 	updateInvariantInAnimation(invariant)
 	{
+		let reached = undefined
+		if (this.plottingProof()) {
+			reached = []
+			this.state.plottable.forEach((polytope,i) => {
+				reached.push(polytope[0][0])
+			})
+		}
+
 		var frames = getFramesForSelectedFlowpipes(this.state.plottable, 
 												   this.state.pset_selection,
-												   invariant);
+												   invariant, reached);
 
 		if (frames.length > 0) {
 			/* the following line bypasses a reactjs-plotly bug.
@@ -990,8 +1008,19 @@ export default class InvariantPlot extends Component<Props> {
 
 	setAnimPlot(polytopes)
 	{
+		console.log("QUI")
+		console.log(polytopes)
+		let reached = undefined
+		if (this.plottingProof()) {
+			reached = []
+			polytopes.forEach((polytope,i) => {
+				reached.push(polytope[0][0])
+			})
+		}
+		console.log("QUA")
+		console.log(reached)
 		var frames = getFramesForSelectedFlowpipes(polytopes, this.state.pset_selection,
-												   this.state.invariant);
+												   this.state.invariant, reached);
 
 		if (frames.length > 0) {
 			let plot_bbox = getFlowpipesBoundingBox(polytopes);
@@ -1081,21 +1110,25 @@ export default class InvariantPlot extends Component<Props> {
 	}
 
 	getPolytopes(polytope_gen, polyunion_vertices, param_set_idx=undefined, 
-				 default_color = undefined)
+				 default_color = undefined, prefix_name = undefined)
 	{
 		var polytopes = [];
 	
+		if (param_set_idx !== undefined && prefix_name !== undefined) {
+			prefix_name += " "
+		}
+
 		for (let i=0; i<polyunion_vertices.length; i++) {
 			let vertices = polyunion_vertices[i];
 	
 			let new_poly;
 			if (param_set_idx !== undefined) {
 				new_poly = polytope_gen(vertices, this.state.colors[param_set_idx], 
-										'pSet #'+param_set_idx);
+										prefix_name + 'pSet #'+param_set_idx);
 			} else {
 				let color = (default_color === undefined ? this.state.colors[0] : default_color);
 
-				new_poly = polytope_gen(vertices, color, undefined);
+				new_poly = polytope_gen(vertices, color, prefix_name);
 			}
 			polytopes.push(new_poly);
 		}
@@ -1103,7 +1136,8 @@ export default class InvariantPlot extends Component<Props> {
 		return polytopes;
 	}
 
-	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined, default_color = undefined)
+	getFlowpipePolytopes(flowpipe_vertices, param_set_idx=undefined, 
+						 default_color = undefined, prefix_name = undefined)
 	{
 		let timeplot;
 		let poly_gen;
@@ -1122,22 +1156,25 @@ export default class InvariantPlot extends Component<Props> {
 		}
 
 		var f_polytopes = [];
-
+		let prefix_time;
 		for (let time=0; time<flowpipe_vertices.length; time++) {
 			if (this.state.axes.x === TimeAxisValue) {
 				poly_gen = (vertices, color, name) => {
 					return timeplot(vertices, time, color, name);
 				};
 			}
+			if (prefix_name !== undefined) {
+				prefix_time = prefix_name + "_" +time;
+			}
 			let polytopes = this.getPolytopes(poly_gen, flowpipe_vertices[time], 
-												param_set_idx, default_color);
+												param_set_idx, default_color, prefix_time);
 			f_polytopes.push(polytopes);
 		}
 
 		return f_polytopes;		
 	}
 
-	getReachSet(data_vertices, default_color = undefined)
+	getReachSet(data_vertices, default_color = undefined, prefix_name = undefined)
 	{
 		var polytopes = [];
 
@@ -1152,7 +1189,7 @@ export default class InvariantPlot extends Component<Props> {
 			};
 		} else {
 			poly_gen = (flowpipe_vertices, param_set_idx) => {
-				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx, default_color);
+				return this.getFlowpipePolytopes(flowpipe_vertices, param_set_idx, default_color, prefix_name);
 			};
 		}
 
@@ -1208,7 +1245,7 @@ function build_a_fake_polytope(polytope)
 	return getSinglePoint([vertex], polytope.color, polytope.text, 1);
 }
 
-function getFramesForSelectedFlowpipes(flowpipes, selection, invariant = undefined)
+function getFramesForSelectedFlowpipes(flowpipes, selection, invariant = undefined, extra = undefined)
 {
 	var frames = [];
 	flowpipes.forEach((flowpipe, i) => {
@@ -1218,6 +1255,14 @@ function getFramesForSelectedFlowpipes(flowpipes, selection, invariant = undefin
 					name: frames.length.toString(), 
 					data: (invariant !== undefined ? [...invariant] : [])
 				});
+
+				if (extra !== undefined) {
+					console.log("Boh")
+					console.log(extra)
+					extra.forEach((polytope, i) => {
+						frames[frames.length-1].data.push(polytope)
+					})
+				}
 			}
 
 			var max_polytopes = flowpipe[flowpipe.length-1].length;

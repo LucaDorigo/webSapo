@@ -17,6 +17,7 @@ exports.generateModelFile = (
   parametersMatrix,
   initial_set,
   invariant,
+  use_invariant_directions,
   k_induction_join,
   tMatrix,
   logicFormulas
@@ -166,7 +167,12 @@ exports.generateModelFile = (
 		});
 		model += ";\n\n"
 		
-		model += "option k_induction_join "+ k_induction_join +";\n\n";
+		model += "option k_induction_join "+ k_induction_join +";\n"
+
+		if (use_invariant_directions) {
+			model += "option use_invariant_dirs;\n"
+		}
+		model += "\n"
 	}
 
 	// template

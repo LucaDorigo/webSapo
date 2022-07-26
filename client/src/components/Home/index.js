@@ -397,6 +397,11 @@ export default class BoxesPage extends Component<Props> {
 												/>
 											</div>
 										</div>
+										<div className={styles.center}>
+											<div className={styles.radio_element}>
+												<input id="use_invariant_directions" type="checkbox" defaultChecked={this.props.useInvariantDirections}  onChange={e => this.props.changeUseInvariantDirections(e)} disabled={this.state.changed}/> Use Invariant Directions
+										</div>
+										</div>
 
 									</div>
 									}
