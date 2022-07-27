@@ -942,7 +942,6 @@ export default class HomeContainer extends Component {
 							});
 
 							res.on('end', () => {
-								console.log("Computation end");
 								if (! this.state.killed)
 								{
 									var msg_data = JSON.parse(msg);

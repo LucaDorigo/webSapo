@@ -45,9 +45,10 @@ export default class FileMenu extends Component {
                         e.target.value = '';}} hidden/>
     <MenuDivider />
         <SubMenu label="Examples">
-            <MenuItem onClick={() => {this.fetchExample('Ebola');}}>Ebola</MenuItem>
-            <MenuItem onClick={() => {this.fetchExample('COVID-no-splits');}}>COVID</MenuItem>
-            <MenuItem onClick={() => {this.fetchExample('COVID-splits');}}>COVID (with splits)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('Ebola');}}>Ebola (Synthesis)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('COVID-no-splits');}}>COVID (Synthesis)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('COVID-splits');}}>COVID (Synthesis with splits)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('Julia_invariant');}}>Julia (Invariant validation)</MenuItem>
         </SubMenu>
         <MenuItem onClick={this.props.about}>About webSapo...</MenuItem>
       </Menu>
