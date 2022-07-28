@@ -141,7 +141,7 @@ exports.generateModelFile = (
 	});
 
 	// invariant
-	if (invariant.length>0) {
+	if (tasks.invariant_validation === task && invariant.length>0) {
 		model += "\n\n// invariant\ninvariant: ";
 
 		invariant.forEach((constraint, index) => {
