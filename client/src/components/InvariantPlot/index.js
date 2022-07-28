@@ -359,7 +359,7 @@ export default class InvariantPlot extends Component<Props> {
 						{this.hasProofData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingProof()} value="k-induction proof" name="dataType" disabled={this.state.changed}/> Proof
 						</div>}
-						{this.hasParamData() && <div className={styles.radio_element}>
+						{this.props.sapoResults.task !== "invariant validation" && this.hasParamData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingParameterSet()} value="parameter set" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>}
 					</div>} {/*closing radio group*/}
