@@ -92,3 +92,16 @@
 	border-radius: 10px;
 	text-align: center;
 }
+
+.result {
+	font-size: 120%;
+	color: #dc143c;
+	text-align: center;
+	font-weight: bold;
+	text-transform: lowercase;
+	border: 2px solid #dc143c;
+}
+
+.result::first-letter {
+	text-transform: uppercase;
+}

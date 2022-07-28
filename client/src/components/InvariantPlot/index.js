@@ -157,6 +157,12 @@ export default class InvariantPlot extends Component<Props> {
 
 	render()
 	{
+		if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
+			this.setUnplottable();
+
+			return null;
+		}
+
 		if (!(typeof(this.props.sapoResults) === "object" && "task" in this.props.sapoResults &&
 			 (this.props.sapoResults.task === "invariant validation"))) {
 			return null;
@@ -343,25 +349,29 @@ export default class InvariantPlot extends Component<Props> {
 					/>
 				</div>
 				<div className={styles.right_controls}>
+					{ this.props.sapoResults.task === "invariant validation" && <div className={styles.result}>
+						<p>{this.props.sapoResults.result}</p>
+					</div>}
 					{(this.hasParamData() || this.hasProofData()) && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingFlowpipe()} value="flowpipe" name="dataType" disabled={this.state.changed}/> Reachability
 						</div>
 						{this.hasProofData() && <div className={styles.radio_element}>
-							<input type="radio" defaultChecked={this.plottingProof()} value="k-induction proof" name="dataType" disabled={this.state.changed}/> K-Induction Proof
+							<input type="radio" defaultChecked={this.plottingProof()} value="k-induction proof" name="dataType" disabled={this.state.changed}/> Proof
 						</div>}
 						{this.hasParamData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingParameterSet()} value="parameter set" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>}
-					</div>} {/*closing radio group*/
-					/*<div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
+					</div>} {/*closing radio group*/}
+					{ this.props.sapoResults.task !== "invariant validation" && <div className={styles.radio_group} onChange={e => this.changeCharType(e)}>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.state.chartType === "2D"} value="2D" label="2D" name="dimensions" disabled={this.state.changed}/> 2D
 						</div>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.state.chartType === "3D"} value="3D" label="3D" name="dimensions" disabled={this.state.changed}/> 3D
 						</div>
-					</div>*/ /*closing radio group*/}
+					</div>}
+					{/*closing radio group*/}
 					{ (this.plottingFlowpipe() || this.plottingProof()) && <div className={styles.radio_group}>
 						<div className={styles.radio_element}>
 							<input id="animation" type="checkbox" value="animation" defaultChecked={this.plottingAnimation()}  onChange={e => this.changeAnimation(e)} disabled={this.state.changed}/> Flowpipe animation
@@ -919,8 +929,20 @@ export default class InvariantPlot extends Component<Props> {
 			selected: [],
 			current_frame: 0,
 			dataType: "flowpipe",
+			animFrames: [],
+			slider_steps: [],
 			animate: true,
 			axes: { 
+				x: undefined, 
+				y: undefined, 
+				z: undefined
+			},
+			plot_bbox: { 
+				x: undefined, 
+				y: undefined, 
+				z: undefined
+			},
+			plot_frame: { 
 				x: undefined, 
 				y: undefined, 
 				z: undefined
@@ -934,10 +956,6 @@ export default class InvariantPlot extends Component<Props> {
 		if (!this.state.changed) {
 			if (this.props.sapoResults !== undefined && this.state.plottable.length===0) {
 				this.resetPlot();
-			}
-
-			if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
-				this.setUnplottable();
 			}
 		}
 

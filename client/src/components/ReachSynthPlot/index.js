@@ -104,6 +104,12 @@ export default class InvariantPlot extends Component<Props> {
 
 	render()
 	{
+		if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
+			this.setUnplottable();
+
+			return null;
+		}
+
 		if (!(typeof(this.props.sapoResults) === "object" && "task" in this.props.sapoResults &&
 			 (this.props.sapoResults.task === "reachability" || this.props.sapoResults.task === "synthesis"))) {
 			return null;
@@ -695,10 +701,6 @@ export default class InvariantPlot extends Component<Props> {
 		if (!this.state.changed) {
 			if (this.props.sapoResults !== undefined && this.state.plottable.length===0) {
 				this.resetPlot();
-			}
-
-			if (this.props.sapoResults === undefined && this.state.plottable.length>0) {
-				this.setUnplottable();
 			}
 		}
 
