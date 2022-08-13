@@ -379,7 +379,7 @@ export default class BoxesPage extends Component<Props> {
 													value={this.props.kInductionJoin}>
 													<option value="listing">Listing</option>
 													<option value="packaging">Packaging</option>
-													<option value="merging">Merging</option>
+													{/*<option value="merging">Merging</option>*/}
 												</select>
 											</div>
 								
