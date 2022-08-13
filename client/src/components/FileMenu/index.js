@@ -48,7 +48,7 @@ export default class FileMenu extends Component {
             <MenuItem onClick={() => {this.fetchExample('Ebola');}}>Ebola (Synthesis)</MenuItem>
             <MenuItem onClick={() => {this.fetchExample('COVID-no-splits');}}>COVID (Synthesis)</MenuItem>
             <MenuItem onClick={() => {this.fetchExample('COVID-splits');}}>COVID (Synthesis with splits)</MenuItem>
-            <MenuItem onClick={() => {this.fetchExample('Julia_invariant');}}>Julia (Invariant validation)</MenuItem>
+            <MenuItem onClick={() => {this.fetchExample('Mandelbrot_invariant');}}>Mandelbrot (Invariant validation)</MenuItem>
         </SubMenu>
         <MenuItem onClick={this.props.about}>About webSapo...</MenuItem>
       </Menu>
