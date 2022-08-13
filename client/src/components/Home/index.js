@@ -372,9 +372,9 @@ export default class BoxesPage extends Component<Props> {
 													}
 												/>
 
-											{/* K-Induction join selector */}			
+											{/* join semantics selector */}			
 											<div className={styles.simplePaddingLeft}>
-												K-Induction Join:{" "}
+												Join Semantics:{" "}
 												<select onChange={this.props.changeKInductionJoin}
 													value={this.props.kInductionJoin}>
 													<option value="listing">Listing</option>
@@ -385,7 +385,7 @@ export default class BoxesPage extends Component<Props> {
 								
 											{/*selector for maximum vector magnitude*/}
 											<div className={styles.simplePaddingLeft}>
-												Max epoch (0 means forever):{" "}
+												Max epoch (0 = forever):{" "}
 												<input
 													onChange={this.props.changeNumberOfIterations}
 													value={this.props.numberOfIterations}
