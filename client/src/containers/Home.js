@@ -1215,6 +1215,7 @@ export default class HomeContainer extends Component {
 				maxParamSplits={this.state.maxParamSplits}
 				kInductionJoin={this.state.kInductionJoin}
 				cacheBernsteinCoeff={this.state.cacheBernsteinCoeff}
+				dynamicDirections={this.state.dynamicDirections}
 				useInvariantDirections={this.state.useInvariantDirections}
 				handleMethodSelection={this.handleMethodSelection}
 				//
