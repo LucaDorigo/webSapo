@@ -120,6 +120,7 @@ typedef struct
 {
     std::vector<double> optimizer;
     int status;
+    double value;
 } OptimizationResult;
 
 OptimizationResult optimize(const LinearSystem<double> &constraints, 
@@ -174,9 +175,10 @@ OptimizationResult optimize(const LinearSystem<double> &constraints,
   //glp_exact(lp, &lp_param);
   glp_simplex(lp, &lp_param);
 
-  OptimizationResult res{std::vector<double>(num_cols), glp_get_status(lp)};
+  OptimizationResult res{std::vector<double>(num_cols), glp_get_status(lp), 0};
   for (unsigned int i=0; i<num_cols; ++i) {
       res.optimizer[i] = glp_get_col_prim(lp, i+1);
+      res.value += res.optimizer[i]*direction[i];
   }
 
   glp_delete_prob(lp);
@@ -751,6 +753,11 @@ public:
     {
         return _coeffs;
     }
+
+    const T &get_const() const
+    {
+        return _const;
+    }
 };
 }
 
@@ -764,11 +771,12 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
     using namespace Space2D;
 
     while (true) {
-        std::vector<T> direction = Line<T>(v1, v2).get_coeffs();
+        Line<double> v1v2(v1, v2);
+        std::vector<T> direction{v1v2.get_coeffs()};
 
         OptimizationResult res = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-        if (res.status!=GLP_OPT) {
+        if (res.status!=GLP_OPT || res.value <= v1v2.get_const()) {
             return;
         }
 
@@ -885,7 +893,7 @@ compute_input_proj(const json &json_input,
 {
     json output;
 
-    if (field_name == "parameter set") {
+    if (static_cast<std::string>(field_name) == "parameter set") {
 
         auto ps_it = json_input.find(field_name);
         if (ps_it != std::end(json_input)) {
