@@ -322,6 +322,14 @@ export default class BoxesPage extends Component<Props> {
 												/>
 											</div>
 										</div>
+										<div className={styles.center}>
+											<div className={styles.radio_element}>
+												<input id="cachedCoeff" type="checkbox" defaultChecked={this.props.cacheBernsteinCoeff}  onChange={e => this.props.changeCacheBernsteinCoeff(e)} disabled={this.state.changed}/> Cache Bernstein Coefficients
+											</div>
+											<div className={styles.radio_element}>
+												<input id="dynamicDirections" type="checkbox" defaultChecked={this.props.dynamicDirections}  onChange={e => this.props.changeDynamicDirections(e)} disabled={this.state.changed}/> Dynamic Directions
+											</div>
+										</div>
 									</div>
 									}
 

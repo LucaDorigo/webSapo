@@ -27,6 +27,8 @@ const initState = {
 	maxBundleMagnitude: 0.0,
 	maxParamSplits: 0,
 	kInductionJoin: "listing",
+	cacheBernsteinCoeff: true,
+	dynamicDirections: false,
 	useInvariantDirections: false,
 	variables: [], // array of object
 	parameters: [],
@@ -122,6 +124,25 @@ export default class HomeContainer extends Component {
 			useInvariantDirections: e.target.checked, 
 			sapoResults: undefined
 		});
+	};
+
+	changeCacheBernsteinCoeff = (e) => {
+		this.setState({
+			cacheBernsteinCoeff: e.target.checked
+		});
+	};
+
+	changeDynamicDirections = (e) => {
+		this.setState({ 
+			dynamicDirections: e.target.checked, 
+			cacheBernsteinCoeff: false,
+			sapoResults: undefined
+		});
+
+		if (e.target.checked) {	// if dynamic direction has been enabled
+			                    // disable cached Bernstein coefficients
+			document.getElementById("cachedCoeff").checked = false;
+		}
 	};
 
 	changeMaxParamSplits = e => {
@@ -965,7 +986,14 @@ export default class HomeContainer extends Component {
 											});
 										});
 									} else {
-										toast.error(msg_data.stderr);
+										
+										var err_data = msg_data.stderr.split("\n");
+
+										if (err_data.length > 2) {
+											toast.error(err_data[err_data.length-2]);
+										} else {
+											toast.error(msg_data.stderr);
+										}
 
 										this.setState({
 											hasResults: false,
@@ -1180,10 +1208,13 @@ export default class HomeContainer extends Component {
 				changeMaxBundleMagnitude={this.changeMaxBundleMagnitude}
 				changeMaxParamSplits={this.changeMaxParamSplits}
 				changeKInductionJoin={this.changeKInductionJoin}
+				changeCacheBernsteinCoeff={this.changeCacheBernsteinCoeff}
+				changeDynamicDirections={this.changeDynamicDirections}
 				changeUseInvariantDirections={this.changeUseInvariantDirections}
 				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
 				kInductionJoin={this.state.kInductionJoin}
+				cacheBernsteinCoeff={this.state.cacheBernsteinCoeff}
 				useInvariantDirections={this.state.useInvariantDirections}
 				handleMethodSelection={this.handleMethodSelection}
 				//

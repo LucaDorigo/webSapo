@@ -17,6 +17,8 @@ exports.generateModelFile = (
   parametersMatrix,
   initial_set,
   invariant,
+  cache_Bernstein_coeff,
+  dynamic_directions,
   use_invariant_directions,
   k_induction_join,
   tMatrix,
@@ -208,8 +210,15 @@ exports.generateModelFile = (
 		}
 		model += "\n";
 	}
+
+	if (!cache_Bernstein_coeff) {
+		model += "option no_caching;\n";
+	}
 	
-	// no sapo options
-	
+
+	if (dynamic_directions) {
+		model += "option dynamic_directions;\n";
+	}
+
 	return model;
 };

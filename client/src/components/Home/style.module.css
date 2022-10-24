@@ -261,6 +261,12 @@
   justify-content: center;
 }
 
+.radio_element {
+	margin: 10%;
+	margin-top: 5%;
+	margin-bottom: 5%;
+}
+
 .selectMethodContainer {
   height: 90vh;
   width: 100%;
