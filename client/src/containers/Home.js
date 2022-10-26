@@ -1126,27 +1126,45 @@ export default class HomeContainer extends Component {
 			let reader = new FileReader();
 			reader.readAsText(file, "UTF-8");
 			reader.onload = (e) => {
-				try
-				{
-					let resultFromFile = JSON.parse(e.target.result);
-					this.setState(
-						{
-							sapoResults: resultFromFile,
-							projectName: file.name.replace(/\.[^/.]+$/, ""),
-							hasResults: true,
-							updateChart: true
-						},
-						() => {
-							console.log(this.state);
-						}
-					);
-
-					document.getElementById("chart").style.display = "block";
-					window.dispatchEvent(new Event('resize'));
+				let resultFromFile;
+				try {
+					resultFromFile = JSON.parse(e.target.result);
 				}
 				catch (err)
 				{
 					toast.error(`JSON parsing error: ${err}`);
+				}
+				
+				this.setState(
+					{
+						sapoResults: resultFromFile,
+						projectName: file.name.replace(/\.[^/.]+$/, ""),
+						hasResults: true,
+						updateChart: true
+					},
+					() => {
+						console.log(this.state);
+					}
+				);
+
+				try {
+					let block_id;
+					switch (String(resultFromFile["task"])) {
+					case "reachability":
+						block_id = "reach_synth_plot";
+						break;
+					case "":
+						block_id = "invariant_plot";
+						break;
+					default:
+						throw new Error("Unknown result type \""+resultFromFile["task"]+"\"");
+					}
+					document.getElementById(block_id).style.display = "block";
+					window.dispatchEvent(new Event('resize'));
+				}
+				catch (err)
+				{
+					toast.error(`${err}`);
 				}
 			};
 		}
