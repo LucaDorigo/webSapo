@@ -776,7 +776,7 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
 
         OptimizationResult res = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-        if (res.status!=GLP_OPT || res.value <= v1v2.get_const()) {
+        if (res.status!=GLP_OPT || res.value <= v1v2.get_const()+approx) {
             return;
         }
 
