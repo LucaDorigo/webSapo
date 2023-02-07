@@ -1253,8 +1253,8 @@ export default class HomeContainer extends Component {
 				changeRelation={this.changeRelation}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
-				changedLowerBound={this.checkLowerBoundAndUpdateConsistency}
-				changedUpperBound={this.checkUpperBoundAndUpdateConsistency}
+				setLowerBoundChanged={this.checkLowerBoundAndUpdateConsistency}
+				setUpperBoundChanged={this.checkUpperBoundAndUpdateConsistency}
 				parametersMatrix={this.state.parametersMatrix}
 				//
 				logicFormulas={this.state.logicFormulas}

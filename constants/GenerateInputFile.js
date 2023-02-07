@@ -130,16 +130,18 @@ exports.generateModelFile = (
 		switch (constraint.relation) {
 			case "=":
 			case ">=":
-				model += " " + constraint.relation + " " + constraint.lowerBound + ";\n"
+				model += " " + constraint.relation + " " + constraint.lowerBound;
 				break;
 			case "<=":
-				model += " <= " + constraint.upperBound + ";\n"
+				model += " <= " + constraint.upperBound;
 				break;
 			default:
 			case "in":
 				model += " in [" + constraint.lowerBound + ", " + 
-								   constraint.upperBound + "];\n"		
+								   constraint.upperBound + "]";	
 		}
+
+		model += ";\n"
 	});
 
 	// invariant
@@ -217,7 +219,7 @@ exports.generateModelFile = (
 	
 
 	if (dynamic_directions) {
-		model += "option dynamic_directions;\n";
+		model += "option all_dirs_dynamic;\n";
 	}
 
 	return model;

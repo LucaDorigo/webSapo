@@ -226,8 +226,8 @@ export default class BoxesPage extends Component<Props> {
 															changeName={this.props.changeName}
 															changeLowerBound={this.props.changeLowerBound}
 															changeUpperBound={this.props.changeUpperBound}
-															changedLowerBound={this.props.changedLowerBound}
-															changedUpperBound={this.props.changedUpperBound}
+															setLowerBoundChanged={this.props.setLowerBoundChanged}
+															setUpperBoundChanged={this.props.setUpperBoundChanged}
 															deleteCallback={this.props.deleteCallback}
 														/>
 													</div>
@@ -461,11 +461,11 @@ export default class BoxesPage extends Component<Props> {
 										changeUpperBound={(e) => {
 											this.props.changeUpperBound(e, change_targets.initial_set);
 										}}
-										changedLowerBound={(e) => {
-											this.props.changedLowerBound(e, change_targets.initial_set);
+										setLowerBoundChanged={(e) => {
+											this.props.setLowerBoundChanged(e, change_targets.initial_set);
 										}}
-										changedUpperBound={(e) => {
-											this.props.changedUpperBound(e, change_targets.initial_set);
+										setUpperBoundChanged={(e) => {
+											this.props.setUpperBoundChanged(e, change_targets.initial_set);
 										}}
 									/>
 							)}
@@ -615,11 +615,11 @@ export default class BoxesPage extends Component<Props> {
 										changeUpperBound={(e) => {
 											this.props.changeUpperBound(e, change_targets.invariant);
 										}}
-										changedLowerBound={(e) => {
-											this.props.changedLowerBound(e, change_targets.invariant);
+										setLowerBoundChanged={(e) => {
+											this.props.setLowerBoundChanged(e, change_targets.invariant);
 										}}
-										changedUpperBound={(e) => {
-											this.props.changedUpperBound(e, change_targets.invariant);
+										setUpperBoundChanged={(e) => {
+											this.props.setUpperBoundChanged(e, change_targets.invariant);
 										}}
 									/>
 							)}

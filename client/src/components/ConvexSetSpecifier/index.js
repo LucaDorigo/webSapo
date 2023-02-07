@@ -21,11 +21,11 @@ let hstyles = classNames.bind(homestyles);
  * @param index: index of the constraint in the constraint vector
  * @param deleteConstraint: callback to delete a constraint
  * @param changeExpression: callback to change the constraint expression
- * @param	changeRelation change constraint relation
- * @param	changeLowerBound change lower constraint boundary
- * @param	changeUpperBound change upper constraint boundary
- * @param	changedLowerBound check lower bound and update upper bound if needed
- * @param	changedUpperBound check upper bound and update lower bound if needed
+ * @param	changeRelation changes constraint relation
+ * @param	changeLowerBound changes lower constraint boundary
+ * @param	changeUpperBound changes upper constraint boundary
+ * @param	setLowerBoundChanged checks lower bound and updates upper bound if needed
+ * @param	setUpperBoundChanged checks upper bound and updates lower bound if needed
  */
 export class Constraints extends Component<Props> {
   props: Props;
@@ -61,7 +61,7 @@ export class Constraints extends Component<Props> {
               })}
               value={this.props.constraint.lowerBound}
               onBlur={e => 
-                this.props.changedLowerBound(e)
+                this.props.setLowerBoundChanged(e)
               }
               onChange={e =>
                 this.props.changeLowerBound(e)
@@ -79,7 +79,7 @@ export class Constraints extends Component<Props> {
               })}
               value={this.props.constraint.upperBound}
               onBlur={e => 
-                this.props.changedUpperBound(e)
+                this.props.setUpperBoundChanged(e)
               }
               onChange={e =>
                 this.props.changeUpperBound(e)
@@ -97,11 +97,11 @@ export class Constraints extends Component<Props> {
  * @param constraints the constraint vector
  * @param deleteConstraint: callback to delete a constraint
  * @param changeExpression: callback to change the constraint expression
- * @param	changeRelation change constraint relation
- * @param	changeLowerBound change lower constraint boundary
- * @param	changeUpperBound change upper constraint boundary
- * @param	changedLowerBound check lower bound and update upper bound if needed
- * @param	changedUpperBound check upper bound and update lower bound if needed
+ * @param	changeRelation changes constraint relation
+ * @param	changeLowerBound changes lower constraint boundary
+ * @param	changeUpperBound changes upper constraint boundary
+ * @param	setLowerBoundChanged checks lower bound and updates upper bound if needed
+ * @param	setUpperBoundChanged checks upper bound and updates lower bound if needed
  */
 export default class ConvexSetSpecifier extends Component<Props> {
   props: Props;
@@ -120,8 +120,8 @@ export default class ConvexSetSpecifier extends Component<Props> {
                 changeRelation={this.props.changeRelation}
                 changeUpperBound={this.props.changeUpperBound}
                 changeLowerBound={this.props.changeLowerBound}
-                changedLowerBound={this.props.changedLowerBound}
-                changedUpperBound={this.props.changedUpperBound}
+                setLowerBoundChanged={this.props.setLowerBoundChanged}
+                setUpperBoundChanged={this.props.setUpperBoundChanged}
               />
             </div>
           );

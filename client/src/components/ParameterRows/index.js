@@ -18,8 +18,8 @@ let hstyles = classNames.bind(homestyles);
  * @param changeName: callback to change the parameter name
  * @param changeLowerBound: callback to change the lower bound of the parameter
  * @param changeUpperBound: callback to change the upper bound of the parameter
- * @param	changedLowerBound check lower bound and update upper bound if needed
- * @param	changedUpperBound check upper bound and update lower bound if needed
+ * @param	setLowerBoundChanged checks lower bound and updates upper bound if needed
+ * @param	setUpperBoundChanged checks upper bound and updates lower bound if needed
  * @param index: index of the parameter in the JSON array
  * @param polytopes: true|false value used in the parameters box to decide method
  * @param deleteCallback: callback to delete parameter
@@ -58,7 +58,7 @@ export default class ParameterRows extends Component<Props> {
                   })}
                   value={this.props.parameter.lowerBound}
                   onBlur={e => 
-                    this.props.changedLowerBound(e, change_targets.parameters)
+                    this.props.setLowerBoundChanged(e, change_targets.parameters)
                   }
                   onChange={e => 
                     this.props.changeLowerBound(e, change_targets.parameters)
@@ -73,7 +73,7 @@ export default class ParameterRows extends Component<Props> {
                   })}
                   value={this.props.parameter.upperBound}
                   onBlur={e => 
-                    this.props.changedUpperBound(e, change_targets.parameters)
+                    this.props.setUpperBoundChanged(e, change_targets.parameters)
                   }
                   onChange={e =>
                     this.props.changeUpperBound(e, change_targets.parameters)
