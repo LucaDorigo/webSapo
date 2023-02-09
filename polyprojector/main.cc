@@ -10,8 +10,9 @@
 #include <glpk.h>
 #include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
+#define MAX_SCALE_APPROXIMATION_FACTOR 10000
 
+using json = nlohmann::json;
 
 template<typename T>
 std::ostream& operator<<(std::ostream& out, const std::vector<T> &v)
@@ -602,23 +603,19 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
                            const std::vector<T> &plan,
                            std::vector<Point<T>> &vertices,
                            const Point<T> &v1, const Point<T> &v2,
-                           const T approx=1e-10)
+                           const T approx)
 {
     std::vector<T> direction = Space3D::cross(plan, v1-v2);
 
     auto result = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-    if (result.status == GLP_OPT) {
-        
-        Point<T> new_vertex = std::move(result.optimizer);
+    if (result.status == GLP_OPT && direction*(result.optimizer-v2) > approx) {
 
-       if (direction*(new_vertex-v2) > approx) {
+        vertices.push_back(std::move(result.optimizer));
+        const Point<T>& new_vertex = vertices.back();
 
-            vertices.push_back(new_vertex);
-
-            refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, v1, new_vertex);
-            refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, new_vertex, v2);
-        }
+        refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, v1, new_vertex, approx);
+        refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, new_vertex, v2, approx);
     }
 }
 
@@ -640,8 +637,10 @@ compute_3D_proj_vertices_on_singular(const LinearSystem<T> &constraints,
 
     std::vector<Point<T>> vertices(dir_vertices);
 
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[0], dir_vertices[1]);
-	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[1], dir_vertices[0]);
+    T approx = norm1(dir_vertices[0] - dir_vertices[1])/MAX_SCALE_APPROXIMATION_FACTOR;
+
+	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[0], dir_vertices[1], approx);
+	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[1], dir_vertices[0], approx);
 
 	return vertices;
 }
@@ -652,35 +651,27 @@ void
 refine_3D_proj_on(LinearSystem<T> &constraints,
                     const std::vector<unsigned int> &axis_vector,
                     std::vector<Point<T>> &vertices,
-                    Point<T> v1, const Point<T> &v2, const Point<T> &v3,
-                    const T approx=1e-10)
+                    const Point<T>& v1, const Point<T> &v2, const Point<T> &v3,
+                    const T approx)
 {
     using namespace Space3D;
 
 	Plan<T> plan = Plan<T>(v1, v2, v3);
-    std::vector<T> plan_direction = extend(-plan.get_coeffs(), axis_vector, constraints.num_of_columns());
- 
-	// add the new plan to the constrains
-	constraints.push_back(plan_direction, -plan.get_const());
 
     auto result = optimize(constraints, plan.get_coeffs(), axis_vector, GLP_MAX);
 
-    if (result.status == GLP_OPT) {
-        Point<T> new_vertex = std::move(result.optimizer);
+    if (result.status==GLP_OPT && result.value > plan.get_const() + approx
+            && norm1(v1-result.optimizer)>approx 
+            && norm1(v2-result.optimizer)>approx 
+            && norm1(v3-result.optimizer)>approx) {
 
-        // if new_vertex is above the plan and new_vertex differs from v1, v2, and v3
-        // (the vertex comparisons is due to floating point approximation)
-        if (new_vertex * plan.get_coeffs() > plan.get_const()+approx) {
-            vertices.push_back(new_vertex);
+        vertices.push_back(std::move(result.optimizer));
+        const Point<T>& new_vertex = vertices.back();
 
-            refine_3D_proj_on(constraints, axis_vector, vertices, v1, v2, new_vertex);
-            refine_3D_proj_on(constraints, axis_vector, vertices, v2, v3, new_vertex);
-            refine_3D_proj_on(constraints, axis_vector, vertices, v3, v1, new_vertex);
-        }
+        refine_3D_proj_on(constraints, axis_vector, vertices, v1, v2, new_vertex, approx);
+        refine_3D_proj_on(constraints, axis_vector, vertices, v2, v3, new_vertex, approx);
+        refine_3D_proj_on(constraints, axis_vector, vertices, v3, v1, new_vertex, approx);
     }
-
-	// remove the added plan from the constraints
-	constraints.pop_back();
 }
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
@@ -708,20 +699,27 @@ compute_3D_proj_vertices(LinearSystem<T> constraints,
         std::swap(simplex_v[1], simplex_v[2]);
 	}
 
+    T approx = norm1(simplex_v[2] - simplex_v[0]);
+    for (size_t i=1; i<2; ++i) {
+        T aux = norm1(simplex_v[i-1] - simplex_v[i]);
+
+        if (aux > approx) {
+            approx = aux;
+        }
+    }
+    approx /= MAX_SCALE_APPROXIMATION_FACTOR;
+
 	std::vector<Point<T>> vertices(simplex_v);
 
 	// add new vertices by using the plans of the simplex faces
     refine_3D_proj_on(constraints, axis_vector, vertices,
-                      simplex_v[0], simplex_v[1], simplex_v[2]);
-
+                      simplex_v[0], simplex_v[1], simplex_v[2],approx);
     refine_3D_proj_on(constraints, axis_vector, vertices,
-					  simplex_v[1], simplex_v[0], simplex_v[3]);
-
+					  simplex_v[1], simplex_v[0], simplex_v[3],approx);
     refine_3D_proj_on(constraints, axis_vector, vertices,
-					  simplex_v[2], simplex_v[1], simplex_v[3]);
-
+					  simplex_v[2], simplex_v[1], simplex_v[3],approx);
     refine_3D_proj_on(constraints, axis_vector, vertices,
-					  simplex_v[0], simplex_v[2], simplex_v[3]);
+					  simplex_v[0], simplex_v[2], simplex_v[3],approx);
 
     // remove duplicates
     std::set<Point<T>> s_vertices(std::begin(vertices), std::end(vertices));
@@ -766,7 +764,7 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
                       const std::vector<unsigned int> &axis_vector, 
                       std::vector<Point<T>> &vertices,
                       Point<T> v1, const Point<T> &v2,
-                      const T approx=1e-10)
+                      const T approx)
 {
     using namespace Space2D;
 
@@ -774,20 +772,21 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
         Line<double> v1v2(v1, v2);
         std::vector<T> direction{v1v2.get_coeffs()};
 
-        OptimizationResult res = optimize(constraints, direction, axis_vector, GLP_MAX);
+        OptimizationResult result = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-        if (res.status!=GLP_OPT || res.value <= v1v2.get_const()+approx) {
+        if (result.status!=GLP_OPT || result.value <= v1v2.get_const()+approx) {
             return;
         }
 
-        if (norm1(v1-res.optimizer)<=approx || norm1(v2-res.optimizer)<=approx) {
+        if (norm1(v1-result.optimizer)<=approx || norm1(v2-result.optimizer)<=approx) {
             return;
         }
 
-        vertices.push_back(res.optimizer);
-        refine_2D_proj_on(constraints, axis_vector, vertices, v1, res.optimizer);
+        vertices.push_back(std::move(result.optimizer));
+        const Point<T>& new_vertex = vertices.back();
+        refine_2D_proj_on(constraints, axis_vector, vertices, v1, new_vertex, approx);
 
-        v1 = res.optimizer;
+        v1 = new_vertex;
     }
 }
 
@@ -814,8 +813,9 @@ std::vector<Point<T>> compute_2D_proj_vertices(LinearSystem<T> constraints,
 	}
     std::vector<Point<T>> vertices(dir_vertices);
 
-	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[0], dir_vertices[1]);
-	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[1], dir_vertices[0]);
+    T approx = norm1( dir_vertices[0] - dir_vertices[1])/MAX_SCALE_APPROXIMATION_FACTOR;
+	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[0], dir_vertices[1], approx);
+	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[1], dir_vertices[0], approx);
 
 	return vertices;
 }
@@ -857,13 +857,13 @@ compute_polytopes_union_proj(const json &json_input,
 
     unsigned int max_axis = *std::max_element(std::begin(axis_vector), std::end(axis_vector));
     unsigned int i=0;
-    for (auto us_it = std::begin(json_input); us_it != std::end(json_input); ++us_it) {
+    for (auto us_it = std::begin(json_input); us_it != std::end(json_input); ++us_it, ++i) {
         LinearSystem<double> constraints(us_it.value()["A"], us_it.value()["b"]);
 
         if (max_axis >= constraints.num_of_columns()) {
             throw std::domain_error("One of the selected dimensions is above the set dimensions");
         }
-        output[i++] = compute_proj_vertices(constraints, axis_vector);
+        output[i] = compute_proj_vertices(constraints, axis_vector);
     }
 
     return output;
@@ -877,9 +877,9 @@ compute_flowpipe_proj(const json &json_input,
 {
     json output;
 
-    unsigned int i=0;
-    for (auto fp_it = std::begin(json_input); fp_it != std::end(json_input); ++fp_it) {
-        output[i++] = compute_polytopes_union_proj<T>(fp_it.value(), axis_vector);
+    size_t i = 0;
+    for (auto fp_it = std::begin(json_input); fp_it != std::end(json_input); ++fp_it, ++i) {
+        output[i] = compute_polytopes_union_proj<T>(fp_it.value(), axis_vector);
     }
 
     return output;
@@ -908,6 +908,20 @@ compute_input_proj(const json &json_input,
     return output;
 }
 
+bool copy_input(const char* input_filename, const char* output_filename)
+{
+    std::ifstream ini_file{input_filename};
+    std::ofstream out_file{output_filename};
+    if (!ini_file || !out_file) {
+        return false;
+    }
+    std::string line;
+    while (getline(ini_file, line)) {
+        out_file << line << "\n";
+    }
+
+    return true;
+}
 
 int main(int argc, char *argv[])
 {
