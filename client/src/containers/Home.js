@@ -1134,7 +1134,7 @@ export default class HomeContainer extends Component {
 				{
 					toast.error(`JSON parsing error: ${err}`);
 				}
-				
+
 				this.setState(
 					{
 						sapoResults: resultFromFile,

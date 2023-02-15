@@ -704,6 +704,11 @@ export default class InvariantPlot extends Component<Props> {
 			}
 		}
 
+		if (this.props.updateChart) {
+			this.props.setUpdated();
+			this.resetPlot();
+		}
+
 		return this.state.selected;
 	}
 

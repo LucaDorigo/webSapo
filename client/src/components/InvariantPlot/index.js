@@ -959,6 +959,11 @@ export default class InvariantPlot extends Component<Props> {
 			}
 		}
 
+		if (this.props.updateChart) {
+			this.props.setUpdated();
+			this.resetPlot();
+		}
+
 		if (this.state.animFrames.length !== 0 || this.state.invariant === undefined) {
 			return this.state.selected;
 		}
