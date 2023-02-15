@@ -18,7 +18,7 @@ exports.generateModelFile = (
   initial_set,
   invariant,
   cache_Bernstein_coeff,
-  dynamic_directions,
+  adaptive_directions,
   use_invariant_directions,
   k_induction_join,
   tMatrix,
@@ -90,7 +90,7 @@ exports.generateModelFile = (
 	model += "\n// dynamics\n"
 	// dynamics
 	variables.forEach(v => {
-		model += "dynamic(" + v.name + ") = " + v.dynamics + ";\n";
+		model += "next(" + v.name + ") = " + v.dynamics + ";\n";
 	});
 	
 	// spec
@@ -141,7 +141,7 @@ exports.generateModelFile = (
 								   constraint.upperBound + "]";	
 		}
 
-		model += ";\n"
+		model += (constraint.adaptive ? " adaptive;\n": ";\n");
 	});
 
 	// invariant
@@ -218,9 +218,11 @@ exports.generateModelFile = (
 	}
 	
 
-	if (dynamic_directions) {
-		model += "option all_dirs_dynamic;\n";
+	if (adaptive_directions) {
+		model += "option all_dirs_adaptive;\n";
 	}
+
+	model += "\n";
 
 	return model;
 };

@@ -27,7 +27,7 @@ let hstyles = classNames.bind(homestyles);
  * @param	setLowerBoundChanged checks lower bound and updates upper bound if needed
  * @param	setUpperBoundChanged checks upper bound and updates lower bound if needed
  */
-export class Constraints extends Component<Props> {
+class Constraints extends Component<Props> {
   props: Props;
 
   render() {

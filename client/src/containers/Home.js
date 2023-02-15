@@ -28,12 +28,13 @@ const initState = {
 	maxParamSplits: 0,
 	kInductionJoin: "listing",
 	cacheBernsteinCoeff: true,
-	dynamicDirections: false,
+	adaptiveDirections: false,
 	useInvariantDirections: false,
 	variables: [], // array of object
 	parameters: [],
 	parametersMatrix: math.zeros(1),
 	tMatrix: math.zeros(1),
+	adaptive_directions: [],
 	initial_set: [], // array of initial_set
 	invariant: [],
 	logicFormulas: [],
@@ -132,9 +133,9 @@ export default class HomeContainer extends Component {
 		});
 	};
 
-	changeDynamicDirections = (e) => {
+	changeAdaptiveDirections = (e) => {
 		this.setState({ 
-			dynamicDirections: e.target.checked, 
+			adaptiveDirections: e.target.checked, 
 			cacheBernsteinCoeff: false,
 			sapoResults: undefined
 		});
@@ -466,7 +467,8 @@ export default class HomeContainer extends Component {
 			lowerBound: 0,
 			upperBound: 0,
 			lb_error: false,
-			ub_error: false
+			ub_error: false,
+			adaptive: false
 		})
 
 		this.saveTarget(targetArray, change_target);
@@ -537,6 +539,15 @@ export default class HomeContainer extends Component {
 		}
 	};
 
+	switchAdaptive = (e, change_target) => {
+		let targetArray = this.getTarget(change_target);
+		let obj = targetArray[e.target.id];
+
+		obj.adaptive = e.target.checked;
+
+		this.saveTarget(targetArray, change_target);
+	};
+
 	updateTMatrixElement = (e, indexRow, indexColumn) => {
 		if (e.target.value < this.state.variables) {
 			let newMatrix = math.subset(
@@ -554,6 +565,16 @@ export default class HomeContainer extends Component {
 		}
 	};
 
+	updateAdaptiveDirections = (e, indexRow) => {
+		let adaptive_directions = this.state.adaptive_directions;
+		adaptive_directions[indexRow] = !adaptive_directions[indexRow];
+
+		this.setState({
+			adaptive_directions: adaptive_directions, 
+			sapoResults: undefined
+		});
+	};
+
 	addRowTMatrix = () => {
 		let newMatrix = this.state.tMatrix;
 		let matrixDimensions = newMatrix.size();
@@ -562,11 +583,6 @@ export default class HomeContainer extends Component {
 				return !element.lMatrixExtra;
 			}).length;
 			newMatrix = newMatrix.resize([1, numberOfVar]);
-			newMatrix = math.subset(
-				newMatrix,
-				math.index(0, numberOfVar - 1),
-				numberOfVar - 1
-			);
 		} else {
 			matrixDimensions[0]+=1;
 			newMatrix.resize(matrixDimensions);
@@ -1227,13 +1243,13 @@ export default class HomeContainer extends Component {
 				changeMaxParamSplits={this.changeMaxParamSplits}
 				changeKInductionJoin={this.changeKInductionJoin}
 				changeCacheBernsteinCoeff={this.changeCacheBernsteinCoeff}
-				changeDynamicDirections={this.changeDynamicDirections}
+				changeAdaptiveDirections={this.changeAdaptiveDirections}
 				changeUseInvariantDirections={this.changeUseInvariantDirections}
 				maxBundleMagnitude={this.state.maxBundleMagnitude}
 				maxParamSplits={this.state.maxParamSplits}
 				kInductionJoin={this.state.kInductionJoin}
 				cacheBernsteinCoeff={this.state.cacheBernsteinCoeff}
-				dynamicDirections={this.state.dynamicDirections}
+				adaptiveDirections={this.state.adaptiveDirections}
 				useInvariantDirections={this.state.useInvariantDirections}
 				handleMethodSelection={this.handleMethodSelection}
 				//
@@ -1253,6 +1269,7 @@ export default class HomeContainer extends Component {
 				changeRelation={this.changeRelation}
 				changeLowerBound={this.changeLowerBound}
 				changeUpperBound={this.changeUpperBound}
+				switchAdaptive={this.switchAdaptive}
 				setLowerBoundChanged={this.checkLowerBoundAndUpdateConsistency}
 				setUpperBoundChanged={this.checkUpperBoundAndUpdateConsistency}
 				parametersMatrix={this.state.parametersMatrix}

@@ -11,6 +11,7 @@ import ParameterRows from "../ParameterRows/index";
 //import InlineMenu from "../InlineMenu/index";
 import TemplateDisplayer from "../TemplateDisplayer/index";
 import ConvexSetSpecifier from "../ConvexSetSpecifier/index";
+import DirectionEditor from "../DirectionEditor/index";
 import Specification from "../Specification/index";
 import ReachSynthPlot from "../ReachSynthPlot/index";
 import InvariantPlot from "../InvariantPlot/index";
@@ -192,7 +193,7 @@ export default class BoxesPage extends Component<Props> {
 
 										<div className={styles.buttonBox}>
 											<RoundedButton
-												text={"New Variable"}
+												text={"Add Variable"}
 												parameter={change_targets.variables}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddVariable}
@@ -237,7 +238,7 @@ export default class BoxesPage extends Component<Props> {
 
 										<div className={styles.buttonBox}>
 											<RoundedButton
-												text={"New Parameter"}
+												text={"Add Parameter"}
 												parameter={change_targets.parameters}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddParameter}
@@ -270,7 +271,7 @@ export default class BoxesPage extends Component<Props> {
 												notClickable={false}
 												callback={() => {
 													document.getElementById(
-														"InitialSetModel"
+														"InitialSetModal"
 													).style.display = "block";
 												}}
 											/>
@@ -280,7 +281,7 @@ export default class BoxesPage extends Component<Props> {
 													notClickable={false}
 													callback={() => {
 														document.getElementById(
-															"TMatrixModal"
+															"TemplateModal"
 														).style.display = "block";
 													}}
 												/>
@@ -325,9 +326,6 @@ export default class BoxesPage extends Component<Props> {
 										<div className={styles.center}>
 											<div className={styles.radio_element}>
 												<input id="cachedCoeff" type="checkbox" defaultChecked={this.props.cacheBernsteinCoeff}  onChange={e => this.props.changeCacheBernsteinCoeff(e)} disabled={this.state.changed}/> Cache Bernstein Coefficients
-											</div>
-											<div className={styles.radio_element}>
-												<input id="dynamicDirections" type="checkbox" defaultChecked={this.props.dynamicDirections}  onChange={e => this.props.changeDynamicDirections(e)} disabled={this.state.changed}/> Dynamic Directions
 											</div>
 										</div>
 									</div>
@@ -425,12 +423,12 @@ export default class BoxesPage extends Component<Props> {
 				</div> 
 
 				{/*modal for showing the L matrix*/}
-				<div id="InitialSetModel" className={modalStyles.modal}>
+				<div id="InitialSetModal" className={modalStyles.modal}>
 					<div className={modalStyles.modal_content}>
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("InitialSetModel").style.display =
+									document.getElementById("InitialSetModal").style.display =
 										"none";
 								}}
 								className={modalStyles.close}
@@ -438,51 +436,46 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>Initial Set</h2>
+								<h2>Directions & Initial Set</h2>
 							</div>
 						</div>
-						<div className={modalStyles.modal_body}>
-							{this.props.variables.length === 0 && <p>No variables inserted</p>}
-							{this.props.variables.length > 0 && (
-									<ConvexSetSpecifier
-										constraints={this.props.initial_set}
-										changeRelation={(e, index) => {
-											this.props.changeRelation(e, index, change_targets.initial_set);
-										}}
-										changeExpression={(e, index) => { 
-											this.props.changeExpression(e, index, change_targets.initial_set);
-										}}
-										deleteConstraint={(e) => { 
-											this.props.deleteConstraint(e, change_targets.initial_set);
-										}}
-										changeLowerBound={(e) => {
-											this.props.changeLowerBound(e, change_targets.initial_set);
-										}}
-										changeUpperBound={(e) => {
-											this.props.changeUpperBound(e, change_targets.initial_set);
-										}}
-										setLowerBoundChanged={(e) => {
-											this.props.setLowerBoundChanged(e, change_targets.initial_set);
-										}}
-										setUpperBoundChanged={(e) => {
-											this.props.setUpperBoundChanged(e, change_targets.initial_set);
-										}}
-									/>
-							)}
-
-							{this.props.variables.length !== 0 && (
-								<div>
-									<div className={styles.footer}>
-										<RoundedButton
-											text={"New Direction"}
-											parameter={false}
-											callback={() => {
-												this.props.addConstraint(change_targets.initial_set);
-											}}
-											notClickable={false}
-										/>
-									</div>
+						<div>
+							{this.props.variables.length === 0 && 
+								<div className={modalStyles.modal_body}>
+								<p>No variables inserted</p>
 								</div>
+							}
+							{this.props.variables.length > 0 && (
+								<DirectionEditor
+									constraints={this.props.initial_set}
+									changeRelation={(e, index) => {
+										this.props.changeRelation(e, index, change_targets.initial_set);
+									}}
+									changeExpression={(e, index) => { 
+										this.props.changeExpression(e, index, change_targets.initial_set);
+									}}
+									addConstraint={() => { 
+										this.props.addConstraint(change_targets.initial_set);
+									}}
+									deleteConstraint={(e) => { 
+										this.props.deleteConstraint(e, change_targets.initial_set);
+									}}
+									changeLowerBound={(e) => {
+										this.props.changeLowerBound(e, change_targets.initial_set);
+									}}
+									changeUpperBound={(e) => {
+										this.props.changeUpperBound(e, change_targets.initial_set);
+									}}
+									setLowerBoundChanged={(e) => {
+										this.props.setLowerBoundChanged(e, change_targets.initial_set);
+									}}
+									setUpperBoundChanged={(e) => {
+										this.props.setUpperBoundChanged(e, change_targets.initial_set);
+									}}
+									switchAdaptive={(e) => {
+										this.props.switchAdaptive(e, change_targets.initial_set);
+									}}
+								/>
 							)}
 						</div>
 					</div>
@@ -490,12 +483,12 @@ export default class BoxesPage extends Component<Props> {
 				{/*end of the modal L matrix*/}
 
 				{/*start of the modal T matrix*/}
-				<div id="TMatrixModal" className={modalStyles.modal}>
+				<div id="TemplateModal" className={modalStyles.modal}>
 					<div className={modalStyles.modal_content}>
 						<div className={modalStyles.modal_header}>
 							<span
 								onClick={() => {
-									document.getElementById("TMatrixModal").style.display =
+									document.getElementById("TemplateModal").style.display =
 										"none";
 								}}
 								className={modalStyles.close}
@@ -503,12 +496,13 @@ export default class BoxesPage extends Component<Props> {
 								&times; {/*X in HTML*/}
 							</span>
 							<div className={modalStyles.flexRow}>
-								<h2>Template Matrix</h2>
+								<h2>Templates</h2>
 							</div>
 						</div>
 						<div className={modalStyles.modal_body}>
 							<TemplateDisplayer
 								updateMatrixElement={this.props.updateTMatrixElement}
+								updateDynamicTemplates={this.props.updateDynamicTemplates}
 								tMatrix={this.props.tMatrix}
 								directions={this.props.initial_set}
 							/>
@@ -628,7 +622,7 @@ export default class BoxesPage extends Component<Props> {
 								<div>
 									<div className={styles.footer}>
 										<RoundedButton
-											text={"New Invariant Constraint"}
+											text={"Add Invariant Constraint"}
 											parameter={false}
 											callback={() => {
 												this.props.addConstraint(change_targets.invariant);

@@ -12,3 +12,16 @@
   display: flex;
   flex-direction: row;
 }
+
+td {
+  text-align: left;
+}
+
+th {
+  text-align: left;
+}
+
+
+th:first-child {
+  width: 80px;
+}
