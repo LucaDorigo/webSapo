@@ -1,7 +1,9 @@
 // @flow
 import React, { Component } from "react";
 import styles from "./style.module.css";
-//import { Link } from "react-router-dom";
+
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css'
 
 type Props = {};
 
@@ -15,15 +17,27 @@ type Props = {};
 export default class RoundedButton extends Component<Props> {
   props: Props;
 
-  render() {
+  button() {
     return (
       <button
-        onClick={() => this.props?.callback?.(this.props?.parameter)}
-        className={(this.props.className===undefined ? styles.button: this.props.className)}
-        disabled={this.props.notClickable}
-      >
-        <p>{this.props.text}</p>
-      </button>
+      onClick={() => this.props?.callback?.(this.props?.parameter)}
+      className={(this.props.className===undefined ? styles.button: this.props.className)}
+      disabled={this.props.notClickable}
+    >
+      <p>{this.props.text}</p>
+    </button>
     );
+  }
+
+  render() {
+    if (this.props.hasOwnProperty("hint")) {
+      return (
+        <Tippy content={this.props.hint}>
+          {this.button()}
+        </Tippy>
+      );
+    }
+
+    return this.button();
   }
 }

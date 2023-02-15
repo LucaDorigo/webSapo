@@ -18,6 +18,9 @@ import InvariantPlot from "../InvariantPlot/index";
 //import { black } from "ansi-colors";
 import { tasks, task_name, change_targets, invariant_results } from "../../constants/global";
 
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css'
+
 import { toast } from 'react-toastify';
 
 import generatedGitInfo from '../../generatedGitInfo.json';
@@ -92,6 +95,7 @@ export default class BoxesPage extends Component<Props> {
 										this.props.startExecuting();
 									}}
 									notClickable={this.analysis_not_ready()}
+									hint="Perform the aimed analysis"
 								 />
 								}
 								
@@ -127,6 +131,7 @@ export default class BoxesPage extends Component<Props> {
 												break;
 										}
 									}}
+									hint="Plot the analysis result"
 								/> 
 								}
 								 </div>
@@ -197,6 +202,7 @@ export default class BoxesPage extends Component<Props> {
 												parameter={change_targets.variables}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddVariable}
+												hint="Add a variable"
 											/>
 										</div>
 									</div>
@@ -242,6 +248,7 @@ export default class BoxesPage extends Component<Props> {
 												parameter={change_targets.parameters}
 												callback={this.props.addCallback}
 												notClickable={this.props.disabledAddParameter}
+												hint="Add a parameter"
 											/>
 											{this.props.rightButtonActive && (
 												<RoundedButton
@@ -274,6 +281,7 @@ export default class BoxesPage extends Component<Props> {
 														"InitialSetModal"
 													).style.display = "block";
 												}}
+												hint="Define the initial bundle and its directions"
 											/>
 											<RoundedButton
 													text={"Templates"}
@@ -284,6 +292,7 @@ export default class BoxesPage extends Component<Props> {
 															"TemplateModal"
 														).style.display = "block";
 													}}
+													hint="Define the bundle templates"
 												/>
 										</div>
 									</div>
@@ -297,6 +306,7 @@ export default class BoxesPage extends Component<Props> {
 
 										<div className={styles.center}>
 										{/*selector for iteration of the system*/}
+											<Tippy content="Number of evolution steps to be performed during the analysis">
 											<div className={styles.simplePaddingLeft}>
 												Reachability steps:{" "}
 												<input
@@ -309,24 +319,29 @@ export default class BoxesPage extends Component<Props> {
 													step="1"
 												/>
 											</div>
+											</Tippy>
 
 											{/*selector for maximum vector magnitude*/}
-											<div className={styles.simplePaddingLeft}>
-												Max bundle magnitude:{" "}
-												<input
-													onChange={this.props.changeMaxBundleMagnitude}
-													value={this.props.maxBundleMagnitude}
-													className={styles.textInput}
-													type="number"
-													min="0"
-													step="0.01"
-												/>
-											</div>
+											<Tippy content="The maximum bundle edge length that does not require a set split (0=unlimited)">
+												<div className={styles.simplePaddingLeft}>
+													Max bundle magnitude:{" "}
+													<input
+														onChange={this.props.changeMaxBundleMagnitude}
+														value={this.props.maxBundleMagnitude}
+														className={styles.textInput}
+														type="number"
+														min="0"
+														step="0.01"
+													/>
+												</div>
+											</Tippy>
 										</div>
 										<div className={styles.center}>
-											<div className={styles.radio_element}>
-												<input id="cachedCoeff" type="checkbox" defaultChecked={this.props.cacheBernsteinCoeff}  onChange={e => this.props.changeCacheBernsteinCoeff(e)} disabled={this.state.changed}/> Cache Bernstein Coefficients
-											</div>
+											<Tippy content="Cache symbolic Bernstein coefficients and use them during the computation">
+												<div className={styles.radio_element}>
+													<input id="cachedCoeff" type="checkbox" defaultChecked={this.props.cacheBernsteinCoeff}  onChange={e => this.props.changeCacheBernsteinCoeff(e)} disabled={this.state.changed}/> Cache Bernstein Coefficients
+												</div>
+											</Tippy>
 										</div>
 									</div>
 									}
@@ -345,19 +360,22 @@ export default class BoxesPage extends Component<Props> {
 															"block";
 														}
 													}
+													hint="Define the formula that must be satisfied"
 												/>
-															
-											<div className={styles.simplePaddingLeft}>
-												Max parameter splits:{" "}
-												<input
-													onChange={this.props.changeMaxParamSplits}
-													value={this.props.maxParamSplits}
-													className={styles.textInput}
-													type="number"
-													min="0"
-													step="1"
-												/>
-											</div>
+
+											<Tippy content="Maximum number of parameter set splits admitted during the synthesis (each split multiply by 2^n the number of parameter sets)">
+												<div className={styles.simplePaddingLeft}>
+													Max parameter splits:{" "}
+													<input
+														onChange={this.props.changeMaxParamSplits}
+														value={this.props.maxParamSplits}
+														className={styles.textInput}
+														type="number"
+														min="0"
+														step="1"
+													/>
+												</div>
+											</Tippy>
 										</div>
 
 									</div>
@@ -376,6 +394,7 @@ export default class BoxesPage extends Component<Props> {
 															"block";
 														}
 													}
+													hint="Describe a candidate invariant"
 												/>
 
 											{/* join semantics selector */}			
