@@ -782,11 +782,10 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
             return;
         }
 
-        vertices.push_back(std::move(result.optimizer));
-        const Point<T>& new_vertex = vertices.back();
-        refine_2D_proj_on(constraints, axis_vector, vertices, v1, new_vertex, approx);
+        vertices.push_back(result.optimizer);
+        refine_2D_proj_on(constraints, axis_vector, vertices, v1, result.optimizer, approx);
 
-        v1 = new_vertex;
+        v1 = std::move(result.optimizer);
     }
 }
 
