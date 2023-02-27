@@ -474,7 +474,10 @@ export default class InvariantPlot extends Component<Props> {
 			}
 
 			for (var i=0; i<vertices.length; i++) {
-				invariant.push(polytope_gen(vertices[i], "#51f542", "Candidate invariant"));
+				let polytope = polytope_gen(vertices[i], "#51f542", "Candidate invariant");
+				if (polytope !== null) {
+					invariant.push(polytope);
+				}
 			}
 
 			this.setState({invariant: invariant});
@@ -1101,7 +1104,7 @@ export default class InvariantPlot extends Component<Props> {
 		for (let i=0; i<data_vertices.length; i++) {
 			let polys = this.getPolytopes(polytope_gen, data_vertices[i],
 					(this.state.pset_distinction ? i : undefined));
-	
+			
 			polys.forEach(polytope => polytopes.push(polytope));
 		}
 	
@@ -1160,7 +1163,9 @@ export default class InvariantPlot extends Component<Props> {
 
 				new_poly = polytope_gen(vertices, color, label);
 			}
-			polytopes.push(new_poly);
+			if (new_poly !== null) {
+				polytopes.push(new_poly);
+			}
 		}
 	
 		return polytopes;
@@ -1295,16 +1300,18 @@ function getFramesForSelectedFlowpipes(flowpipes, selection, invariant = undefin
 			var max_polytopes = flowpipe[flowpipe.length-1].length;
 			flowpipe.forEach((polytopes, timestamp) => {
 				// Add missing polytopes when a bundle split occurred
-				var empty_polytope = build_a_fake_polytope(polytopes[0]);
-				while (polytopes.length < max_polytopes) {
-					polytopes.push(empty_polytope);
-				}
+				if (polytopes.length > 0 && polytopes[0].hasOwnProperty('x')) {
+					var empty_polytope = build_a_fake_polytope(polytopes[0]);
+					while (polytopes.length < max_polytopes) {
+						polytopes.push(empty_polytope);
+					}
 
-				// push the polytopes in the frame
-				polytopes.forEach((polytope) => {
-					frames[timestamp].data.push(polytope);
-					//frames[timestamp].traces.push(frames[timestamp].traces.length);
-				});
+					// push the polytopes in the frame
+					polytopes.forEach((polytope) => {
+						frames[timestamp].data.push(polytope);
+						//frames[timestamp].traces.push(frames[timestamp].traces.length);
+					});
+				}
 			});
 		}
 	});
@@ -1537,9 +1544,16 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 
 	var chull = get2DConvexHullVertices(vertices)
 
+	let xs = [];
+	let ys = [];
+	if (chull.length > 0) {
+		xs = chull.map(e => e[0]).concat([chull[0][0]]);
+		ys = chull.map(e => e[1]).concat([chull[0][1]]);
+	}
+	
 	return {
-		x: chull.map(e => e[0]).concat([chull[0][0]]),
-		y: chull.map(e => e[1]).concat([chull[0][1]]),
+		x: xs,
+		y: ys,
 		mode: 'lines+markers',
 		type: 'scatter',
 		fill: 'toself',
@@ -1561,7 +1575,7 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 	var chull = get2DConvexHullVertices(vertices);
 
 	var times = []
-	var y = chull.map(e => e[0]);
+	var y = chull.map(e => e[1]);
 
 	for (var j = 0; j < y.length; j++)
 		times.push(time-thickness/2);
@@ -1571,8 +1585,10 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 	for (j = 0; j < l; j++) {
 		y.push(y[l-j-1]);
 	}
-	times.push(time-thickness/2);
-	y.push(y[0]);
+	if (y.length > 0) {
+		times.push(time-thickness/2);
+		y.push(y[0]);
+	}
 
 	return {
 		x: times,
@@ -1786,10 +1802,20 @@ function get3DPolytope(vertices, color = '#ff8f00', name = undefined)
 	// get the segment boundaries
 	var boundaries = getColinearVerticesBBoxBoundaries(vertices)
 
+	let xs = [];
+	let ys = [];
+	let zs = [];
+
+	if (boundaries.length >= 2) {
+		xs = [boundaries[0][0], boundaries[1][0]];
+		ys = [boundaries[0][1], boundaries[1][1]];
+		zs = [boundaries[0][2], boundaries[1][2]];
+	}
+
 	return {
-		x: [boundaries[0][0], boundaries[1][0]],
-		y: [boundaries[0][1], boundaries[1][1]],
-		z: [boundaries[0][2], boundaries[1][2]],
+		x: xs,
+		y: ys,
+		z: zs,
 		type: 'scatter3d',
 		mode: 'lines',
 		color: color,
