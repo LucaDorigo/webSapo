@@ -878,7 +878,11 @@ compute_flowpipe_proj(const json &json_input,
 
     size_t i = 0;
     for (auto fp_it = std::begin(json_input); fp_it != std::end(json_input); ++fp_it, ++i) {
-        output[i] = compute_polytopes_union_proj<T>(fp_it.value(), axis_vector);
+        if (fp_it.value().size()>0) {
+            output[i] = compute_polytopes_union_proj<T>(fp_it.value(), axis_vector);
+        } else {
+            output[i] = std::vector<Point<T>>();
+        }
     }
 
     return output;
