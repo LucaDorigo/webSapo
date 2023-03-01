@@ -173,8 +173,8 @@ OptimizationResult optimize(const LinearSystem<double> &constraints,
   }
 
   glp_load_matrix(lp, size_lp, ia, ja, ar);
-  //glp_exact(lp, &lp_param);
-  glp_simplex(lp, &lp_param);
+  glp_exact(lp, &lp_param);
+  //glp_simplex(lp, &lp_param);
 
   OptimizationResult res{std::vector<double>(num_cols), glp_get_status(lp), 0};
   for (unsigned int i=0; i<num_cols; ++i) {
@@ -603,13 +603,13 @@ refine_3D_proj_on_singular(const LinearSystem<T> &constraints,
                            const std::vector<T> &plan,
                            std::vector<Point<T>> &vertices,
                            const Point<T> &v1, const Point<T> &v2,
-                           const T approx)
+                           const std::vector<T>& approx)
 {
     std::vector<T> direction = Space3D::cross(plan, v1-v2);
 
     auto result = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-    if (result.status == GLP_OPT && direction*(result.optimizer-v2) > approx) {
+    if (result.status == GLP_OPT && direction*(result.optimizer-v2) > norm1(approx)) {
 
         vertices.push_back(std::move(result.optimizer));
         const Point<T>& new_vertex = vertices.back();
@@ -637,7 +637,10 @@ compute_3D_proj_vertices_on_singular(const LinearSystem<T> &constraints,
 
     std::vector<Point<T>> vertices(dir_vertices);
 
-    T approx = norm1(dir_vertices[0] - dir_vertices[1])/MAX_SCALE_APPROXIMATION_FACTOR;
+    std::vector<T> approx = (dir_vertices[0] - dir_vertices[1])/T(MAX_SCALE_APPROXIMATION_FACTOR);
+    for (auto& value : approx) {
+        value = std::abs(value);
+    }
 
 	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[0], dir_vertices[1], approx);
 	refine_3D_proj_on_singular(constraints, axis_vector, plan, vertices, dir_vertices[1], dir_vertices[0], approx);
@@ -652,7 +655,7 @@ refine_3D_proj_on(LinearSystem<T> &constraints,
                     const std::vector<unsigned int> &axis_vector,
                     std::vector<Point<T>> &vertices,
                     const Point<T>& v1, const Point<T> &v2, const Point<T> &v3,
-                    const T approx)
+                    const std::vector<T>& approx)
 {
     using namespace Space3D;
 
@@ -660,10 +663,15 @@ refine_3D_proj_on(LinearSystem<T> &constraints,
 
     auto result = optimize(constraints, plan.get_coeffs(), axis_vector, GLP_MAX);
 
-    if (result.status==GLP_OPT && result.value > plan.get_const() + approx
-            && norm1(v1-result.optimizer)>approx 
-            && norm1(v2-result.optimizer)>approx 
-            && norm1(v3-result.optimizer)>approx) {
+
+    if (result.status==GLP_OPT && result.value > plan.get_const() + norm1(approx)) {
+        for (size_t i=0; i<v1.size(); ++i) {
+            if (std::abs(v1[i]-result.optimizer[i])<=approx[i] || 
+                    std::abs(v2[i]-result.optimizer[i])<=approx[i] ||
+                    std::abs(v3[i]-result.optimizer[i])<=approx[i]) {
+                return;
+            }
+        }
 
         vertices.push_back(std::move(result.optimizer));
         const Point<T>& new_vertex = vertices.back();
@@ -699,15 +707,19 @@ compute_3D_proj_vertices(LinearSystem<T> constraints,
         std::swap(simplex_v[1], simplex_v[2]);
 	}
 
-    T approx = norm1(simplex_v[2] - simplex_v[0]);
+    std::vector<T> approx = simplex_v[2] - simplex_v[0];
+    for (auto& value : approx) {
+        value = std::abs(value)/MAX_SCALE_APPROXIMATION_FACTOR;
+    }
     for (size_t i=1; i<2; ++i) {
-        T aux = norm1(simplex_v[i-1] - simplex_v[i]);
-
-        if (aux > approx) {
-            approx = aux;
+        std::vector<T> aux = simplex_v[i-1] - simplex_v[i];
+        for (size_t i=0; i<aux.size(); ++i) {
+            aux[i] = std::abs(aux[i])/MAX_SCALE_APPROXIMATION_FACTOR;
+            if (aux[i] > approx[i]) {
+                approx[i] = aux[i];
+            }
         }
     }
-    approx /= MAX_SCALE_APPROXIMATION_FACTOR;
 
 	std::vector<Point<T>> vertices(simplex_v);
 
@@ -764,7 +776,7 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
                       const std::vector<unsigned int> &axis_vector, 
                       std::vector<Point<T>> &vertices,
                       Point<T> v1, const Point<T> &v2,
-                      const T approx)
+                      const std::vector<T>& approx)
 {
     using namespace Space2D;
 
@@ -774,12 +786,15 @@ void refine_2D_proj_on(const LinearSystem<T> &constraints,
 
         OptimizationResult result = optimize(constraints, direction, axis_vector, GLP_MAX);
 
-        if (result.status!=GLP_OPT || result.value <= v1v2.get_const()+approx) {
+        if (result.status!=GLP_OPT || result.value <= v1v2.get_const() + norm1(approx)) {
             return;
         }
 
-        if (norm1(v1-result.optimizer)<=approx || norm1(v2-result.optimizer)<=approx) {
-            return;
+        for (size_t i=0; i<v1.size(); ++i) {
+            if (std::abs(v1[i]-result.optimizer[i])<=approx[i] || 
+                    std::abs(v2[i]-result.optimizer[i])<=approx[i]) {
+                return;
+            }
         }
 
         vertices.push_back(result.optimizer);
@@ -795,8 +810,7 @@ std::vector<Point<T>> compute_2D_proj_vertices(LinearSystem<T> constraints,
 {
     using namespace Space2D;
 
-    std::vector<T> direction(axis_vector.size(), 0);
-    direction[0] = 1;
+    std::vector<T> direction(axis_vector.size(),1);
 
 	std::vector<Point<T>> dir_vertices = find_min_max_points(constraints, direction, axis_vector);
 
@@ -805,14 +819,17 @@ std::vector<Point<T>> compute_2D_proj_vertices(LinearSystem<T> constraints,
     }
 
     if (dir_vertices.size() == 1) {
-        direction[0] = 0;
-        direction[1] = 1;
+        direction[0] = -1;
 
         return find_min_max_points(constraints, direction, axis_vector);
 	}
     std::vector<Point<T>> vertices(dir_vertices);
 
-    T approx = norm1( dir_vertices[0] - dir_vertices[1])/MAX_SCALE_APPROXIMATION_FACTOR;
+    std::vector<T> approx = (dir_vertices[0] - dir_vertices[1])/T(MAX_SCALE_APPROXIMATION_FACTOR);
+    for (auto& value : approx) {
+        value = std::abs(value);
+    }
+    
 	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[0], dir_vertices[1], approx);
 	refine_2D_proj_on(constraints, axis_vector, vertices, dir_vertices[1], dir_vertices[0], approx);
 
