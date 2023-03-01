@@ -65,6 +65,7 @@ function hasManyPSets(sapoResults)
 	return sapoResults !== undefined && sapoResults.data.length > 1;
 }
 
+/*
 function approx_fp_vertices(input, decimal=6)
 {
 	if (Array.isArray(input)) {
@@ -83,6 +84,7 @@ function approx_fp_vertices(input, decimal=6)
 
 	throw new TypeError("Unsupported type")
 }
+*/
 
 function getFlowpipesBoundingBox(flowpipes, expand_ratio=0.10) 
 {
@@ -637,7 +639,6 @@ export default class InvariantPlot extends Component<Props> {
 
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
-					data_vertices = approx_fp_vertices(data_vertices);
 					triggeredFunction(data_vertices);
 				} else {
 					/*

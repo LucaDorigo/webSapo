@@ -54,6 +54,7 @@ function hasManyPSets(sapoResults)
 	return sapoResults !== undefined && sapoResults.data.length > 1;
 }
 
+/*
 function approx_fp_vertices(input, decimal=6)
 {
 	if (Array.isArray(input)) {
@@ -72,6 +73,7 @@ function approx_fp_vertices(input, decimal=6)
 
 	throw new TypeError("Unsupported type")
 }
+*/
 
 export default class InvariantPlot extends Component<Props> {
 
@@ -413,7 +415,6 @@ export default class InvariantPlot extends Component<Props> {
 
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
-					data_vertices = approx_fp_vertices(data_vertices);
 					this.updateDataVertices(data_vertices);
 				} else {
 					toast.error(msg.stderr);
