@@ -368,7 +368,7 @@ export default class InvariantPlot extends Component<Props> {
 						</div>
 						{this.state.chartType === "3D" && 
 						<div className={styles.radio_element}>
-							<input type="checkbox" defaultChecked={this.state.log_scale['z']} onChange={e => { this.changeScale('y'); }} disabled={this.state.changed}/>log-scale for Z axis
+							<input type="checkbox" defaultChecked={this.state.log_scale['z']} onChange={e => { this.changeScale('z'); }} disabled={this.state.changed}/>log-scale for Z axis
 						</div>}
 					</div>
 				</div> {/*closing right controls*/}
