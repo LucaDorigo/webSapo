@@ -98,6 +98,10 @@ export default class InvariantPlot extends Component<Props> {
 			changed: false,               // a Boolean flag for changes
 			chartType: "2D",              // chart type, i.e., either "2D" or "3D"
 			dataType: "flowpipe",     	  // data type, i.e., either "flowpipe" or "parameter set"
+			log_scale: {				  // log-scale
+				'x': false, 
+				'y': false,
+				'z': false},
 			axes: { x: undefined,         // axis names
 			        y: undefined, 
 					z: undefined }
@@ -131,12 +135,14 @@ export default class InvariantPlot extends Component<Props> {
 							xaxis: { 
 								title: { text: (this.state.axes.x === TimeAxisValue ? "Time": this.state.axes.x)},
 								autorange: !this.plottingAnimation(),
-								range: this.state.animBBox.x
+								range: this.state.animBBox.x,
+								type: (this.state.log_scale['x']===true ? "log" : "-")
 							 },
 							yaxis: { 
 								title: { text: this.state.axes.y },
 								autorange: !this.plottingAnimation(),
-								range: this.state.animBBox.y
+								range: this.state.animBBox.y,
+								type: (this.state.log_scale['y']===true ? "log" : "-")
 							},
 							scene: {
 								xaxis: { 
@@ -149,7 +155,8 @@ export default class InvariantPlot extends Component<Props> {
 										}*/
 									},
 									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.x
+									range: this.state.animBBox.x,
+									type: (this.state.log_scale['x']===true ? "log" : "-")
 								},
 								yaxis: { 
 									title: {
@@ -161,7 +168,8 @@ export default class InvariantPlot extends Component<Props> {
 										}*/
 									},
 									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.y
+									range: this.state.animBBox.y,
+									type: (this.state.log_scale['y']===true ? "log" : "-")
 								},
 								zaxis: { 
 									title: {
@@ -173,7 +181,8 @@ export default class InvariantPlot extends Component<Props> {
 										}*/
 									},
 									autorange: !this.plottingAnimation(),
-									range: this.state.animBBox.z
+									range: this.state.animBBox.z,
+									type: (this.state.log_scale['z']===true ? "log" : "-")
 								},
 								camera: this.state.camera
 							},
@@ -351,6 +360,16 @@ export default class InvariantPlot extends Component<Props> {
 								})}
 							</select>
 						</div>}
+						<div className={styles.radio_element}>
+							<input type="checkbox" defaultChecked={this.state.log_scale['x']} onChange={e => { this.changeScale('x'); }} disabled={this.state.changed}/>log-scale for X axis
+						</div>
+						<div className={styles.radio_element}>
+							<input type="checkbox" defaultChecked={this.state.log_scale['y']} onChange={e => { this.changeScale('y'); }} disabled={this.state.changed}/>log-scale for Y axis
+						</div>
+						{this.state.chartType === "3D" && 
+						<div className={styles.radio_element}>
+							<input type="checkbox" defaultChecked={this.state.log_scale['z']} onChange={e => { this.changeScale('y'); }} disabled={this.state.changed}/>log-scale for Z axis
+						</div>}
 					</div>
 				</div> {/*closing right controls*/}
 			</>
@@ -431,6 +450,19 @@ export default class InvariantPlot extends Component<Props> {
 		});
 		req.write(data);
 		req.end();
+	}
+
+	changeScale(axis_name)
+	{
+		let log_scale = this.state.log_scale;
+
+		log_scale[axis_name] = !log_scale[axis_name];
+		this.setState({ 
+			log_scale: log_scale,
+			changed: true
+		}, ()=>{
+			this.updatePlot();
+		});
 	}
 
 	changeAxis(axis_name, value)
