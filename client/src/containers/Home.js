@@ -1113,7 +1113,19 @@ export default class HomeContainer extends Component {
 						}
 					);
 
-					document.getElementById("chart").style.display = "block";
+					let block_id;
+					switch (String(resultFromFile["task"])) {
+					case "reachability":
+					case "synthesis":
+						block_id = "reach_synth_plot";
+						break;
+					case "":
+						block_id = "invariant_plot";
+						break;
+					default:
+						throw new Error("Unknown result type \""+resultFromFile["task"]+"\"");
+					}
+					document.getElementById(block_id).style.display = "block";
 					window.dispatchEvent(new Event('resize'));
 				}
 				catch (err)
