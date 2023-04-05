@@ -387,7 +387,7 @@ export default class InvariantPlot extends Component<Props> {
 			query["field"] = "flowpipe";
 		} else {
 			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
-			query["field"] = "parameters set";
+			query["field"] = "parameter set";
 		}
 
 		let data = JSON.stringify(query);
