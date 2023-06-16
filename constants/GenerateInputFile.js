@@ -88,7 +88,7 @@ exports.generateModelFile = (
 	model += "\n// dynamics\n"
 	// dynamics
 	variables.forEach(v => {
-		model += "dynamic(" + v.name + ") = " + v.dynamics + ";\n";
+		model += "next(" + v.name + ") = " + v.dynamics + ";\n";
 	});
 	
 	// spec
