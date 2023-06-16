@@ -10,7 +10,7 @@
 #include <glpk.h>
 #include <nlohmann/json.hpp>
 
-#define MAX_SCALE_APPROXIMATION_FACTOR 10000
+#define MAX_SCALE_APPROXIMATION_FACTOR 1e18
 
 using json = nlohmann::json;
 

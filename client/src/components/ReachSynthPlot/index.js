@@ -54,6 +54,7 @@ function hasManyPSets(sapoResults)
 	return sapoResults !== undefined && sapoResults.data.length > 1;
 }
 
+/*
 function approx_fp_vertices(input, decimal=6)
 {
 	if (Array.isArray(input)) {
@@ -72,6 +73,7 @@ function approx_fp_vertices(input, decimal=6)
 
 	throw new TypeError("Unsupported type")
 }
+*/
 
 export default class InvariantPlot extends Component<Props> {
 
@@ -413,7 +415,7 @@ export default class InvariantPlot extends Component<Props> {
 
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
-					data_vertices = approx_fp_vertices(data_vertices);
+					//data_vertices = approx_fp_vertices(data_vertices);
 					this.updateDataVertices(data_vertices);
 				} else {
 					toast.error(msg.stderr);
@@ -1273,7 +1275,7 @@ function get2DTimePolygon(vertices, time, color = '#ff8f00', name = undefined, t
 	var chull = get2DConvexHullVertices(vertices);
 
 	var times = []
-	var y = chull.map(e => e[0]);
+	var y = chull.map(e => e[1]);
 
 	for (var j = 0; j < y.length; j++)
 		times.push(time-thickness/2);
