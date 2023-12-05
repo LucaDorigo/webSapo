@@ -408,7 +408,7 @@ export default class InvariantPlot extends Component<Props> {
 			query["field"] = "flowpipe";
 		} else {
 			query["axes"] = this.getProjSubspace(this.props.sapoResults.parameters);
-			query["field"] = "parameters set";
+			query["field"] = "parameter set";
 		}
 
 		let data = JSON.stringify(query);
@@ -434,6 +434,7 @@ export default class InvariantPlot extends Component<Props> {
 
 				if (msg.stderr === "") {
 					let data_vertices =  JSON.parse(msg.stdout);
+					//data_vertices = approx_fp_vertices(data_vertices);
 					this.updateDataVertices(data_vertices);
 				} else {
 					toast.error(msg.stderr);

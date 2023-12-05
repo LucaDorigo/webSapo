@@ -1167,6 +1167,7 @@ export default class HomeContainer extends Component {
 					let block_id;
 					switch (String(resultFromFile["task"])) {
 					case "reachability":
+					case "synthesis":
 						block_id = "reach_synth_plot";
 						break;
 					case "":

@@ -354,14 +354,14 @@ export default class InvariantPlot extends Component<Props> {
 					{ this.props.sapoResults.task === "invariant validation" && <div className={styles.result}>
 						<p>{this.props.sapoResults.result}</p>
 					</div>}
-					{(this.hasParamData() || this.hasProofData()) && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
+						{(this.hasParamData() || this.hasProofData()) && <div className={styles.radio_group} onChange={e => this.changeDataType(e)}>
 						<div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingFlowpipe()} value="flowpipe" name="dataType" disabled={this.state.changed}/> Reachability
 						</div>
 						{this.hasProofData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingProof()} value="k-induction proof" name="dataType" disabled={this.state.changed}/> Proof
 						</div>}
-						{this.props.sapoResults.task !== "invariant validation" && this.hasParamData() && <div className={styles.radio_element}>
+						{!this.hasProofData() && <div className={styles.radio_element}>
 							<input type="radio" defaultChecked={this.plottingParameterSet()} value="parameter set" name="dataType" disabled={this.state.changed}/> Parameters
 						</div>}
 					</div>} {/*closing radio group*/}
@@ -1544,7 +1544,6 @@ function get2DPolygon(vertices, color = '#ff8f00', name = undefined)
 	}
 
 	var chull = get2DConvexHullVertices(vertices)
-
 	let xs = [];
 	let ys = [];
 	if (chull.length > 0) {

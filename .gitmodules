@@ -1,4 +1,4 @@
 [submodule "sapoCore"]
 	path = sapoCore
-	url = https://github.com/dreossi/sapo
+	url = https://github.com/sapotools/sapo
 	branch = master
